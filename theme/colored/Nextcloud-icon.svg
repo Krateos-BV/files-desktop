@@ -33,16 +33,32 @@
      id="defs12">
     <filter
        id="dropShadow"
-       x="0"
-       y="0"
-       width="1"
-       height="1">
-      <feDropShadow
+       x="-50%"
+       y="-50%"
+       width="200%"
+       height="200%">
+      <feGaussianBlur
+         in="SourceAlpha"
+         stdDeviation="14"
+         result="blur" />
+      <feOffset
+         in="blur"
          dx="0"
          dy="10"
-         stdDeviation="14"
+         result="offsetBlur" />
+      <feFlood
          flood-color="#000814"
-         flood-opacity="0.45" />
+         flood-opacity="0.45"
+         result="flood" />
+      <feComposite
+         in="flood"
+         in2="offsetBlur"
+         operator="in"
+         result="shadow" />
+      <feMerge>
+        <feMergeNode in="shadow" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
     </filter>
     <linearGradient
        id="bgGrad"
@@ -143,16 +159,32 @@
     </radialGradient>
     <filter
        id="glyphShadow"
-       x="0"
-       y="0"
-       width="1"
-       height="1">
-      <feDropShadow
+       x="-50%"
+       y="-50%"
+       width="200%"
+       height="200%">
+      <feGaussianBlur
+         in="SourceAlpha"
+         stdDeviation="9"
+         result="blur" />
+      <feOffset
+         in="blur"
          dx="0"
          dy="6"
-         stdDeviation="9"
+         result="offsetBlur" />
+      <feFlood
          flood-color="#00081E"
-         flood-opacity="0.35" />
+         flood-opacity="0.35"
+         result="flood" />
+      <feComposite
+         in="flood"
+         in2="offsetBlur"
+         operator="in"
+         result="shadow" />
+      <feMerge>
+        <feMergeNode in="shadow" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
     </filter>
     <radialGradient
        id="glyphGrad"
