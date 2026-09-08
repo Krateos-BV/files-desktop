@@ -20,8 +20,15 @@ jobs:
         id: build-appimage
         env:
           PR_ID: ${{ github.event.number }}
+          # This fork's CMake (NEXTCLOUD.cmake) always installs under the
+          # "Xenia Desktop" / xenia-desktop branding, not upstream's
+          # "Nextcloud" / nextcloud — build-appimage.sh needs these to match
+          # the actual installed paths (XNT-67).
+          APPNAME: "Xenia Desktop"
+          APPICON_NAME: "Xenia Desktop"
+          EXECUTABLE_NAME: xenia-desktop
         run: |
-            BUILDNR=${GITHUB_RUN_ID} VERSION_SUFFIX=${GITHUB_HEAD_REF} BUILD_UPDATER=ON DESKTOP_CLIENT_ROOT=`pwd` EXECUTABLE_NAME=nextcloud QT_BASE_DIR=/root/linux-gcc-x86_64 /bin/bash -c "./admin/linux/build-appimage.sh"
+            BUILDNR=${GITHUB_RUN_ID} VERSION_SUFFIX=${GITHUB_HEAD_REF} BUILD_UPDATER=ON DESKTOP_CLIENT_ROOT=`pwd` QT_BASE_DIR=/root/linux-gcc-x86_64 /bin/bash -c "./admin/linux/build-appimage.sh"
 
       - name: Upload AppImage artifact
         id: upload-appimage
