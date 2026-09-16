@@ -60,14 +60,21 @@ final class ItemCreateTests: NextcloudFileProviderKitTestCase {
     var rootItem: MockRemoteItem!
     static let dbManager = FilesDatabaseManager(account: account, databaseDirectory: makeDatabaseDirectory(), fileProviderDomainIdentifier: NSFileProviderDomainIdentifier("test"), log: FileProviderLogMock())
 
+    /// Retains the in-memory Realm for the whole test. Without a live reference the
+    /// store is deallocated once a synchronous write returns, so data written before
+    /// an `await` vanishes when the enumerator reopens the Realm on another thread.
+    private var keepAliveRealm: Realm?
+
     override func setUp() {
         super.setUp()
         Realm.Configuration.defaultConfiguration.inMemoryIdentifier = name
+        keepAliveRealm = Self.dbManager.ncDatabase()
         rootItem = MockRemoteItem.rootItem(account: Self.account)
     }
 
     override func tearDown() {
         rootItem.children = []
+        keepAliveRealm = nil
     }
 
     func testCreateFolder() async throws {
