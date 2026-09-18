@@ -19,7 +19,12 @@ endif()
 set( APPLICATION_CONFIG_NAME "${APPLICATION_EXECUTABLE}" )
 set( APPLICATION_DOMAIN     "xeniacloud.eu" )
 set( APPLICATION_VENDOR     "XeniaCloud" )
-set( APPLICATION_UPDATE_URL "https://updates.nextcloud.org/client/" CACHE STRING "URL for updater" )
+# XNT-113: the updater is disabled for Xenia builds (see BUILD_UPDATER below), so
+# nothing fetches this URL. It stays defined because Theme::updateCheckUrl() reads
+# APPLICATION_UPDATE_URL unconditionally, and config.h.in drops the define entirely
+# when the value is empty. The placeholder host is not live yet; it must not be
+# pointed at a working channel until that channel serves signed artifacts.
+set( APPLICATION_UPDATE_URL "https://updates.xeniacloud.eu/client/" CACHE STRING "URL for updater" )
 set( APPLICATION_HELP_URL   "https://xeniacloud.eu" CACHE STRING "URL for the help menu" )
 
 # Default macOS builds (Nextcloud + NextcloudDev) use the Icon Composer (.icon)
@@ -100,7 +105,15 @@ set( MAC_INSTALLER_BACKGROUND_FILE "${CMAKE_SOURCE_DIR}/admin/osx/installer-back
 # set( APPLICATION_LICENSE    "${OEM_THEME_DIR}/license.txt )
 
 ## Updater options
-option( BUILD_UPDATER "Build updater" ON )
+# XNT-113: off for Xenia builds. There is no xeniacloud-owned update channel, and
+# leaving the updater pointed at updates.nextcloud.org sent install-base telemetry
+# to a third party and let a third-party-controlled channel push binaries to
+# Xenia-branded clients. With this off the updater is not compiled in at all, so the
+# Info settings panel hides its update section (InfoSettings::customizeStyle) and no
+# Sparkle framework or its temporary-exception entitlements enter the macOS bundle
+# (admin/osx/CMakeLists.txt). Turn back on only together with a signed xeniacloud
+# channel.
+option( BUILD_UPDATER "Build updater" OFF )
 
 option( WITH_PROVIDERS "Build with providers list" ON )
 

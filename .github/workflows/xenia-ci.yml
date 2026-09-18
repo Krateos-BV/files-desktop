@@ -28,7 +28,11 @@ jobs:
           EXECUTABLE_NAME: xenia-desktop
           VERSION_SUFFIX: ${{ github.ref_name }}
         run: |
-          BUILDNR=${GITHUB_RUN_ID} BUILD_UPDATER=ON DESKTOP_CLIENT_ROOT=`pwd` QT_BASE_DIR=/root/linux-gcc-x86_64 /bin/bash -c "./admin/linux/build-appimage.sh"
+          # XNT-113: BUILD_UPDATER=OFF — Xenia has no update channel of its own, so the
+          # shipped AppImage must not carry an updater (see NEXTCLOUD.cmake). This env var
+          # is what build-appimage.sh turns into -DBUILD_UPDATER, and it overrides the
+          # cmake default, so it has to be set here too.
+          BUILDNR=${GITHUB_RUN_ID} BUILD_UPDATER=OFF DESKTOP_CLIENT_ROOT=`pwd` QT_BASE_DIR=/root/linux-gcc-x86_64 /bin/bash -c "./admin/linux/build-appimage.sh"
 
       - name: Upload AppImage artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
