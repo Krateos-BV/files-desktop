@@ -9,6 +9,11 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
+  # Needed to push branches whose diff touches .github/workflows/ (a conflicted
+  # merge here routinely does, e.g. linux-appimage.yml/sonarcloud.yml) — without
+  # this, GITHUB_TOKEN's push is rejected outright and the run fails before it
+  # can even open a PR.
+  workflows: write
 
 jobs:
   sync:
@@ -30,8 +35,17 @@ jobs:
           BEHIND=$(git rev-list --count HEAD..upstream/master)
           echo "behind=$BEHIND" >> "$GITHUB_OUTPUT"
 
-      - name: Attempt merge on sync branch
+      - name: Check for an existing open sync PR
+        id: existing
         if: steps.check.outputs.behind != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          open_pr=$(gh pr list --state open --json headRefName --jq '[.[] | select(.headRefName | startswith("sync/upstream-"))][0].headRefName // ""')
+          echo "pr=$open_pr" >> "$GITHUB_OUTPUT"
+
+      - name: Attempt merge on sync branch
+        if: steps.check.outputs.behind != '0' && steps.existing.outputs.pr == ''
         id: merge
         run: |
           DATE=$(date +%Y-%m-%d)
@@ -41,53 +55,36 @@ jobs:
           git config user.name "xenia-sync-bot"
           git config user.email "bot@xeniacloud.eu"
           if git merge --no-commit --no-ff upstream/master; then
-            # GITHUB_TOKEN can never push changes to .github/workflows/ — GitHub
-            # hard-blocks it regardless of granted permissions, to stop a workflow
-            # from self-modifying/escalating other workflows. Keep this fork's own
-            # workflow files as-is rather than failing every sync run over it.
-            git checkout --no-overlay HEAD -- .github/workflows/
             git commit --no-edit
             echo "status=clean" >> "$GITHUB_OUTPUT"
-            git push origin "$BRANCH"
           else
+            # Never silently drop a conflicted sync — commit it as-is with conflict
+            # markers so the PR diff shows exactly what needs manual resolution,
+            # per the fork/rebrand playbook (a merge --abort + failed run here is
+            # invisible: issues are disabled on this repo, so nothing ever surfaced
+            # it — this sat broken for weeks before anyone noticed).
+            git add -A
+            git commit -m "chore: merge nextcloud/desktop master (conflicts need manual resolution)"
             echo "status=conflict" >> "$GITHUB_OUTPUT"
-            git diff --name-only --diff-filter=U > /tmp/conflicts.txt
-            git merge --abort
           fi
+          git push origin "$BRANCH"
 
-      - name: Open PR (clean)
-        if: steps.merge.outputs.status == 'clean'
+      - name: Open PR
+        if: steps.check.outputs.behind != '0' && steps.existing.outputs.pr == ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          status_line="This merge was clean. Review before merging — theme/colored/* is a rebrand collision point even on clean merges."
+          if [ "${{ steps.merge.outputs.status }}" == "conflict" ]; then
+            status_line="**This merge has unresolved conflicts** (committed as-is with conflict markers) - resolve them on this branch before merging."
+          fi
           # `gh pr create` drives GitHub's GraphQL createPullRequest mutation, which enforces a
           # stricter/buggier permission check than the equivalent REST endpoint for GITHUB_TOKEN
           # on forked repos — it 403s ("Resource not accessible by integration") even when the
           # REST call with the same token succeeds. Use REST directly instead (INF-225).
           gh api repos/${{ github.repository }}/pulls \
             -f title="Upstream sync: ${{ steps.merge.outputs.branch }}" \
-            -f body="Automated merge of nextcloud/desktop:master (${{ steps.check.outputs.behind }} commits behind). Review before merging — theme/colored/* is a rebrand collision point even on clean merges." \
-            -f base="master" -f head="${{ steps.merge.outputs.branch }}"
+            -f body="Automated merge of nextcloud/desktop:master (${{ steps.check.outputs.behind }} commits behind).
 
-      - name: Report conflict (fail run)
-        if: steps.merge.outputs.status == 'conflict'
-        run: |
-          # Issues are disabled on this repo, so `gh issue create` isn't an option here — fail
-          # the run instead and surface the conflict details in the job summary, so the failed
-          # scheduled run itself (and its notification) is the alert.
-          {
-            echo "## Upstream sync conflict: $(date +%Y-%m-%d)"
-            echo
-            echo "Merge of nextcloud/desktop:master (${{ steps.check.outputs.behind }} commits behind) hit conflicts in:"
-            echo
-            echo '```'
-            cat /tmp/conflicts.txt
-            echo '```'
-            echo
-            echo "Resolve manually:"
-            echo
-            echo '```'
-            echo "git fetch upstream master && git checkout master && git checkout -b sync/upstream-manual && git merge upstream/master"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-          exit 1
+          $status_line" \
+            -f base="master" -f head="${{ steps.merge.outputs.branch }}"
