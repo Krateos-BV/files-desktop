@@ -28,6 +28,86 @@ final class ItemDeleteTests: NextcloudFileProviderKitTestCase {
         rootTrashItem.children = []
     }
 
+    private func makeLockFileDeletionScenario(
+        targetFileName: String,
+        remoteInterface: MockRemoteInterface
+    ) -> (
+        lockItem: Item,
+        targetRemote: MockRemoteItem,
+        targetMetadata: SendableItemMetadata,
+        lockFileMetadata: SendableItemMetadata
+    ) {
+        let folderName = "folder-\(targetFileName)"
+        let folderRemote = MockRemoteItem(
+            identifier: "\(folderName)-id",
+            versionIdentifier: "1",
+            name: folderName,
+            remotePath: Self.account.davFilesUrl + "/" + folderName,
+            directory: true,
+            account: Self.account.ncKitAccount,
+            username: Self.account.username,
+            userId: Self.account.id,
+            serverUrl: Self.account.serverUrl
+        )
+        let targetRemote = MockRemoteItem(
+            identifier: "\(folderName)/\(targetFileName)",
+            versionIdentifier: "1",
+            name: targetFileName,
+            remotePath: folderRemote.remotePath + "/" + targetFileName,
+            data: Data("test data".utf8),
+            locked: true,
+            account: Self.account.ncKitAccount,
+            username: Self.account.username,
+            userId: Self.account.id,
+            serverUrl: Self.account.serverUrl
+        )
+
+        folderRemote.children = [targetRemote]
+        folderRemote.parent = rootItem
+        rootItem.children = [folderRemote]
+
+        var folderMetadata = SendableItemMetadata(
+            ocId: folderRemote.identifier,
+            fileName: folderName,
+            account: Self.account
+        )
+        folderMetadata.directory = true
+        Self.dbManager.addItemMetadata(folderMetadata)
+
+        var targetMetadata = SendableItemMetadata(
+            ocId: targetRemote.identifier,
+            fileName: targetFileName,
+            account: Self.account
+        )
+        targetMetadata.serverUrl = folderRemote.remotePath
+        targetMetadata.lock = true
+        targetMetadata.lockOwner = Self.account.id
+        targetMetadata.lockOwnerDisplayName = "Test User"
+        targetMetadata.lockOwnerEditor = "desktop"
+        targetMetadata.lockOwnerType = NKLockType.token.rawValue
+        targetMetadata.lockTime = Date(timeIntervalSince1970: 1)
+        targetMetadata.lockTimeOut = Date(timeIntervalSince1970: 2)
+        targetMetadata.lockToken = "opaquelocktoken:test-token"
+        Self.dbManager.addItemMetadata(targetMetadata)
+
+        var lockFileMetadata = SendableItemMetadata(
+            ocId: "\(folderName)-lock-id",
+            fileName: ".~lock.\(targetFileName)#",
+            account: Self.account
+        )
+        lockFileMetadata.serverUrl = folderRemote.remotePath
+        Self.dbManager.addItemMetadata(lockFileMetadata)
+
+        let lockItem = Item(
+            metadata: lockFileMetadata,
+            parentItemIdentifier: .init(folderMetadata.ocId),
+            account: Self.account,
+            remoteInterface: remoteInterface,
+            dbManager: Self.dbManager
+        )
+        return (lockItem, targetRemote, targetMetadata, lockFileMetadata)
+    }
+
     func testDeleteFile() async {
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, rootTrashItem: rootTrashItem)
         let itemIdentifier = "file"
@@ -62,6 +142,146 @@ final class ItemDeleteTests: NextcloudFileProviderKitTestCase {
         XCTAssertTrue(rootItem.children.isEmpty)
 
         XCTAssertEqual(Self.dbManager.itemMetadata(ocId: itemIdentifier)?.deleted, true)
+    }
+
+    func testDeleteTreatsMissingFileAsSuccess() async {
+        let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, rootTrashItem: rootTrashItem)
+        remoteInterface.deleteError = NKError(statusCode: 404, fallbackDescription: "Not Found")
+
+        let itemMetadata = SendableItemMetadata(
+            ocId: "already-deleted-file",
+            fileName: "already-deleted.txt",
+            account: Self.account
+        )
+        Self.dbManager.addItemMetadata(itemMetadata)
+
+        let item = Item(
+            metadata: itemMetadata,
+            parentItemIdentifier: .rootContainer,
+            account: Self.account,
+            remoteInterface: remoteInterface,
+            dbManager: Self.dbManager
+        )
+
+        let error = await item.delete(dbManager: Self.dbManager)
+
+        XCTAssertNil(error)
+        XCTAssertEqual(remoteInterface.lastDeleteRemotePath, Self.account.davFilesUrl + "/already-deleted.txt")
+        XCTAssertEqual(Self.dbManager.itemMetadata(ocId: itemMetadata.ocId)?.deleted, true)
+    }
+
+    func testDeleteTreatsMissingFolderAsSuccessAndMarksDescendantsDeleted() async {
+        let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, rootTrashItem: rootTrashItem)
+        remoteInterface.deleteError = NKError(statusCode: 404, fallbackDescription: "Not Found")
+
+        let remoteFolder = MockRemoteItem(
+            identifier: "already-deleted-folder",
+            name: "already-deleted",
+            remotePath: Self.account.davFilesUrl + "/already-deleted",
+            directory: true,
+            account: Self.account.ncKitAccount,
+            username: Self.account.username,
+            userId: Self.account.id,
+            serverUrl: Self.account.serverUrl
+        )
+        let remoteItem = MockRemoteItem(
+            identifier: "already-deleted-child",
+            name: "child.txt",
+            remotePath: Self.account.davFilesUrl + "/already-deleted/child.txt",
+            account: Self.account.ncKitAccount,
+            username: Self.account.username,
+            userId: Self.account.id,
+            serverUrl: Self.account.serverUrl
+        )
+        remoteFolder.children = [remoteItem]
+        remoteItem.parent = remoteFolder
+
+        let folderMetadata = remoteFolder.toItemMetadata(account: Self.account)
+        let itemMetadata = remoteItem.toItemMetadata(account: Self.account)
+        Self.dbManager.addItemMetadata(folderMetadata)
+        Self.dbManager.addItemMetadata(itemMetadata)
+
+        let folder = Item(
+            metadata: folderMetadata,
+            parentItemIdentifier: .rootContainer,
+            account: Self.account,
+            remoteInterface: remoteInterface,
+            dbManager: Self.dbManager
+        )
+
+        let error = await folder.delete(dbManager: Self.dbManager)
+
+        XCTAssertNil(error)
+        XCTAssertEqual(remoteInterface.lastDeleteRemotePath, Self.account.davFilesUrl + "/already-deleted")
+        XCTAssertEqual(Self.dbManager.itemMetadata(ocId: folderMetadata.ocId)?.deleted, true)
+        XCTAssertEqual(Self.dbManager.itemMetadata(ocId: itemMetadata.ocId)?.deleted, true)
+    }
+
+    func testTrashPurgeUsesResolvedFilename() async {
+        let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, rootTrashItem: rootTrashItem)
+        let remoteTrashItem = MockRemoteItem(
+            identifier: "trashed-file",
+            name: "file.d1234567890",
+            remotePath: Self.account.trashUrl + "/file.d1234567890",
+            account: Self.account.ncKitAccount,
+            username: Self.account.username,
+            userId: Self.account.id,
+            serverUrl: Self.account.serverUrl,
+            trashbinOriginalLocation: "file"
+        )
+        remoteTrashItem.parent = rootTrashItem
+        rootTrashItem.children = [remoteTrashItem]
+
+        var itemMetadata = remoteTrashItem.toItemMetadata(account: Self.account)
+        itemMetadata.fileName = "file"
+        itemMetadata.fileNameView = "file"
+        itemMetadata.name = "file"
+        itemMetadata.serverUrl = Self.account.trashUrl
+        Self.dbManager.addItemMetadata(itemMetadata)
+
+        let item = Item(
+            metadata: itemMetadata,
+            parentItemIdentifier: .trashContainer,
+            account: Self.account,
+            remoteInterface: remoteInterface,
+            dbManager: Self.dbManager
+        )
+
+        let error = await item.delete(dbManager: Self.dbManager)
+
+        XCTAssertNil(error)
+        XCTAssertEqual(remoteInterface.lastDeleteRemotePath, Self.account.trashUrl + "/file.d1234567890")
+        XCTAssertEqual(Self.dbManager.itemMetadata(ocId: itemMetadata.ocId)?.deleted, true)
+    }
+
+    func testTrashPurgeDoesNotTreatFallback404AsSuccessAfterListingFailure() async {
+        let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, rootTrashItem: rootTrashItem)
+        remoteInterface.deleteError = NKError(statusCode: 404, fallbackDescription: "Not Found")
+        remoteInterface.trashListingError = NKError(statusCode: 500, fallbackDescription: "Internal Server Error")
+
+        var itemMetadata = SendableItemMetadata(
+            ocId: "missing-trash-file",
+            fileName: "file",
+            account: Self.account
+        )
+        itemMetadata.serverUrl = Self.account.trashUrl
+        itemMetadata.fileId = itemMetadata.ocId
+        Self.dbManager.addItemMetadata(itemMetadata)
+
+        let item = Item(
+            metadata: itemMetadata,
+            parentItemIdentifier: .trashContainer,
+            account: Self.account,
+            remoteInterface: remoteInterface,
+            dbManager: Self.dbManager
+        )
+
+        let error = await item.delete(dbManager: Self.dbManager)
+
+        XCTAssertNotNil(error)
+        XCTAssertEqual(remoteInterface.lastDeleteRemotePath, Self.account.trashUrl + "/file")
+        XCTAssertNotNil(Self.dbManager.itemMetadata(ocId: itemMetadata.ocId))
+        XCTAssertNotEqual(Self.dbManager.itemMetadata(ocId: itemMetadata.ocId)?.deleted, true)
     }
 
     func testDeleteFileDiscardsIncompleteChunkUpload() async throws {
@@ -494,78 +714,75 @@ final class ItemDeleteTests: NextcloudFileProviderKitTestCase {
 
     func testDeleteLockFileUnlocksTargetFile() async {
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
-
-        // Setup remote folder and file
-        let folderRemote = MockRemoteItem(
-            identifier: "folder-id",
-            versionIdentifier: "1",
-            name: "folder",
-            remotePath: Self.account.davFilesUrl + "/folder",
-            directory: true,
-            account: Self.account.ncKitAccount,
-            username: Self.account.username,
-            userId: Self.account.id,
-            serverUrl: Self.account.serverUrl
+        let scenario = makeLockFileDeletionScenario(
+            targetFileName: "MyDoc.odt",
+            remoteInterface: remoteInterface
         )
 
-        let targetFileName = "MyDoc.odt"
-        let targetRemote = MockRemoteItem(
-            identifier: "folder/\(targetFileName)",
-            versionIdentifier: "1",
-            name: targetFileName,
-            remotePath: folderRemote.remotePath + "/" + targetFileName,
-            data: Data("test data".utf8),
-            locked: true,
-            account: Self.account.ncKitAccount,
-            username: Self.account.username,
-            userId: Self.account.id,
-            serverUrl: Self.account.serverUrl
+        let error = await scenario.lockItem.delete(dbManager: Self.dbManager)
+
+        XCTAssertEqual(
+            Self.dbManager.itemMetadata(ocId: scenario.lockFileMetadata.ocId)?.deleted,
+            true
         )
-
-        folderRemote.children = [targetRemote]
-        folderRemote.parent = rootItem
-        rootItem.children = [folderRemote]
-
-        // Insert folder and target file into DB
-        var folderMetadata = SendableItemMetadata(
-            ocId: folderRemote.identifier, fileName: "folder", account: Self.account
-        )
-        folderMetadata.directory = true
-        Self.dbManager.addItemMetadata(folderMetadata)
-
-        var targetMetadata = SendableItemMetadata(
-            ocId: targetRemote.identifier, fileName: targetFileName, account: Self.account
-        )
-        targetMetadata.serverUrl += "/folder"
-        Self.dbManager.addItemMetadata(targetMetadata)
-
-        // Construct the lock file metadata (used in deletion)
-        let lockFileName = ".~lock.\(targetFileName)#"
-        var lockFileMetadata = SendableItemMetadata(
-            ocId: "lock-id", fileName: lockFileName, account: Self.account
-        )
-        lockFileMetadata.serverUrl += "/folder"
-        Self.dbManager.addItemMetadata(lockFileMetadata)
-
-        let lockItem = Item(
-            metadata: lockFileMetadata,
-            parentItemIdentifier: .init(folderMetadata.ocId),
-            account: Self.account,
-            remoteInterface: remoteInterface,
-            dbManager: Self.dbManager
-        )
-
-        // Delete the lock file
-        let error = await lockItem.delete(dbManager: Self.dbManager)
-        XCTAssertEqual(Self.dbManager.itemMetadata(ocId: lockFileMetadata.ocId)?.deleted, true)
-
-        // Assert: no error returned
         XCTAssertNil(error)
-
-        // Assert: remote file is now unlocked
         XCTAssertFalse(
-            targetRemote.locked, "Expected the target file to be unlocked after lock file deletion"
+            scenario.targetRemote.locked,
+            "Expected the target file to be unlocked after lock file deletion"
         )
+    }
+
+    func testDeleteLockFileTreatsPreconditionFailureAsAlreadyUnlocked() async throws {
+        let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
+        remoteInterface.lockUnlockError = NKError(
+            errorCode: 412,
+            errorDescription: "Precondition Failed"
+        )
+        let scenario = makeLockFileDeletionScenario(
+            targetFileName: "AlreadyUnlocked.odt",
+            remoteInterface: remoteInterface
+        )
+
+        let error = await scenario.lockItem.delete(dbManager: Self.dbManager)
+
+        XCTAssertNil(error)
+        XCTAssertEqual(
+            Self.dbManager.itemMetadata(ocId: scenario.lockFileMetadata.ocId)?.deleted,
+            true
+        )
+        let targetMetadata = try XCTUnwrap(
+            Self.dbManager.itemMetadata(ocId: scenario.targetMetadata.ocId)
+        )
+        XCTAssertFalse(targetMetadata.lock)
+        XCTAssertNil(targetMetadata.lockOwner)
+        XCTAssertNil(targetMetadata.lockOwnerDisplayName)
+        XCTAssertNil(targetMetadata.lockOwnerEditor)
+        XCTAssertNil(targetMetadata.lockOwnerType)
+        XCTAssertNil(targetMetadata.lockTime)
+        XCTAssertNil(targetMetadata.lockTimeOut)
+        XCTAssertNil(targetMetadata.lockToken)
+    }
+
+    func testDeleteLockFileDoesNotIgnoreLockedResponse() async throws {
+        let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
+        remoteInterface.lockUnlockError = NKError(errorCode: 423, errorDescription: "Locked")
+        let scenario = makeLockFileDeletionScenario(
+            targetFileName: "LockedBySomeoneElse.odt",
+            remoteInterface: remoteInterface
+        )
+
+        let error = await scenario.lockItem.delete(dbManager: Self.dbManager)
+
+        XCTAssertNotNil(error)
+        XCTAssertEqual(
+            Self.dbManager.itemMetadata(ocId: scenario.lockFileMetadata.ocId)?.deleted,
+            true
+        )
+        let targetMetadata = try XCTUnwrap(
+            Self.dbManager.itemMetadata(ocId: scenario.targetMetadata.ocId)
+        )
+        XCTAssertTrue(targetMetadata.lock)
+        XCTAssertEqual(targetMetadata.lockToken, "opaquelocktoken:test-token")
     }
 
     func testDeleteLockFileWithoutCapabilitiesRemovesLocalMetadataButKeepsServerLock() async {

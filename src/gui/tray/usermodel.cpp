@@ -25,7 +25,6 @@
 #include "activity/activitylistmodel.h"
 #include "userstatusconnector.h"
 #include "common/utility.h"
-#include "ocsassistantconnector.h"
 
 #ifdef BUILD_FILE_PROVIDER_MODULE
 #include "gui/macOS/fileprovider.h"
@@ -53,93 +52,8 @@ namespace {
 
 constexpr qint64 expiredActivitiesCheckIntervalMsecs = 1000 * 60;
 constexpr qint64 activityDefaultExpirationTimeMsecs = 1000 * 60 * 10;
-constexpr qint64 assistantPollIntervalMsecs = 2000;
-constexpr int assistantSuccessMinStatusCode = 200;
-constexpr int assistantSuccessMaxStatusCode = 300;
 constexpr auto debugCallNotificationEnvVar = "NEXTCLOUD_DEBUG_CALL_NOTIFICATION";
 constexpr auto debugCallNotificationAvatarEnvVar = "NEXTCLOUD_DEBUG_CALL_NOTIFICATION_AVATAR_URL";
-
-QString assistantTaskTypeIdFromResponse(const QJsonDocument &json)
-{
-    const auto types = json.object().value("ocs"_L1).toObject().value("data"_L1).toObject().value("types"_L1).toObject();
-    auto resultTypeId = QString{};
-    auto fallbackTypeId = QString{};
-    for (const auto &typeId : types.keys()) {
-        const auto typeObject = types[typeId].toObject();
-        if (typeId.isEmpty()) {
-            continue;
-        }
-        if (typeId == "core:text2text:chat"_L1) {
-            qCDebug(OCC::lcActivity) << typeObject << typeId << types[typeId].toObject();
-            resultTypeId = typeId;
-            break;
-        }
-        if (typeId == "core:text2text"_L1) {
-            qCDebug(OCC::lcActivity) << typeObject << typeId << types[typeId].toObject();
-            fallbackTypeId = typeId;
-        }
-    }
-    return resultTypeId.isEmpty() ? fallbackTypeId : resultTypeId;
-}
-
-qint64 assistantTaskIdFromSchedule(const QJsonDocument &json)
-{
-    const auto task = json.object().value("ocs"_L1).toObject().value("data"_L1).toObject().value("task"_L1).toObject();
-    return static_cast<qint64>(task.value("id"_L1).toDouble(-1));
-}
-
-bool assistantTaskStillRunning(const QJsonObject &task)
-{
-    auto result = true;
-
-    if (!task.contains(u"status"_s)) {
-        return result;
-    }
-    if (task.value(u"status"_s).toString() == u"STATUS_FAILED"_s || task.value(u"status"_s).toString() == u"STATUS_SUCCESSFUL"_s) {
-        result = false;
-    }
-    qCDebug(OCC::lcActivity) << task.value(u"status"_s).toString();
-
-    return result;
-}
-
-QString assistantOutputFromTask(const QJsonObject &task)
-{
-    const auto outputValue = task.value("output"_L1);
-    if (outputValue.isString()) {
-        return outputValue.toString();
-    }
-
-    if (outputValue.isObject()) {
-        const auto outputObject = outputValue.toObject();
-        const auto nestedOutput = outputObject.value("output"_L1);
-        if (nestedOutput.isString()) {
-            return nestedOutput.toString();
-        }
-        if (nestedOutput.isObject()) {
-            const auto nestedObject = nestedOutput.toObject();
-            const auto textValue = nestedObject.value("text"_L1);
-            if (textValue.isString()) {
-                return textValue.toString();
-            }
-            const auto answerValue = nestedObject.value("answer"_L1);
-            if (answerValue.isString()) {
-                return answerValue.toString();
-            }
-        }
-
-        const auto textValue = outputObject.value("text"_L1);
-        if (textValue.isString()) {
-            return textValue.toString();
-        }
-        const auto answerValue = outputObject.value("answer"_L1);
-        if (answerValue.isString()) {
-            return answerValue.toString();
-        }
-    }
-
-    return QString();
-}
 
 struct SyncStatusInfo {
     QUrl icon;
@@ -261,25 +175,6 @@ SyncStatusInfo syncStatusForAccount(const OCC::AccountStatePtr &accountState)
 
     return {OCC::Theme::instance()->ok(), true};
 }
-  
-bool isSyncStatusError(const OCC::SyncResult::Status status)
-{
-    switch (status) {
-    case OCC::SyncResult::Error:
-    case OCC::SyncResult::SetupError:
-    case OCC::SyncResult::Problem:
-    case OCC::SyncResult::Undefined:
-        return true;
-    case OCC::SyncResult::Success:
-    case OCC::SyncResult::SyncPrepare:
-    case OCC::SyncResult::SyncRunning:
-    case OCC::SyncResult::NotYetStarted:
-    case OCC::SyncResult::Paused:
-    case OCC::SyncResult::SyncAbortRequested:
-        return false;
-    }
-    return false;
-}
 
 SyncIssueKind syncIssueKindForSyncResult(const OCC::SyncResult::Status status)
 {
@@ -382,33 +277,6 @@ SyncIssueKind syncIssueKindForActivities(const OCC::ActivityListModel *activityM
         }
     }
     return result;
-}
-
-bool accountHasSyncErrors(const OCC::AccountStatePtr &accountState)
-{
-    if (!accountState || !accountState->isConnected()) {
-        return false;
-    }
-
-    const auto &allFolders = OCC::FolderMan::instance()->map().values();
-    for (const auto folder : allFolders) {
-        if (folder->accountState() != accountState.data()) {
-            continue;
-        }
-        const auto status = determineSyncStatus(folder->syncResult());
-        if (isSyncStatusError(status)) {
-            return true;
-        }
-    }
-
-#ifdef BUILD_FILE_PROVIDER_MODULE
-    const auto fileProviderStatus = OCC::Mac::FileProvider::instance()->service()->latestReceivedSyncStatusForAccount(accountState->account());
-    if (fileProviderStatus != OCC::SyncResult::Undefined && isSyncStatusError(fileProviderStatus)) {
-        return true;
-    }
-#endif
-
-    return false;
 }
 
 SyncIssueKind syncIssueKindForAccount(const OCC::AccountStatePtr &accountState)
@@ -540,8 +408,6 @@ User::User(AccountStatePtr &account, const bool &isCurrent, QObject *parent)
             this, [=, this]() { if (isConnected()) {slotRefreshImmediately();} });
     connect(_account.data(), &AccountState::stateChanged, this, &User::accountStateChanged);
     connect(_account.data(), &AccountState::stateChanged, this, &User::refreshAccountAlert);
-    connect(_account.data(), &AccountState::hasFetchedNavigationApps,
-        this, &User::slotRebuildNavigationAppList);
     connect(_account->account().data(), &Account::accountChangedDisplayName, this, &User::nameChanged);
     connect(_account->account().data(), &Account::rootFolderQuotaChanged, this, &User::slotQuotaChanged);
 
@@ -583,10 +449,6 @@ User::User(AccountStatePtr &account, const bool &isCurrent, QObject *parent)
             showDesktopNotification(certificateNeedMigration);
         }
     });
-
-    _assistantPollTimer.setInterval(assistantPollIntervalMsecs);
-    _assistantPollTimer.setSingleShot(false);
-    connect(&_assistantPollTimer, &QTimer::timeout, this, &User::slotAssistantPoll);
 
     const auto folderMan = FolderMan::instance();
     connect(folderMan, &FolderMan::folderSyncStateChange, this, [this](const Folder *folder) {
@@ -1222,13 +1084,6 @@ void User::slotRefreshNotifications()
     }
 }
 
-void User::slotRebuildNavigationAppList()
-{
-    Q_EMIT featuredAppChanged();
-    // Rebuild App list
-    UserAppsModel::instance()->buildAppList();
-}
-
 void User::slotNotificationRequestFinished(int statusCode)
 {
     int row = sender()->property("activityRow").toInt();
@@ -1606,6 +1461,11 @@ void User::processCompletedSyncItem(const Folder *folder, const SyncFileItemPtr 
                 activity._links = {buttonActivityLink};
             }
             _activityModel->addErrorToActivityList(activity, ActivityListModel::ErrorType::SyncError);
+        } else if (!item->_errorString.isEmpty()) {
+            // The item was ignored for a concrete reason (e.g. it lives in a read-only
+            // folder and cannot be uploaded). Surface it passively in the Not-synced list
+            // so the user can see why it did not sync.
+            _activityModel->addErrorToActivityList(activity, ActivityListModel::ErrorType::SyncError);
         }
     }
 }
@@ -1929,31 +1789,6 @@ bool User::hasFileProvider() const
 }
 #endif
 
-bool User::serverHasTalk() const
-{
-    return talkApp() != nullptr;
-}
-
-bool User::isFeaturedAppEnabled() const
-{
-    return isNcAssistantEnabled();
-}
-
-QString User::featuredAppIcon() const
-{
-    return "image://svgimage-custom-color/nc-assistant-app.svg";
-}
-
-QString User::featuredAppAccessibleName() const
-{
-    return tr("Open %1 Assistant", "The placeholder will be the application name. Please keep it").arg(APPLICATION_NAME);
-}
-
-AccountApp *User::talkApp() const
-{
-    return _account->findApp(QStringLiteral("spreed"));
-}
-
 bool User::hasActivities() const
 {
     return _account->account()->capabilities().hasActivities();
@@ -1962,31 +1797,6 @@ bool User::hasActivities() const
 bool User::isNcAssistantEnabled() const
 {
     return _account->account()->capabilities().ncAssistantEnabled();
-}
-
-QString User::assistantQuestion() const
-{
-    return _assistantQuestion;
-}
-
-QString User::assistantResponse() const
-{
-    return _assistantResponse;
-}
-
-QString User::assistantError() const
-{
-    return _assistantError;
-}
-
-QVariantList User::assistantMessages() const
-{
-    return _assistantMessages;
-}
-
-bool User::assistantRequestInProgress() const
-{
-    return _assistantRequestInProgress;
 }
 
 QColor User::headerColor() const
@@ -2002,11 +1812,6 @@ QColor User::headerTextColor() const
 QColor User::accentColor() const
 {
     return _account->account()->accentColor();
-}
-
-AccountAppList User::appList() const
-{
-    return _account->appList();
 }
 
 bool User::isCurrentUser() const
@@ -2034,258 +1839,6 @@ void User::removeAccount() const
 {
     AccountManager::instance()->deleteAccount(_account.data());
     AccountManager::instance()->save();
-}
-
-void User::submitAssistantQuestion(const QString &question)
-{
-    const auto trimmedQuestion = question.trimmed();
-    if (trimmedQuestion.isEmpty()) {
-        return;
-    }
-
-    if (!isNcAssistantEnabled()) {
-        _assistantError = tr("Assistant is not available for this account.");
-        Q_EMIT assistantErrorChanged();
-        return;
-    }
-
-    if (_assistantRequestInProgress) {
-        _assistantError = tr("Assistant is already processing a request.");
-        Q_EMIT assistantErrorChanged();
-        return;
-    }
-
-    if (!_assistantConnector) {
-        _assistantConnector = new OcsAssistantConnector(_account->account(), this);
-        connect(_assistantConnector, &OcsAssistantConnector::taskTypesFetched, this, &User::slotAssistantTaskTypesFetched);
-        connect(_assistantConnector, &OcsAssistantConnector::tasksFetched, this, &User::slotAssistantTasksFetched);
-        connect(_assistantConnector, &OcsAssistantConnector::taskScheduled, this, &User::slotAssistantTaskScheduled);
-        connect(_assistantConnector, &OcsAssistantConnector::taskDeleted, this, &User::slotAssistantTaskDeleted);
-        connect(_assistantConnector, &OcsAssistantConnector::requestError, this, &User::slotAssistantRequestError);
-    }
-
-    QStringList history;
-    history.reserve(_assistantMessages.size());
-    for (const auto &message : std::as_const(_assistantMessages)) {
-        const auto entry = message.toMap();
-        const auto role = entry.value(QStringLiteral("role")).toString();
-        const auto text = entry.value(QStringLiteral("text")).toString();
-        if (text.isEmpty()) {
-            continue;
-        }
-        const auto historyRole = (role == QLatin1String("assistant")) ? QStringLiteral("assistant") : QStringLiteral("human");
-        const QJsonObject historyEntry{
-            {QStringLiteral("role"), historyRole},
-            {QStringLiteral("content"), text},
-        };
-        history.append(QString::fromUtf8(QJsonDocument(historyEntry).toJson(QJsonDocument::Compact)));
-    }
-
-    _assistantQuestion = trimmedQuestion;
-    Q_EMIT assistantQuestionChanged();
-
-    _assistantError.clear();
-    Q_EMIT assistantErrorChanged();
-
-    _assistantResponse = tr("Sending your request\u00A0…");
-    Q_EMIT assistantResponseChanged();
-
-    _assistantMessages.append(QVariantMap{
-        {QStringLiteral("role"), QStringLiteral("user")},
-        {QStringLiteral("text"), _assistantQuestion},
-    });
-    Q_EMIT assistantMessagesChanged();
-
-    _assistantRequestInProgress = true;
-    Q_EMIT assistantRequestInProgressChanged();
-
-    _assistantPollAttempts = 0;
-    _assistantTaskId = -1;
-
-    if (_assistantTaskType.isEmpty()) {
-        _assistantConnector->fetchTaskTypes();
-        return;
-    }
-
-    _assistantConnector->scheduleTask(_assistantQuestion, _assistantTaskType, history);
-}
-
-void User::clearAssistantResponse()
-{
-    const auto hadAssistantData = !_assistantResponse.isEmpty()
-        || !_assistantError.isEmpty()
-        || !_assistantQuestion.isEmpty()
-        || !_assistantMessages.isEmpty();
-
-    if (_assistantPollTimer.isActive()) {
-        _assistantPollTimer.stop();
-    }
-
-    const auto taskIdToDelete = _assistantTaskId;
-    _assistantTaskId = -1;
-
-    if (_assistantRequestInProgress) {
-        _assistantRequestInProgress = false;
-        Q_EMIT assistantRequestInProgressChanged();
-    }
-
-    if (!hadAssistantData) {
-        if (_assistantConnector && taskIdToDelete > 0) {
-            _assistantConnector->deleteTask(taskIdToDelete);
-        }
-        return;
-    }
-    _assistantQuestion.clear();
-    _assistantResponse.clear();
-    _assistantError.clear();
-    _assistantMessages.clear();
-    Q_EMIT assistantQuestionChanged();
-    Q_EMIT assistantResponseChanged();
-    Q_EMIT assistantErrorChanged();
-    Q_EMIT assistantMessagesChanged();
-    if (_assistantConnector && taskIdToDelete > 0) {
-        _assistantConnector->deleteTask(taskIdToDelete);
-    }
-}
-
-void User::slotAssistantPoll()
-{
-    if (!_assistantConnector || _assistantTaskType.isEmpty()) {
-        _assistantPollTimer.stop();
-        return;
-    }
-
-    if (_assistantPollAttempts >= _assistantMaxPollAttempts) {
-        _assistantPollTimer.stop();
-        _assistantRequestInProgress = false;
-        Q_EMIT assistantRequestInProgressChanged();
-        if (_assistantResponse.isEmpty()) {
-            _assistantResponse = tr("No response yet. Please try again later.");
-            Q_EMIT assistantResponseChanged();
-        }
-        return;
-    }
-
-    ++_assistantPollAttempts;
-    _assistantConnector->fetchTasks(_assistantTaskType);
-}
-
-void User::slotAssistantTaskTypesFetched(const QJsonDocument &json, int statusCode)
-{
-    if (statusCode < assistantSuccessMinStatusCode || statusCode >= assistantSuccessMaxStatusCode) {
-        slotAssistantRequestError(QStringLiteral("taskTypes"), statusCode);
-        return;
-    }
-
-    _assistantTaskType = assistantTaskTypeIdFromResponse(json);
-    if (_assistantTaskType.isEmpty()) {
-        _assistantError = tr("No supported assistant task types were returned.");
-        Q_EMIT assistantErrorChanged();
-        _assistantRequestInProgress = false;
-        Q_EMIT assistantRequestInProgressChanged();
-        return;
-    }
-
-    QStringList history;
-    history.reserve(_assistantMessages.size());
-    for (const auto &message : std::as_const(_assistantMessages)) {
-        const auto entry = message.toMap();
-        const auto role = entry.value(QStringLiteral("role")).toString();
-        const auto text = entry.value(QStringLiteral("text")).toString();
-        if (text.isEmpty()) {
-            continue;
-        }
-        const auto historyRole = (role == QLatin1String("assistant")) ? QStringLiteral("assistant") : QStringLiteral("human");
-        const QJsonObject historyEntry{
-            {QStringLiteral("role"), historyRole},
-            {QStringLiteral("content"), text},
-        };
-        history.append(QString::fromUtf8(QJsonDocument(historyEntry).toJson(QJsonDocument::Compact)));
-    }
-    _assistantConnector->scheduleTask(_assistantQuestion, _assistantTaskType, history);
-}
-
-void User::slotAssistantTasksFetched(const QJsonDocument &json, int statusCode)
-{
-    if (statusCode < assistantSuccessMinStatusCode || statusCode >= assistantSuccessMaxStatusCode) {
-        slotAssistantRequestError(QStringLiteral("tasks"), statusCode);
-        return;
-    }
-
-    const auto tasks = json.object().value("ocs"_L1).toObject().value("data"_L1).toObject().value("tasks"_L1).toArray();
-    auto output = QString{};
-    auto taskIdToDelete = qint64{-1};
-    for (const auto &entry : tasks) {
-        const auto taskObject = entry.toObject();
-        const auto taskId = static_cast<qint64>(taskObject.value("id"_L1).toDouble(-1));
-        if (_assistantTaskId > 0 && taskId != _assistantTaskId) {
-            continue;
-        }
-        output = assistantOutputFromTask(taskObject);
-        if (!assistantTaskStillRunning(taskObject)) {
-            taskIdToDelete = taskId;
-            break;
-        }
-    }
-
-    if (taskIdToDelete == -1) {
-        if (!_assistantPollTimer.isActive()) {
-            _assistantPollAttempts = 0;
-            _assistantPollTimer.start();
-        }
-        return;
-    }
-
-    _assistantPollTimer.stop();
-    _assistantResponse = output;
-    Q_EMIT assistantResponseChanged();
-    _assistantMessages.append(QVariantMap{
-        {QStringLiteral("role"), QStringLiteral("assistant")},
-        {QStringLiteral("text"), _assistantResponse},
-    });
-    Q_EMIT assistantMessagesChanged();
-    _assistantResponse.clear();
-    Q_EMIT assistantResponseChanged();
-    _assistantRequestInProgress = false;
-    Q_EMIT assistantRequestInProgressChanged();
-    if (taskIdToDelete > 0) {
-        _assistantConnector->deleteTask(taskIdToDelete);
-    }
-}
-
-void User::slotAssistantTaskScheduled(const QJsonDocument &json, int statusCode)
-{
-    if (statusCode < assistantSuccessMinStatusCode || statusCode >= assistantSuccessMaxStatusCode) {
-        slotAssistantRequestError(QStringLiteral("schedule"), statusCode);
-        return;
-    }
-
-    _assistantTaskId = assistantTaskIdFromSchedule(json);
-    _assistantResponse = tr("Waiting for the assistant response…");
-    Q_EMIT assistantResponseChanged();
-
-    _assistantPollAttempts = 0;
-    if (!_assistantPollTimer.isActive()) {
-        _assistantPollTimer.start();
-    }
-}
-
-void User::slotAssistantTaskDeleted(int statusCode)
-{
-    if (statusCode >= assistantSuccessMinStatusCode && statusCode < assistantSuccessMaxStatusCode) {
-        return;
-    }
-    slotAssistantRequestError(QStringLiteral("deleteTask"), statusCode);
-}
-
-void User::slotAssistantRequestError(const QString &context, int statusCode)
-{
-    _assistantPollTimer.stop();
-    _assistantRequestInProgress = false;
-    Q_EMIT assistantRequestInProgressChanged();
-    _assistantError = tr("Assistant request failed (%1).").arg(statusCode);
-    Q_EMIT assistantErrorChanged();
-    qCWarning(lcActivity) << "Assistant request error:" << context << statusCode;
 }
 
 void User::forceSyncNow() const
@@ -2472,13 +2025,6 @@ UserModel::UserModel(QObject *parent)
         setInitialUser();
     }
 
-    const auto folderMan = FolderMan::instance();
-    connect(folderMan, &FolderMan::folderListChanged, this, &UserModel::updateSyncErrorUsers);
-    connect(folderMan, &FolderMan::folderSyncStateChange, this, &UserModel::updateSyncErrorUsers);
-#ifdef BUILD_FILE_PROVIDER_MODULE
-    connect(Mac::FileProvider::instance()->service(), &Mac::FileProviderService::syncStateChanged, this, &UserModel::updateSyncErrorUsers);
-#endif
-
     connect(AccountManager::instance(), &AccountManager::accountAdded,
         this, &UserModel::addAccsToUserList);
     connect(AccountManager::instance(), &AccountManager::accountListInitialized,
@@ -2528,11 +2074,6 @@ void UserModel::setInitialUser()
     _init = false;
 }
 
-int UserModel::numUsers()
-{
-    return _users.size();
-}
-
 int UserModel::count() const
 {
     return rowCount();
@@ -2550,31 +2091,6 @@ bool UserModel::isUserConnected(const int id)
     }
 
     return _users[id]->isConnected();
-}
-
-bool UserModel::hasSyncErrors() const
-{
-    return !_syncErrorUserIds.isEmpty();
-}
-
-int UserModel::syncErrorUserCount() const
-{
-    return _syncErrorUserIds.size();
-}
-
-int UserModel::firstSyncErrorUserId() const
-{
-    return _syncErrorUserIds.isEmpty() ? -1 : _syncErrorUserIds.first();
-}
-
-User *UserModel::firstSyncErrorUser() const
-{
-    const auto index = firstSyncErrorUserId();
-    if (index < 0 || index >= _users.size()) {
-        return nullptr;
-    }
-
-    return _users.at(index);
 }
 
 QImage UserModel::avatarById(const int id) const
@@ -2608,15 +2124,6 @@ QImage UserModel::syncStatusIconForRow(const int row) const
     return QIcon(resourcePath).pixmap(18, 18).toImage();
 }
 
-QString UserModel::currentUserServer()
-{
-    if (_currentUserId < 0 || _currentUserId >= _users.size()) {
-        return {};
-    }
-
-    return _users[_currentUserId]->server();
-}
-
 void UserModel::addUser(AccountStatePtr &user, const bool &isCurrent)
 {
     bool containsUser = false;
@@ -2648,12 +2155,10 @@ void UserModel::addUser(AccountStatePtr &user, const bool &isCurrent)
         connect(u, &User::desktopNotificationsAllowedChanged, this, [this, row] {
             Q_EMIT dataChanged(index(row, 0), index(row, 0), { UserModel::DesktopNotificationsAllowedRole });
         });
-        
+
         connect(u, &User::accountStateChanged, this, [this, row] {
             Q_EMIT dataChanged(index(row, 0), index(row, 0), { UserModel::IsConnectedRole });
         });
-        connect(u, &User::accountStateChanged, this, &UserModel::updateSyncErrorUsers);
-
         connect(u, &User::serverHasUserStatusChanged, this, [this, row] {
             Q_EMIT dataChanged(index(row, 0), index(row, 0), { UserModel::ServerHasUserStatusRole });
         });
@@ -2693,13 +2198,6 @@ void UserModel::addUser(AccountStatePtr &user, const bool &isCurrent)
         ConfigFile cfg;
         u->setNotificationRefreshInterval(cfg.notificationRefreshInterval());
     }
-
-    updateSyncErrorUsers();
-}
-
-int UserModel::currentUserIndex()
-{
-    return _currentUserId;
 }
 
 void UserModel::openCurrentAccountLocalFolder()
@@ -2737,27 +2235,6 @@ void UserModel::openCurrentAccountFolderFromTrayInfo(const QString &fullRemotePa
     }
 
     _users[_currentUserId]->openFolderLocallyOrInBrowser(fullRemotePath);
-}
-
-void UserModel::openCurrentAccountFeaturedApp()
-{
-    if (!currentUser()) {
-        return;
-    }
-
-    if (!currentUser()->isFeaturedAppEnabled()) {
-        qCWarning(lcActivity) << "There is no feature app enabled on" << currentUser()->server();
-        return;
-    }
-
-    if (const auto talkApp = currentUser()->talkApp()) {
-        Utility::openBrowser(talkApp->url());
-    }
-}
-
-void UserModel::refreshSyncErrorUsers()
-{
-    updateSyncErrorUsers();
 }
 
 void UserModel::setCurrentUserId(const int id)
@@ -2844,8 +2321,6 @@ void UserModel::removeAccount(const int id)
     } else if (currentUserId() == id) {
         setCurrentUserId(id < _users.size() ? id : id - 1);
     }
-
-    updateSyncErrorUsers();
 }
 
 std::shared_ptr<OCC::UserStatusConnector> UserModel::userStatusConnector(int id)
@@ -2959,15 +2434,6 @@ QHash<int, QByteArray> UserModel::roleNames() const
     return roles;
 }
 
-ActivityListModel *UserModel::currentActivityModel()
-{
-    if (currentUserIndex() < 0 || currentUserIndex() >= _users.size()) {
-        return nullptr;
-    }
-
-    return _users[currentUserIndex()]->getActivityModel();
-}
-
 void UserModel::fetchCurrentActivityModel()
 {
     if (currentUserId() < 0 || currentUserId() >= _users.size()) {
@@ -3002,15 +2468,6 @@ void UserModel::triggerNotificationAction(const int id, const int activityIndex,
     }
 
     _users[id]->getActivityModel()->slotTriggerAction(activityIndex, actionIndex);
-}
-
-AccountAppList UserModel::appList() const
-{
-    if (_currentUserId < 0 || _currentUserId >= _users.size()) {
-        return {};
-    }
-
-    return _users[_currentUserId]->appList();
 }
 
 User *UserModel::currentUser() const
@@ -3060,32 +2517,6 @@ int UserModel::findUserIdForAccount(AccountState *account) const
     return id;
 }
 
-bool UserModel::userHasSyncErrors(const User *user) const
-{
-    if (!user) {
-        return false;
-    }
-
-    return accountHasSyncErrors(user->accountState());
-}
-
-void UserModel::updateSyncErrorUsers()
-{
-    QVector<int> newSyncErrorUserIds;
-    newSyncErrorUserIds.reserve(_users.size());
-    for (int i = 0; i < _users.size(); ++i) {
-        if (userHasSyncErrors(_users.at(i))) {
-            newSyncErrorUserIds.push_back(i);
-        }
-    }
-
-    if (newSyncErrorUserIds == _syncErrorUserIds) {
-        return;
-    }
-
-    _syncErrorUserIds = newSyncErrorUserIds;
-    Q_EMIT syncErrorUsersChanged();
-}
 /*-------------------------------------------------------------------------------------*/
 
 class ImageResponse : public QQuickImageResponse
@@ -3164,76 +2595,5 @@ QQuickImageResponse *ImageProvider::requestImageResponse(const QString &id, cons
 {
     const auto response = new class ImageResponse(id, requestedSize, &_pool);
     return response;
-}
-
-/*-------------------------------------------------------------------------------------*/
-
-UserAppsModel *UserAppsModel::_instance = nullptr;
-
-UserAppsModel *UserAppsModel::instance()
-{
-    if (!_instance) {
-        _instance = new UserAppsModel();
-    }
-    return _instance;
-}
-
-UserAppsModel::UserAppsModel(QObject *parent)
-    : QAbstractListModel(parent)
-{
-}
-
-void UserAppsModel::buildAppList()
-{
-    if (rowCount() > 0) {
-        beginRemoveRows(QModelIndex(), 0, rowCount() - 1);
-        _apps.clear();
-        endRemoveRows();
-    }
-
-    if (UserModel::instance()->appList().count() > 0) {
-        const auto &allApps = UserModel::instance()->appList();
-        for (const auto &app : allApps) {
-            beginInsertRows(QModelIndex(), rowCount(), rowCount());
-            _apps << app;
-            endInsertRows();
-        }
-    }
-}
-
-void UserAppsModel::openAppUrl(const QUrl &url)
-{
-    Utility::openBrowser(url);
-}
-
-int UserAppsModel::rowCount(const QModelIndex &parent) const
-{
-    Q_UNUSED(parent);
-    return _apps.count();
-}
-
-QVariant UserAppsModel::data(const QModelIndex &index, int role) const
-{
-    if (index.row() < 0 || index.row() >= _apps.count()) {
-        return QVariant();
-    }
-
-    if (role == NameRole) {
-        return _apps[index.row()]->name();
-    } else if (role == UrlRole) {
-        return _apps[index.row()]->url();
-    } else if (role == IconUrlRole) {
-        return _apps[index.row()]->iconUrl().toString();
-    }
-    return QVariant();
-}
-
-QHash<int, QByteArray> UserAppsModel::roleNames() const
-{
-    QHash<int, QByteArray> roles;
-    roles[NameRole] = "appName";
-    roles[UrlRole] = "appUrl";
-    roles[IconUrlRole] = "appIconUrl";
-    return roles;
 }
 }

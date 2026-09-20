@@ -49,6 +49,14 @@ namespace OCC {
 
 // Keep behavior and menu taxonomy aligned with the macOS popup in src/gui/macOS/trayaccountpopup/.
 
+QPalette nativeMenuIconPalette(const QMenu *menu)
+{
+    if (menu) {
+        return menu->palette();
+    }
+    return QGuiApplication::palette();
+}
+
 namespace {
 
 constexpr auto fixedMenuWidth = 320;
@@ -145,14 +153,6 @@ QImage tintImage(const QImage &image, const QColor &color)
     return tintedImage;
 }
 
-QPalette nativeMenuIconPalette(const QMenu *menu)
-{
-    if (menu && menu->style()) {
-        return menu->style()->standardPalette();
-    }
-    return QGuiApplication::palette();
-}
-
 QString templateIconPaletteCacheKey(const QPalette &palette)
 {
     return QStringLiteral("%1:%2:%3").arg(
@@ -208,19 +208,19 @@ QString statusText(const UserStatus::OnlineStatus status)
 {
     switch (status) {
     case UserStatus::OnlineStatus::Online:
-        return QCoreApplication::translate("UserStatusSetStatusView", "Online");
+        return QCoreApplication::translate("UserStatusWindow", "Online");
     case UserStatus::OnlineStatus::Away:
-        return QCoreApplication::translate("UserStatusSetStatusView", "Away");
+        return QCoreApplication::translate("UserStatusWindow", "Away");
     case UserStatus::OnlineStatus::Busy:
-        return QCoreApplication::translate("UserStatusSetStatusView", "Busy");
+        return QCoreApplication::translate("UserStatusWindow", "Busy");
     case UserStatus::OnlineStatus::DoNotDisturb:
-        return QCoreApplication::translate("UserStatusSetStatusView", "Do not disturb");
+        return QCoreApplication::translate("UserStatusWindow", "Do not disturb");
     case UserStatus::OnlineStatus::Invisible:
-        return QCoreApplication::translate("UserStatusSetStatusView", "Invisible");
+        return QCoreApplication::translate("UserStatusWindow", "Invisible");
     case UserStatus::OnlineStatus::Offline:
         return QCoreApplication::translate("OCC::SyncStatusSummary", "Offline");
     }
-    return QCoreApplication::translate("UserStatusSetStatusView", "Online");
+    return QCoreApplication::translate("UserStatusWindow", "Online");
 }
 
 QString statusMenuText(const UserStatus::OnlineStatus status, const QString &message)
@@ -877,10 +877,10 @@ void populateTrayMenu(QMenu *menu, Systray *systray)
 
     const auto syncControlState = systray->syncControlState();
     const auto addSyncControlAction = [menu, systray, &menuIconPalette, &menuIconSize](const bool pausesSync) {
-        const auto syncControlIconUrl = pausesSync ? Theme::instance()->pause() : Theme::instance()->sync();
+        const auto syncControlIconName = pausesSync ? QStringLiteral("pause.svg") : QStringLiteral("play.svg");
         const auto syncControlAction = addMenuAction(menu,
-            templateIconFromIcon(iconFromUrl(syncControlIconUrl), menuIconSize, menuIconPalette),
-            pausesSync ? Systray::tr("Pause sync for all") : Systray::tr("Resume sync for all"));
+                                                     templateThemeIcon(syncControlIconName, menuIconSize, menuIconPalette),
+                                                     pausesSync ? Systray::tr("Pause sync for all") : Systray::tr("Resume sync for all"));
         syncControlAction->setObjectName(pausesSync
                 ? QStringLiteral("trayPauseSyncAction")
                 : QStringLiteral("trayResumeSyncAction"));
@@ -983,7 +983,7 @@ bool showQtTrayPopup(Systray *systray, const QRect &iconRect, const Systray::Win
 
     // Wayland cannot create an arbitrary QWidget popup from a tray activation.
     if (isWaylandPlatform()) {
-        systray->showActivitiesWindow();
+        systray->showWindow();
         return false;
     }
 

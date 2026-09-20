@@ -85,9 +85,7 @@ nextcloud_add_test(LocalDiscovery)
 nextcloud_add_test(RemoteDiscovery)
 nextcloud_add_test(Governance)
 
-if (NOT APPLE)
-    nextcloud_add_test(Permissions)
-endif()
+nextcloud_add_test(Permissions)
 
 nextcloud_add_test(SelectiveSync)
 nextcloud_add_test(DatabaseError)
@@ -98,8 +96,17 @@ if (NOT WIN32)
 endif()
 
 nextcloud_add_test(Capabilities)
+nextcloud_add_test(UnifiedSharing)
+target_link_libraries(UnifiedSharingTest PRIVATE nextcloudGuiSharing)
+nextcloud_add_test(PermissionModel)
+target_link_libraries(PermissionModelTest PRIVATE nextcloudGuiSharing)
+nextcloud_add_test(RecipientModel)
+target_link_libraries(RecipientModelTest PRIVATE nextcloudGuiSharing)
+nextcloud_add_test(SharingDialog)
+target_link_libraries(SharingDialogTest PRIVATE nextcloudGuiSharing nextcloudGuiSharingplugin)
 nextcloud_add_test(PushNotifications)
 nextcloud_add_test(Theme)
+nextcloud_add_test(SettingsDialog)
 nextcloud_add_test(IconUtils)
 nextcloud_add_test(CustomStateIcons)
 target_compile_definitions(CustomStateIconsTest PRIVATE NEXTCLOUD_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
@@ -113,16 +120,56 @@ if(NOT APPLE)
     nextcloud_add_test(SystraySyncControlQt)
 endif()
 nextcloud_add_test(UnifiedSearchListmodel)
+nextcloud_add_test(AssistantController)
+target_sources(AssistantControllerTest PRIVATE assistant/fakeassistantclient.cpp)
+nextcloud_add_test(AssistantModels)
+add_executable(AssistantQmlTest
+    qml/assistant/assistantqmltestrunner.cpp
+    assistant/fakeassistantclient.cpp
+    testhelper.h
+)
+target_link_libraries(AssistantQmlTest PRIVATE nextcloudCore Qt::QuickTest)
+target_include_directories(AssistantQmlTest PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+set_target_properties(AssistantQmlTest PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${BIN_OUTPUT_DIRECTORY}
+    FOLDER Tests
+)
+add_test(NAME AssistantQmlTest
+    COMMAND AssistantQmlTest -input "${CMAKE_CURRENT_SOURCE_DIR}/qml/assistant/testassistant.qml"
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+set_tests_properties(AssistantQmlTest PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 nextcloud_add_test(UnifiedSearchPeopleModel)
+target_link_libraries(UnifiedSearchListmodelTest PRIVATE nextcloudGuiSearch)
+target_link_libraries(UnifiedSearchPeopleModelTest PRIVATE nextcloudGuiSearch)
+set_tests_properties(UnifiedSearchPeopleModelTest PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 nextcloud_add_test(ActivityListModel)
 nextcloud_add_test(SortedActivityListModel)
 nextcloud_add_test(ActivityData)
+add_executable(ActivitiesWindowQmlTest
+    qml/activitieswindow/activitieswindowqmltest.cpp
+)
+target_link_libraries(ActivitiesWindowQmlTest PRIVATE
+    nextcloudCore
+    Qt::QuickTest
+)
+set_target_properties(ActivitiesWindowQmlTest PROPERTIES
+    FOLDER Tests
+    RUNTIME_OUTPUT_DIRECTORY ${BIN_OUTPUT_DIRECTORY}
+)
+add_test(NAME ActivitiesWindowQmlTest
+    COMMAND ActivitiesWindowQmlTest
+        -o -,txt
+        -import "${CMAKE_CURRENT_SOURCE_DIR}/qml/imports"
+        -import "${CMAKE_SOURCE_DIR}/theme"
+        -input "${CMAKE_CURRENT_SOURCE_DIR}/qml/activitieswindow/tst_activitieswindow.qml"
+)
 add_test(NAME ActivityFileMenuQmlTest
     COMMAND Qt6::qmltestrunner
         -input "${CMAKE_CURRENT_SOURCE_DIR}/qml/activityfilemenu/testactivityfilemenu.qml"
 )
 add_executable(SearchQmlTest qml/search/searchqmltestrunner.cpp)
-target_link_libraries(SearchQmlTest PRIVATE nextcloudCore Qt::QuickTest)
+target_link_libraries(SearchQmlTest PRIVATE nextcloudCore nextcloudGuiSearch nextcloudGuiSearchplugin Qt::QuickTest)
 target_compile_definitions(SearchQmlTest PRIVATE
     SEARCH_QML_TEST_IMPORT_PATH="${CMAKE_CURRENT_SOURCE_DIR}/qml/search/imports"
 )
@@ -200,6 +247,7 @@ nextcloud_add_test(Folder)
 nextcloud_add_test(FolderMan)
 nextcloud_add_test(ForceSyncNow)
 nextcloud_add_test(RemoteWipe)
+nextcloud_add_test(Migration)
 
 if(NOT BUILD_FILE_PROVIDER_MODULE)
     # the File Provider build crashes this test in CI for some reason

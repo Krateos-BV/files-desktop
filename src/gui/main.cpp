@@ -32,6 +32,10 @@
 #include <QQuickWindow>
 #include <QSurfaceFormat>
 #include <QOperatingSystemVersion>
+#include <QQmlExtensionPlugin>
+
+Q_IMPORT_QML_PLUGIN(com_nextcloud_desktopclient_searchPlugin)
+Q_IMPORT_QML_PLUGIN(com_nextcloud_desktopclient_sharingPlugin)
 
 using namespace OCC;
 
@@ -58,6 +62,7 @@ int main(int argc, char **argv)
 
     Q_INIT_RESOURCE(resources);
     Q_INIT_RESOURCE(theme);
+    Q_INIT_RESOURCE(assistant);
 
     // OpenSSL 1.1.0: No explicit initialisation or de-initialisation is necessary.
 #ifdef Q_OS_MACOS

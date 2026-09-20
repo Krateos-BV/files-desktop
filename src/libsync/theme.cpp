@@ -65,6 +65,15 @@ bool shouldPreferSvg()
 constexpr QRgb darkDestructiveActionTextColor = 0xffdad6;
 constexpr QRgb lightDestructiveActionTextColor = 0xba1a1a;
 
+#ifdef Q_OS_WIN
+constexpr auto settingsPanelBackgroundRole = QPalette::AlternateBase;
+#else
+constexpr auto settingsPanelBackgroundRole = QPalette::Light;
+#endif
+constexpr auto minimumSettingsPanelBrightnessDifference = 8;
+constexpr auto lightSettingsPanelForegroundFraction = 0.03;
+constexpr auto darkSettingsPanelForegroundFraction = 0.06;
+
 QColor destructiveActionColor(const bool darkMode, const QRgb darkColor, const QRgb lightColor)
 {
     return QColor(darkMode ? darkColor : lightColor);
@@ -624,6 +633,8 @@ QString Theme::gitSHA1() const
     const QString githubPrefix(QLatin1String(
         "https://github.com/nextcloud/desktop/commit/"));
     const QString gitSha1(QLatin1String(GIT_SHA1));
+    //: %1 is the full Git commit URL. %2 is the abbreviated Git revision. %3 is the build date.
+    //: %4 is the build time. %5 is the Qt version. %6 is the TLS library version.
     devString = QCoreApplication::translate("nextcloudTheme::aboutInfo()",
         "<p><small>Built from Git revision <a href=\"%1\">%2</a>"
         " on %3, %4 using Qt %5, %6</small></p>")
@@ -932,6 +943,24 @@ bool Theme::isDarkColor(const QColor &color)
     return getColorDarkness(color) > 0.5;
 }
 
+QColor Theme::settingsPanelColor(const QPalette &palette)
+{
+    const auto windowColor = palette.color(QPalette::Window);
+    auto panelColor = palette.color(settingsPanelBackgroundRole);
+    if (qAbs(qGray(panelColor.rgb()) - qGray(windowColor.rgb())) >= minimumSettingsPanelBrightnessDifference) {
+        return panelColor;
+    }
+
+    const auto foreground = palette.color(QPalette::WindowText);
+    const auto fraction = isDarkColor(windowColor) ? darkSettingsPanelForegroundFraction : lightSettingsPanelForegroundFraction;
+    const auto blend = [fraction](const auto background, const auto text) {
+        return background * (1.0 - fraction) + text * fraction;
+    };
+    return QColor::fromRgbF(blend(windowColor.redF(), foreground.redF()),
+                            blend(windowColor.greenF(), foreground.greenF()),
+                            blend(windowColor.blueF(), foreground.blueF()));
+}
+
 QColor Theme::getBackgroundAwareLinkColor(const QColor &backgroundColor)
 {
     return {(isDarkColor(backgroundColor) ? QColor(0x6193dc) : QGuiApplication::palette().color(QPalette::Link))};
@@ -1022,7 +1051,7 @@ QPixmap Theme::createColorAwarePixmap(const QString &name)
 bool Theme::showVirtualFilesOption() const
 {
     const auto vfsMode = bestAvailableVfsMode();
-    return ConfigFile().showExperimentalOptions() || vfsMode == Vfs::WindowsCfApi;
+    return ConfigFile().showExperimentalOptions() || vfsMode == Vfs::WindowsCfApi || vfsMode == Vfs::OpenVFS;
 }
 
 bool Theme::enforceVirtualFilesSyncFolder() const

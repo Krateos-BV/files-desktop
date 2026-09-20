@@ -19,16 +19,18 @@
 #include <qdebug.h>
 
 #include "account.h"
+#ifdef BUILD_GUI
 #include "accountmanager.h"
 #include "accountsetupcommandlinemanager.h"
 #include "folderman.h"
+#endif
 #include "configfile.h" // ONLY ACCESS THE STATIC FUNCTIONS!
+#include "settings/migration.h"
 #ifdef TOKEN_AUTH_ONLY
 # include "creds/tokencredentials.h"
 #else
 # include "creds/httpcredentials.h"
 #endif
-#include "creds/webflowcredentials.h"
 #include "networkjobs.h"
 #include "simplesslerrorhandler.h"
 #include "syncengine.h"
@@ -201,6 +203,7 @@ void help()
     std::cout << "  --path                 Path to a folder on a remote server" << std::endl;
     std::cout << "  --confdir [dir]        Use the given configuration directory" << std::endl;
     std::cout << "" << std::endl;
+#ifdef BUILD_GUI
     std::cout << "Account provisioning options (non-interactive setup):" << std::endl;
     std::cout << "  --userid [user]        The user ID to configure" << std::endl;
     std::cout << "  --apppassword [pass]   The app password for authentication (optional)" << std::endl;
@@ -209,6 +212,7 @@ void help()
     std::cout << "  --remotedirpath [path] Remote folder path to sync, default /" << std::endl;
     std::cout << "  --isvfsenabled [0|1]   Enable virtual files (1) or disable (0)" << std::endl;
     std::cout << "" << std::endl;
+#endif
 }
 
 void showVersion()
@@ -228,15 +232,20 @@ CommandMode parseOptions(const QStringList &app_args, CmdOptions *options)
 {
     auto result = CommandMode::UnknownMode;
 
-    auto args(app_args);
+    // Accept both "--option value" and "--option=value" for every option below.
+    auto args = Utility::expandCommandLineOptionValues(app_args);
 
     const auto argCount = args.count();
 
+#ifdef BUILD_GUI
     // Detect provisioning mode: --userid flag present means no positional args required
     const auto provisionMode = args.contains(QStringLiteral("--userid"));
     if (provisionMode) {
         result = CommandMode::ProvisioningMode;
     }
+#else
+    const auto provisionMode = false;
+#endif
 
     if (!provisionMode) {
         if (argCount < 3) {
@@ -309,7 +318,9 @@ CommandMode parseOptions(const QStringList &app_args, CmdOptions *options)
             options->remotePath = it.next();
         } else if (option == u"--confdir"_s && it.hasNext() && !it.peekNext().startsWith(u"--"_s)) {
             options->config_directory = it.next();
-        } else {
+        }
+#ifdef BUILD_GUI
+        else {
             QString errorMessage;
             if (!AccountSetupCommandLineManager::instance()->parseCommandlineOption(option, it, errorMessage)) {
                 help();
@@ -317,6 +328,13 @@ CommandMode parseOptions(const QStringList &app_args, CmdOptions *options)
                 return result;
             }
         }
+#else
+        else {
+            help();
+            result = CommandMode::HelpMode;
+            return result;
+        }
+#endif
     }
 
     if (!provisionMode && (options->target_url.isEmpty() || options->source_dir.isEmpty())) {
@@ -350,6 +368,7 @@ void selectiveSyncFixup(OCC::SyncJournalDb *journal, const QStringList &newList)
     }
 }
 
+#ifdef BUILD_GUI
 [[nodiscard]] bool setupAccountsOnly()
 {
     auto result = false;
@@ -372,13 +391,12 @@ void selectiveSyncFixup(OCC::SyncJournalDb *journal, const QStringList &newList)
     auto result = false;
 
     auto folderManager = FolderMan::instance();
-    ConfigFile configFile;
-    configFile.setMigrationPhase(ConfigFile::MigrationPhase::SetupUsers);
+    Migration::setPhase(Migration::Phase::SetupUsers);
     if (!setupAccountsOnly()) {
         return result;
     }
 
-    configFile.setMigrationPhase(ConfigFile::MigrationPhase::SetupFolders);
+    Migration::setPhase(Migration::Phase::SetupFolders);
     const auto foldersListSize = folderManager->setupFolders();
     folderManager->setSyncEnabled(true);
 
@@ -399,6 +417,7 @@ void selectiveSyncFixup(OCC::SyncJournalDb *journal, const QStringList &newList)
     result = true;
     return result;
 }
+#endif // BUILD_GUI
 
 int main(int argc, char **argv)
 {
@@ -441,26 +460,31 @@ int main(int argc, char **argv)
         }
     }
 
+#ifdef BUILD_GUI
     if (commandMode == CommandMode::ProvisioningMode) {
         if (!setupAccountsAndFolders()) {
             qWarning() << "Restoring existing accounts failed. Skip creation of a new account. See prior messages for a detailed error.";
             return -1;
         }
 
-        if (AccountSetupCommandLineManager::instance()->isCommandLineParsed()) {
-            if (AccountSetupCommandLineManager::instance()->setupAccountFromCommandLine()) {
-                return 0;
-            } else {
-                qWarning() << "Creation of the account failed. See prior messages for a detailed error.";
-                return -1;
-            }
-        } else {
+        if (!AccountSetupCommandLineManager::instance()->isCommandLineParsed()) {
             AccountSetupCommandLineManager::destroy();
             qWarning() << "Missing mandatory command line options for provisioning mode";
             help();
             return -1;
         }
+
+        if (!AccountSetupCommandLineManager::instance()->setupAccountFromCommandLine()) {
+            qWarning() << "Creation of the account failed. See prior messages for a detailed error.";
+            return -1;
+        }
+
+        // Setting up the account validates the credentials against the server and stores
+        // them in the keychain, both of which are asynchronous. The setup job ends the
+        // event loop with the exit code once it has finished.
+        return app.exec();
     }
+#endif // BUILD_GUI
 
     AccountPtr account = Account::create();
 

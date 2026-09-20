@@ -287,17 +287,24 @@ IF(BUILD_UPDATER)
 endif()
 
 add_subdirectory(search)
+add_subdirectory(sharing)
+include(assistant/CMakeLists.txt)
+list(APPEND client_SRCS ${assistant_SRCS})
+qt_add_resources(client_UI_SRCS ${assistant_QRC})
 
 IF( APPLE )
     list(APPEND client_SRCS cocoainitializer_mac.mm)
     list(APPEND client_SRCS systray_mac_common.mm)
     list(APPEND client_SRCS notificationsoundplayer_mac.mm)
     list(APPEND client_SRCS
-        macOS/localnetworkpermission.mm)
+        macOS/localnetworkpermission.mm
+        macOS/macsandboxfolderpicker.h
+        macOS/macsandboxfolderpicker.mm)
     list(APPEND client_SRCS
         # macOS tray account popup: one type per header/implementation pair.
         # Shared foundation first, then the base hover view, rows, popups and the
         # public entry point (OCC::showMacOSTrayPopup / hideMacOSTrayPopup).
+        macOS/trayaccountpopup/trayaccountpopupgeometry.h
         macOS/trayaccountpopup/trayaccountpopupmetrics.h
         macOS/trayaccountpopup/trayaccountpopuppresentation.h
         macOS/trayaccountpopup/trayaccountpopupimageutils.h
@@ -582,9 +589,6 @@ target_link_libraries(nextcloudCore
   Qt::QuickWidgets
   KF6::Archive
   KDAB::kdsingleapplication
-
-  nextcloudGuiSearch
-  nextcloudGuiSearchplugin
   )
 
 if(KF6GuiAddons_FOUND)
@@ -698,7 +702,13 @@ set_target_properties(nextcloud PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${BIN_OUTPUT_DIRECTORY}
 )
 
-target_link_libraries(nextcloud PRIVATE nextcloudCore)
+target_link_libraries(nextcloud PRIVATE
+    nextcloudCore
+    nextcloudGuiSearch
+    nextcloudGuiSearchplugin
+    nextcloudGuiSharing
+    nextcloudGuiSharingplugin
+)
 target_compile_definitions(nextcloud PRIVATE QT_NO_KEYWORDS)
 
 if(TARGET PkgConfig::CLOUDPROVIDERS)
@@ -759,7 +769,7 @@ if (APPLE)
     else()
         target_link_libraries(nextcloudCore PUBLIC "-framework UserNotifications")
     endif()
-    target_link_libraries(nextcloudCore PRIVATE "-framework AVFoundation" "-framework Foundation" "-framework Network")
+    target_link_libraries(nextcloudCore PRIVATE "-framework AVFoundation" "-framework AppKit" "-framework Foundation" "-framework Network")
     # ServiceManagement for SMAppService, used to register the FinderSync broker login item.
     # src/csync links it too, for utility_mac.mm, but PRIVATE — so it does not propagate here.
     target_link_libraries(nextcloudCore PRIVATE "-framework ServiceManagement")
