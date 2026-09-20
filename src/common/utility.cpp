@@ -688,5 +688,42 @@ QString Utility::fullRemotePathToRemoteSyncRootRelative(const QString &fullRemot
     return noLeadingSlashPath(noTrailingSlashPath(relativePathToRemoteSyncRoot));
 }
 
+QStringList Utility::expandCommandLineOptionValues(const QStringList &arguments)
+{
+    QStringList expandedArguments;
+    expandedArguments.reserve(arguments.size());
+
+    for (const auto &argument : arguments) {
+        // Anything that is not a long option is passed through untouched: paths and custom
+        // URI scheme arguments may legitimately contain a '='.
+        const auto separator = argument.startsWith(QLatin1String("--")) ? argument.indexOf(QLatin1Char('=')) : -1;
+        if (separator < 3) {
+            expandedArguments.append(argument);
+            continue;
+        }
+
+        expandedArguments.append(argument.left(separator));
+
+        if (const auto value = argument.mid(separator + 1); !value.isEmpty()) {
+            expandedArguments.append(value);
+        }
+    }
+
+    return expandedArguments;
+}
+
+#ifdef Q_OS_LINUX
+QString Utility::appImageLocation()
+{
+    Q_ASSERT(Utility::runningInAppImage());
+    static const auto value = qEnvironmentVariable("APPIMAGE");
+    return value;
+}
+
+bool Utility::runningInAppImage()
+{
+    return qEnvironmentVariableIsSet("APPIMAGE");
+}
+#endif
 
 } // namespace OCC

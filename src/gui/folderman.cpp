@@ -21,6 +21,7 @@
 #include <pushnotifications.h>
 #include <syncengine.h>
 #include "updatee2eefolderusersmetadatajob.h"
+#include "settings/migration.h"
 
 #ifdef Q_OS_MACOS
 #include <CoreServices/CoreServices.h>
@@ -444,7 +445,7 @@ int FolderMan::setupFoldersMigration()
     auto configPath = _folderConfigPath;
 
 #if !DISABLE_ACCOUNT_MIGRATION
-    if (const auto legacyConfigPath = ConfigFile::discoveredLegacyConfigPath();!legacyConfigPath.isEmpty()) {
+    if (const auto legacyConfigPath = Migration::discoveredLegacyConfigPath(); !legacyConfigPath.isEmpty()) {
         configPath =  legacyConfigPath;
         qCInfo(lcFolderMan) << "Starting folder migration from legacy path:" << legacyConfigPath;
     }
@@ -1832,7 +1833,7 @@ void FolderMan::trayOverallStatus(const QList<Folder *> &folders,
         auto goodSeen = false;
         auto abortOrPausedSeen = false;
         auto runSeen = false;
-        auto various = false;
+        auto initialStateSeen = false;
 
         for (const auto folder : std::as_const(folders)) {
             // We've already seen an error, worst case met.
@@ -1851,7 +1852,7 @@ void FolderMan::trayOverallStatus(const QList<Folder *> &folders,
                 switch (syncStatus) {
                 case SyncResult::Undefined:
                 case SyncResult::NotYetStarted:
-                    various = true;
+                    initialStateSeen = true;
                     break;
                 case SyncResult::SyncPrepare:
                 case SyncResult::SyncRunning:
@@ -1886,8 +1887,8 @@ void FolderMan::trayOverallStatus(const QList<Folder *> &folders,
             *status = SyncResult::SyncRunning;
         } else if (goodSeen) {
             *status = SyncResult::Success;
-        } else if (various) {
-            *status = SyncResult::Undefined;
+        } else if (initialStateSeen) {
+            *status = SyncResult::NotYetStarted;
         }
     }
 }
@@ -1960,6 +1961,7 @@ QString FolderMan::trayTooltipStatusString(SyncResult::Status syncStatus, bool h
     }
     if (paused) {
         // sync is disabled.
+        //: %1 is the current sync status message, for example "Setup error".
         folderMessage = tr("%1 (Sync is paused)").arg(folderMessage);
     }
     return folderMessage;

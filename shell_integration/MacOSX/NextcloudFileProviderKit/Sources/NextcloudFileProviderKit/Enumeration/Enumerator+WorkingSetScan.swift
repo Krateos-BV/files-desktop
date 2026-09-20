@@ -63,13 +63,8 @@ extension Enumerator {
                 )
             }
 
-            // Intermediate batches use a durable continuation anchor. The final batch normally advances
-            // the working-set sync point to
-            // currentAnchor — but when the scan was incomplete (a remote read failed and was skipped) we
-            // keep the incoming anchor instead, so we do not tell the framework we are synced up to "now"
-            // past changes we could not discover this pass. The next working-set signal re-derives and
-            // picks up the previously-unreadable folders once they succeed. (isPrimedIncomplete() is read
-            // before the final takeBatch clears the buffer, so it reflects this drain sequence.)
+            // Intermediate batches use continuation anchors. If the scan was incomplete, keep the
+            // incoming anchor for the final batch so missed changes are retried on the next signal.
             let finalAnchor = changeBuffer.isPrimedIncomplete() ? anchor : currentAnchor
             drainChangeBuffer(
                 for: observer,
@@ -101,13 +96,16 @@ extension Enumerator {
             logger.debug("Completed checking materialised items for changes on the server.")
         }
 
+        // Trashed rows are excluded because trashing moves `serverUrl` to the trashbin without
+        // setting `deleted`, and the ordinary DAV path 404s there — which the scan reads as a
+        // deletion of the row trash reconciliation needs.
         // Unlike when enumerating items we can't progressively enumerate items as we need to
         // wait to see which items are truly deleted and which have just been moved elsewhere.
         // Visited folders and downloaded files. Sort in terms of their remote URLs.
         // This way we ensure we visit parent folders before their children.
         let materialisedItems = dbManager
             .materialisedItemMetadatas(account: account.ncKitAccount)
-            .filter { !$0.deleted }
+            .filter { !$0.deleted && !$0.isTrashed }
             .sorted { $0.remotePath().count < $1.remotePath().count }
 
         var accumulatedCreations = [SendableItemMetadata]()

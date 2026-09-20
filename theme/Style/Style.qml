@@ -71,7 +71,6 @@ QtObject {
 
     // Dimensions and sizes
     property int trayWindowWidth: variableSize(400)
-    property int trayWindowHeight: variableSize(510)
     // text input and main windows radius
     property int trayWindowRadius: 10
     // dropdown menus radius
@@ -107,7 +106,6 @@ QtObject {
     property int filesActionsWidth: 380
     property int filesActionsHeight: 350
     property int trayListItemIconSize: accountAvatarSize
-    property int trayDrawerMargin: trayWindowHeaderHeight
     property real thumbnailImageSizeReduction: 0.2  // We reserve some space within the thumbnail "item", here about 20%.
                                                     // This is because we need to also add the added/modified icon and we
                                                     // want them to fit within the general icon size. We also need to know
@@ -138,6 +136,10 @@ QtObject {
     readonly property int wizardDialogSpacing: wizardSectionSpacing + extraSmallSpacing
     readonly property int wizardDialogRadius: wizardSectionSpacing
     readonly property int wizardBodyFontPixelSize: pixelSize + extraSmallSpacing
+    readonly property int wizardTextInputHorizontalPadding: trayAccountPopupRowPadding
+    readonly property int wizardTextInputVerticalPadding: trayAccountPopupActionVerticalPadding
+    readonly property int wizardTextInputRadius: mediumRoundedButtonRadius
+    readonly property int wizardTextAreaHeight: standardPrimaryButtonHeight + wizardSectionSpacing + wizardSectionSpacing
     readonly property int wizardHeaderSpacing: trayAccountPopupActionVerticalPadding
     readonly property int wizardHeaderRowSpacing: trayAccountPopupRowSpacing
     readonly property int wizardHeaderLabelSpacing: extraExtraSmallSpacing
@@ -147,26 +149,52 @@ QtObject {
     readonly property int wizardHeaderAccountServerFontPixelSize: subLinePixelSize
     readonly property int wizardStandaloneWindowMinimumWidth: 520
     readonly property int wizardStandaloneWindowMinimumHeight: 420
-    readonly property int accountWizardWindowWidth: 600
-    readonly property int accountWizardCompactHeight: 420
+    readonly property int dialogWidth: 600
+    readonly property int compactDialogHeight: 420
     readonly property int accountWizardSyncOptionsHeight: 520
+
+    // Sharing dialog
+    readonly property int sharingDialogWidth: 720
+    readonly property int sharingDialogHeight: 500
+    readonly property int sharingDialogWindowMargin: 2 * standardSpacing
+    readonly property int sharingDialogPaneHeaderHeight: iconButtonWidth
+    readonly property int sharingDialogShareListMaximumHeight: 3 * sharingDialogPaneHeaderHeight
+    readonly property int sharingDialogSidebarMinimumWidth: sharingDialogWidth / 4
+    readonly property int sharingDialogSidebarPreferredWidth: sharingDialogWidth / 3
+    readonly property int sharingDialogSidebarMaximumWidth: sharingDialogWidth / 2
+
     readonly property int activitiesWindowWidth: 680
     readonly property int activitiesWindowHeight: 700
-    readonly property int assistantWindowWidth: 640
-    readonly property int assistantWindowHeight: 620
     readonly property int searchWindowWidth: 640
     readonly property int searchWindowHeight: 670
     readonly property int userStatusWindowWidth: 560
     readonly property int userStatusWindowHeight: 700
     readonly property int userStatusWindowMinimumHeight: 560
 
+    // Assistant
+    readonly property int assistantWindowWidth: searchWindowWidth
+    readonly property int assistantWindowHeight: searchWindowHeight
+    readonly property color assistantSelectionGradientStart: "#40519a"
+    readonly property color assistantSelectionGradientEnd: "#a84fc4"
+    readonly property int assistantTaskTypeSelectorHeight: 42
+    readonly property int assistantConversationPickerLeftPadding: wizardSectionSpacing
+    readonly property int assistantConversationPickerRightPadding: standardPrimaryButtonHeight
+    readonly property int assistantControlFontPixelSize: pixelSize + 3
+    readonly property int assistantPopupPadding: 4
+    readonly property int assistantConversationMaximumVisibleItems: 6
+    readonly property int assistantExpandedIndicatorRotation: 180
+    readonly property real assistantDisabledOpacity: 0.45
+    readonly property real assistantMessageMaximumWidthRatio: 0.78
+    readonly property int assistantMessageMinimumWidth: 120
+    readonly property int assistantMessageTextWidthPadding: wizardWindowMargin
+    readonly property int assistantMessageHeightPadding: 26
+    readonly property int assistantEmptyStateMaximumWidth: 360
+
     property int minActivityHeight: variableSize(32)
 
     property int minimumScrollBarWidth: 12
     property real minimumScrollBarThumbSize: 0
-    property int currentAccountButtonWidth: 220
     property int currentAccountButtonRadius: 2
-    property int currentAccountLabelWidth: 128
 
     property int normalBorderWidth: 1
     property int thickBorderWidth: 2
@@ -183,22 +211,12 @@ QtObject {
     property int folderStateIndicatorSize: 16
     property int accountLabelWidth: 128
 
-    property int accountDropDownCaretSize: 10
-    property int accountDropDownCaretMargin: 8
-
     property int trayFoldersMenuButtonStateIndicatorBottomOffset: 5
-    property double trayFoldersMenuButtonDropDownCaretIconSizeFraction: 0.3
-    property double trayFoldersMenuButtonMainIconSizeFraction: 1.0 - trayFoldersMenuButtonDropDownCaretIconSizeFraction
 
     property int activityListButtonWidth: 42
     property int activityListButtonHeight: 32
     property int activityListButtonIconSize: 18
-    property int headerButtonIconSize: 48
     property int minimumActivityItemHeight: 24
-
-    property int accountIconsMenuMargin: 7
-
-    property int activityLabelBaseWidth: 240
 
     property int talkReplyTextFieldPreferredHeight: 34
     property int talkReplyTextFieldPreferredWidth: 250
@@ -213,18 +231,13 @@ QtObject {
     property int roundedButtonBackgroundVerticalMargins: 5
 
     property int userStatusEmojiSize: 8
-    property int userStatusSpacing: trayHorizontalMargin
     property int userStatusAnchorsMargin: 2
-    property int userLineSpacing: smallSpacing
     property int accountServerAnchorsMargin: 10
     property int accountLabelsSpacing: 4
     property int accountsServerMargin: 6
     property int accountLabelsAnchorsMargin: 5
     property int accountLabelsLayoutMargin: 12
     property int accountLabelsLayoutTopMargin: 10
-
-    // Visual behaviour
-    property bool hoverEffectsEnabled: true
 
     // unified search constants
     readonly property int unifiedSearchDetailHeaderHeight: standardPrimaryButtonHeight
@@ -277,19 +290,8 @@ QtObject {
     readonly property int defaultWidthGovernanceLabelsDialog: 400
     readonly property int defaultHeightGovernanceLabelsDialog: 300
 
-    readonly property double smallIconScaleFactor: 0.6
-
     readonly property double trayFolderListButtonWidthScaleFactor: 1.75
-    readonly property int trayFolderStatusIndicatorSizeOffset: 2
-    readonly property double trayFolderStatusIndicatorRadiusFactor: 0.5
     readonly property double trayFolderStatusIndicatorMouseHoverOpacityFactor: 0.2
-
-    readonly property double trayWindowMenuWidthFactor: 0.35
-
-    readonly property int trayWindowMenuOffsetX: -2
-    readonly property int trayWindowMenuOffsetY: 2
-
-    readonly property int trayWindowMenuEntriesMargin: 6
 
     // animation durations
     readonly property int shortAnimationDuration: 200

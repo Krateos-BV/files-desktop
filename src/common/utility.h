@@ -227,6 +227,11 @@ namespace Utility {
     // if false, the two cases are two different files.
     OCSYNC_EXPORT bool fsCasePreserving();
 
+    inline auto fsCaseSensitivity()
+    {
+        return fsCasePreserving() ? Qt::CaseInsensitive : Qt::CaseSensitive;
+    }
+
     // Check if two paths that MUST exist are equal. This function
     // uses QDir::canonicalPath() to judge and cares for the systems
     // case sensitivity.
@@ -325,6 +330,20 @@ namespace Utility {
      */
     OCSYNC_EXPORT QString getCurrentUserName();
 
+#ifdef Q_OS_LINUX
+    OCSYNC_EXPORT QString appImageLocation();
+    OCSYNC_EXPORT bool runningInAppImage();
+#else
+    inline QString appImageLocation()
+    {
+        Q_UNREACHABLE();
+    };
+    constexpr bool runningInAppImage()
+    {
+        return false;
+    };
+#endif
+
     /**
      * @brief Registers the desktop app as a handler for a custom URI to enable local editing
      */
@@ -335,6 +354,19 @@ namespace Utility {
     OCSYNC_EXPORT QString noLeadingSlashPath(const QString &path);
     OCSYNC_EXPORT QString noTrailingSlashPath(const QString &path);
     OCSYNC_EXPORT QString fullRemotePathToRemoteSyncRootRelative(const QString &fullRemotePath, const QString &remoteSyncRoot);
+
+    /**
+     * @brief Splits "--option=value" arguments into a separate "--option" and "value" entry
+     *
+     * The option parsers of the client and of nextcloudcmd walk the argument list with an
+     * iterator and expect the value of an option in the entry that follows it. Normalising
+     * the list before parsing makes both spellings work without teaching every single
+     * option about the inline form.
+     *
+     * Only entries starting with "--" are split, and only at their first '='. "--option="
+     * keeps no value so that the parsers report their usual "not specified" error.
+     */
+    OCSYNC_EXPORT QStringList expandCommandLineOptionValues(const QStringList &arguments);
 
 #ifdef Q_OS_WIN
     OCSYNC_EXPORT bool registryKeyExists(HKEY hRootKey, const QString &subKey);
