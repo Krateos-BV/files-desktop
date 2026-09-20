@@ -9,11 +9,6 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
-  # Needed to push branches whose diff touches .github/workflows/ (a conflicted
-  # merge here routinely does, e.g. linux-appimage.yml/sonarcloud.yml) — without
-  # this, GITHUB_TOKEN's push is rejected outright and the run fails before it
-  # can even open a PR.
-  workflows: write
 
 jobs:
   sync:
@@ -54,16 +49,27 @@ jobs:
           git checkout -b "$BRANCH"
           git config user.name "xenia-sync-bot"
           git config user.email "bot@xeniacloud.eu"
-          if git merge --no-commit --no-ff upstream/master; then
+          MERGE_OK=true
+          git merge --no-commit --no-ff upstream/master || MERGE_OK=false
+
+          # GITHUB_TOKEN can never push changes to .github/workflows/ - GitHub
+          # hard-blocks it regardless of granted permissions (there is no valid
+          # `permissions:` key for this; don't try adding one again), to stop a
+          # workflow from self-modifying/escalating other workflows. Discard any
+          # changes to that directory from the merge so the branch stays pushable,
+          # in both the clean and conflicted cases.
+          git checkout --no-overlay HEAD -- .github/workflows/ 2>/dev/null || true
+          git add -A
+
+          if [ "$MERGE_OK" = true ]; then
             git commit --no-edit
             echo "status=clean" >> "$GITHUB_OUTPUT"
           else
-            # Never silently drop a conflicted sync — commit it as-is with conflict
+            # Never silently drop a conflicted sync - commit it as-is with conflict
             # markers so the PR diff shows exactly what needs manual resolution,
             # per the fork/rebrand playbook (a merge --abort + failed run here is
             # invisible: issues are disabled on this repo, so nothing ever surfaced
-            # it — this sat broken for weeks before anyone noticed).
-            git add -A
+            # it - this sat broken for weeks before anyone noticed).
             git commit -m "chore: merge nextcloud/desktop master (conflicts need manual resolution)"
             echo "status=conflict" >> "$GITHUB_OUTPUT"
           fi
