@@ -1,11 +1,11 @@
 # SPDX-FileCopyrightText: 2026 Nextcloud GmbH and Nextcloud contributors
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-# XNT-48: manual-dispatch CI for the Xenia Desktop rebrand (Krateos-BV fork).
+# XNT-48: manual-dispatch CI for the Xenia Files rebrand (Krateos-BV fork).
 # Unsigned build only — no code-signing step. Push trigger deferred until
 # XNT-47 (Krateos-BV Actions minutes/billing check) resolves; re-add
 # `on: push: branches: [master]` once that's confirmed.
-name: Xenia Desktop CI (unsigned)
+name: Xenia Files CI (unsigned)
 
 on:
   workflow_dispatch:
@@ -41,9 +41,9 @@ jobs:
       - name: Configure, compile and package
         id: build-appimage
         env:
-          APPNAME: "Xenia Desktop"
-          APPICON_NAME: "Xenia Desktop"
-          EXECUTABLE_NAME: xenia-desktop
+          APPNAME: "Xenia Files"
+          APPICON_NAME: "Xenia Files"
+          EXECUTABLE_NAME: xenia-files
           VERSION_SUFFIX: ${{ steps.safe-ref.outputs.value }}
         run: |
           # XNT-113: BUILD_UPDATER=OFF — Xenia has no update channel of its own, so the
@@ -55,7 +55,7 @@ jobs:
       - name: Upload AppImage artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: xenia-desktop-appimage-${{ steps.safe-ref.outputs.value }}-${{ github.sha }}
+          name: xenia-files-appimage-${{ steps.safe-ref.outputs.value }}-${{ github.sha }}
           path: ${{ steps.build-appimage.outputs.APPIMAGE_NAME }}
           overwrite: true
           compression-level: 0 # squashfs is already compressed
@@ -123,6 +123,6 @@ jobs:
       - name: Upload build output artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: xenia-desktop-windows-build-${{ steps.safe-ref.outputs.value }}-${{ github.sha }}
+          name: xenia-files-windows-build-${{ steps.safe-ref.outputs.value }}-${{ github.sha }}
           path: ${{ github.workspace }}\${{ env.CRAFT_TARGET }}\build\nextcloud-client\work\build\bin
           if-no-files-found: error

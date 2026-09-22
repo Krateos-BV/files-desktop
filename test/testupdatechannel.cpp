@@ -20,7 +20,7 @@
 // The goal of this test is to check whether the correct update channel is used when
 // multiple accounts are set up.
 //
-// Note: this build is always branded (Xenia Desktop), so ConfigFile::currentUpdateChannel()
+// Note: this build is always branded (Xenia Files), so ConfigFile::currentUpdateChannel()
 //       is locked to the default channel regardless of any account's subscription/enterprise
 //       channel settings (upstream behavior, see ConfigFile::currentUpdateChannel()'s isBranded
 //       short-circuit). This test verifies that lock holds even while accounts are added,
