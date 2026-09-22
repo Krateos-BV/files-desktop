@@ -25,7 +25,13 @@ jobs:
       # There is no replace() in Actions expressions, so sanitise it in a step.
       - name: Sanitise ref name
         id: safe-ref
-        run: echo "value=${GITHUB_REF_NAME//\//-}" >> "$GITHUB_OUTPUT"
+        # Explicit bash: inside the container the default shell resolves to
+        # `sh -e`, and this substitution is a bashism.
+        shell: bash
+        run: |
+          SAFE_REF="${GITHUB_REF_NAME//\//-}"
+          echo "Artifact-safe ref name: ${SAFE_REF}"
+          echo "value=${SAFE_REF}" >> "$GITHUB_OUTPUT"
 
       - name: Configure, compile and package
         id: build-appimage
@@ -66,7 +72,9 @@ jobs:
         id: safe-ref
         shell: pwsh
         run: |
-          echo "value=$($env:GITHUB_REF_NAME -replace '/','-')" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          $safeRef = $env:GITHUB_REF_NAME -replace '/','-'
+          echo "Artifact-safe ref name: $safeRef"
+          echo "value=$safeRef" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
