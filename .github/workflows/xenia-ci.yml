@@ -14,7 +14,12 @@ jobs:
   linux-appimage:
     name: Linux AppImage (unsigned)
     runs-on: ubuntu-latest
-    container: ghcr.io/nextcloud/continuous-integration-client-appimage-qt6:client-appimage-el8-6.10.2-4
+    # XNT-154: keep this tag in step with `.github/workflows/linux-appimage.yml`.
+    # Since the upstream sync, build-appimage.sh also builds opencloud-eu/openvfs,
+    # which needs libfuse at configure time; `-4` has no fuse3-devel, `-6` does.
+    # The tag is pinned separately in both workflows, so it drifts on every
+    # upstream sync — re-check it against linux-appimage.yml after each one.
+    container: ghcr.io/nextcloud/continuous-integration-client-appimage-qt6:client-appimage-el8-6.10.2-6
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
