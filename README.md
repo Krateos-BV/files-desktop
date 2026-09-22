@@ -1,48 +1,42 @@
 <!--
   - SPDX-FileCopyrightText: 2017 Nextcloud GmbH and Nextcloud contributors
   - SPDX-FileCopyrightText: 2011 Nextcloud GmbH and Nextcloud contributors
+  - SPDX-FileCopyrightText: 2026 XeniaCloud
   - SPDX-License-Identifier: GPL-2.0-or-later
 -->
-# Nextcloud Desktop Client
+# Xenia Files Desktop
 
-[![REUSE status](https://api.reuse.software/badge/github.com/nextcloud/desktop)](https://api.reuse.software/info/github.com/nextcloud/desktop)
+[![REUSE status](https://api.reuse.software/badge/github.com/Krateos-BV/files-desktop)](https://api.reuse.software/info/github.com/Krateos-BV/files-desktop)
 
-The Nextcloud Desktop Client is an app to synchronize files from Nextcloud Server with your computer available for Windows, macOS and Linux.
+> Independently maintained desktop sync client for Xenia Files, based on the [Nextcloud Desktop Client](https://github.com/nextcloud/desktop) (GPLv2-or-later). Not affiliated with or endorsed by Nextcloud GmbH.
+
+The desktop app to synchronize files from your [XeniaCloud](https://xeniacloud.eu) account with your computer, available for Windows, macOS and Linux.
 
 <p align="center">
-    <img src="doc/images/main_dialog_christine.png" alt="Desktop Client on Windows" width="450">
+    <img src="doc/images/main_dialog_christine.png" alt="Desktop Client" width="450">
 </p>
 
+## Upstream & license 📜
+
+Xenia Files Desktop is a rebrand of [nextcloud/desktop](https://github.com/nextcloud/desktop), forked under its GPLv2-or-later license, which permits forking provided Nextcloud's own trademarks and branding are not carried over — the app name, icons and server URL defaults here have been changed accordingly; the underlying code and functionality are otherwise unchanged from upstream unless noted in this fork's own commit history.
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version. This program is distributed WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+## Getting help 🛟
+
+This is an independently maintained fork — upstream's help forum, docs site, and issue tracker are for the Nextcloud desktop client, not Xenia Files, and won't be able to help with anything specific to this fork or to a XeniaCloud account. For support with Xenia Files Desktop or your XeniaCloud account, contact XeniaCloud support directly.
+
 ## Downloads 🚀
-For the latest stable and recommended version, please refer to [the official download page](https://nextcloud.com/install/#install-clients).
 
-## Help 🛟
-You can find [the user, administration and developer manuals for the desktop client](https://docs.nextcloud.com/#desktop) on our central documentation site.
-
-## Contributing 🫴
-- Make sure to follow our [guidelines for contributing](https://github.com/nextcloud/desktop/blob/98690b1e9141f2c602c9b4583c1f9ed16b95a309/CONTRIBUTING.md) to this repository.
-- Don't forget to read our [Code of Conduct](https://nextcloud.com/community/code-of-conduct/). This document offers some guidance to ensure Nextcloud participants can cooperate effectively in a positive and inspiring atmosphere and to explain how together we can strengthen and support each other.
-
-## Join the team 👪
-There are many ways to contribute, of which development is only one! Find out [how to get involved](https://nextcloud.com/contribute/), including as a translator, designer, tester, helping others, and much more! 😍
-
-## Help testing 🔬
-Download and install the client:
-
-- [All releases](https://github.com/nextcloud-releases/desktop/releases)<br>
-- [Daily builds](https://download.nextcloud.com/desktop/daily)
-
-## Reporting issues 🐛
-If you find any bugs or have any suggestion for improvement, please
-[open an issue in this repository](https://github.com/nextcloud/desktop/issues).
+This fork is not currently distributed via a public release channel — no GitHub Releases exist on this repo yet. Builds are produced by this repository's own CI as unsigned artifacts.
 
 ## Bug fixing and development 🛠️
 
 > [!TIP]
 > For contributors on macOS, see the [macOS development guide](./doc/macOS-development.md).
 
-> [!NOTE]  
-> Find the system requirements and instructions on [how to work with KDE Craft in our desktop client blueprints repository](https://github.com/nextcloud/craft-blueprints-nextcloud/).
+> [!NOTE]
+> Find the system requirements and instructions on [how to work with KDE Craft in our desktop client blueprints repository](https://github.com/nextcloud/craft-blueprints-nextcloud/) (this fork follows upstream's build tooling).
 
 ### System requirements
 - Windows 10, Windows 11, macOS 13 Ventura (or newer) or Linux
@@ -63,21 +57,13 @@ Optional recommendations:
 
 Step by step instructions on how to build the client to contribute.
 
-1. Clone the Github repository: `git clone https://github.com/nextcloud/desktop.git`
+1. Clone this repository: `git clone https://github.com/Krateos-BV/files-desktop.git`
 2. Create build directory: `mkdir <build directory>`
 3. Navigate into build directory: `cd <build directory>`
-4. Compile: `cmake -S <cloned desktop repo> -B build -DCMAKE_PREFIX_PATH=<dependencies> -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=. -DNEXTCLOUD_DEV=ON`
+4. Compile: `cmake -S <cloned repo> -B build -DCMAKE_PREFIX_PATH=<dependencies> -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=. -DNEXTCLOUD_DEV=ON`
 
 > [!TIP]
 > The cmake variable NEXTCLOUD_DEV allows you to run your own build of the client while developing in parallel with an installed version of the client.
-
-Then you might continue with these steps:
-	
-1. 🐛 [Pick a good first issue](https://github.com/nextcloud/desktop/labels/good%20first%20issue)
-2. 👩‍🔧 Create a branch and make your changes. Remember to sign off your commits using `git commit -sm "Your commit message"`
-3. ⬆ Create a [pull request](https://opensource.guide/how-to-contribute/#opening-a-pull-request) and `@mention` the people from the issue to eview
-4. 👍 Fix things that come up during a review
-5. 🎉 Wait for it to get merged!
 
 ### Test servers
 
@@ -95,25 +81,4 @@ docker run \
     nextcloud
 ```
 
-This simple test server already suffices in the most cases. For more advanced server test deployments we also recommend [Nextcloud development environment on Docker Compose](https://juliusknorr.github.io/nextcloud-docker-dev/).
-
-## Get in touch 💬
-* [📋 Forum](https://help.nextcloud.com)
-* [🐘 Mastodon](https://mastodon.xyz/@nextcloud)
-* [🔗 LinkedIn](https://www.linkedin.com/company/nextcloud-gmbh/)
-* [🦋 Bluesky](https://bsky.app/profile/nextcloud.bsky.social)
-* [👥 Facebook](https://www.facebook.com/nextclouders)
-
-You can also [get professional support for Nextcloud and the desktop client](https://nextcloud.com/support)!
-
-## License 📜
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful, but
-    WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-    or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
-    for more details.
+This simple test server already suffices in most cases. For more advanced server test deployments upstream also recommends [Nextcloud development environment on Docker Compose](https://juliusknorr.github.io/nextcloud-docker-dev/).
