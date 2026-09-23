@@ -1,0 +1,92 @@
+# SPDX-FileCopyrightText: Nextcloud GmbH
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
+# Measures how often the NextcloudFileProviderKit suite fails when nothing has changed.
+#
+# The per-push workflow runs the suite exactly once, so a red run is indistinguishable from bad luck
+# and the honest response is to re-run it — which is how a flake survives for months. This job runs
+# the same suite repeatedly on an unchanged tree and reports which tests failed and how often, so the
+# flake rate is a number that can be compared before and after a fix.
+name: NextcloudFileProviderKit flake rate
+
+on:
+  schedule:
+    # Mondays, 04:17 UTC. Weekly rather than nightly: these are macOS runners and the signal does not
+    # change fast enough to be worth the minutes.
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+    inputs:
+      iterations:
+        description: How many times to run the full suite
+        required: false
+        default: '10'
+
+permissions:
+  contents: read
+
+jobs:
+  FlakeRate:
+    runs-on: macos-26
+    timeout-minutes: 120
+
+    defaults:
+      run:
+        working-directory: shell_integration/MacOSX/NextcloudFileProviderKit
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+    - uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+      with:
+        xcode-version: latest-stable
+
+    - name: Build once
+      run: xcodebuild build-for-testing -scheme NextcloudFileProviderKit-Package -destination "platform=macOS,name=My Mac"
+
+    - name: Run the suite repeatedly
+      id: runs
+      env:
+        ITERATIONS: ${{ inputs.iterations || '10' }}
+      run: |
+        mkdir -p "$RUNNER_TEMP/flake"
+        red=0
+
+        for run in $(seq 1 "$ITERATIONS"); do
+          # Deliberately one iteration per process. `-test-iterations` is not a substitute: several
+          # tests in this target fail on every in-process repeat after the first even on a healthy
+          # tree, so it manufactures failures rather than measuring them.
+          if xcodebuild test-without-building -scheme NextcloudFileProviderKit-Package -destination "platform=macOS,name=My Mac" > "$RUNNER_TEMP/flake/run-$run.log" 2>&1; then
+            echo "run $run: green"
+          else
+            red=$((red + 1))
+            echo "run $run: RED ($(grep -cE '^Test Case .* failed' "$RUNNER_TEMP/flake/run-$run.log") failing cases)"
+          fi
+        done
+
+        echo "red=$red" >> "$GITHUB_OUTPUT"
+
+    - name: Report
+      if: always()
+      env:
+        ITERATIONS: ${{ inputs.iterations || '10' }}
+        RED: ${{ steps.runs.outputs.red }}
+      run: |
+        {
+          echo "## NextcloudFileProviderKit flake rate"
+          echo
+          echo "\`$RED\` of \`$ITERATIONS\` runs were red, on commit \`$GITHUB_SHA\`."
+          echo
+          echo "| failures | test |"
+          echo "| --- | --- |"
+          grep -hoE "Test Case '-\[[A-Za-z]+\.[A-Za-z]+ test[A-Za-z0-9_]+\]' failed" "$RUNNER_TEMP"/flake/run-*.log \
+            | sed -E "s/Test Case '-\[([A-Za-z.]+) (test[A-Za-z0-9_]+)\]' failed/\1.\2/" \
+            | sort | uniq -c | sort -rn \
+            | awk '{ printf "| %s | %s |\n", $1, $2 }'
+          echo
+          echo "A test listed here passed in at least one other run of this same commit, so it is"
+          echo "flaky rather than broken — unless it failed in every run."
+        } >> "$GITHUB_STEP_SUMMARY"
+
+        # Fail the job when anything flaked, so the run shows up red in the Actions list rather than
+        # quietly accumulating a summary nobody opens.
+        test "$RED" -eq 0
