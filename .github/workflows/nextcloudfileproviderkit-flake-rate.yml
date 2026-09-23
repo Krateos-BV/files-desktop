@@ -60,6 +60,12 @@ jobs:
           else
             red=$((red + 1))
             echo "run $run: RED ($(grep -cE '^Test Case .* failed' "$RUNNER_TEMP/flake/run-$run.log") failing cases)"
+            # Name them here too. The step summary is web-UI only — no REST API exposes it — so
+            # without this the log says a run was red and gives no way to find out which test, which
+            # is how this job gets read from `gh` or by an agent.
+            grep -hoE "Test Case '-\[[A-Za-z]+\.[A-Za-z]+ test[A-Za-z0-9_]+\]' failed" "$RUNNER_TEMP/flake/run-$run.log" \
+              | sed -E "s/Test Case '-\[([A-Za-z.]+) (test[A-Za-z0-9_]+)\]' failed/          \1.\2/" \
+              | sort -u
           fi
         done
 
@@ -71,6 +77,8 @@ jobs:
         ITERATIONS: ${{ inputs.iterations || '10' }}
         RED: ${{ steps.runs.outputs.red }}
       run: |
+        # tee, not a bare redirect: the same table belongs in the job log, which is the only part a
+        # script or an agent can read back.
         {
           echo "## NextcloudFileProviderKit flake rate"
           echo
@@ -85,7 +93,7 @@ jobs:
           echo
           echo "A test listed here passed in at least one other run of this same commit, so it is"
           echo "flaky rather than broken — unless it failed in every run."
-        } >> "$GITHUB_STEP_SUMMARY"
+        } | tee -a "$GITHUB_STEP_SUMMARY"
 
         # Fail the job when anything flaked, so the run shows up red in the Actions list rather than
         # quietly accumulating a summary nobody opens.
