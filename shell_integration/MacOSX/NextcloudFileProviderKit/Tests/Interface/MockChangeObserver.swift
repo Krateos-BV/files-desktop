@@ -21,6 +21,15 @@ public class MockChangeObserver: NSObject, NSFileProviderChangeObserver, @unchec
     /// derive per-batch sizes and assert no batch exceeds the cap. `didUpdate`/`didDeleteItems` for a
     /// batch are delivered before its `finishEnumeratingChanges`, so each entry includes that batch.
     public private(set) var reportedCountsAtFinish: [Int] = []
+    /// Whether each `finishEnumeratingChanges` arrived on the main thread, in order.
+    ///
+    /// Production acknowledges a batch immediately after reporting it finished, in the same job and
+    /// without suspending, so the acknowledgement — the soft-delete and hard-remove writes — is ordered
+    /// only for callers that can get behind that job. ``enumerateChangesBatch(from:)`` does that by
+    /// hopping to the MainActor, which works precisely because the batch job runs there. A batch
+    /// reported off the main thread is therefore a race the harness cannot close, not a stylistic
+    /// detail, and tests assert on this to keep it from coming back.
+    public private(set) var finishesDeliveredOnMainThread: [Bool] = []
     /// Optional synchronous hook invoked immediately before a change batch is finished.
     public var beforeFinishEnumeratingChanges: (() -> Void)?
     /// Mirrors the system-set `suggestedBatchSize`. `@objc` so the optional protocol requirement is seen
@@ -48,6 +57,7 @@ public class MockChangeObserver: NSObject, NSFileProviderChangeObserver, @unchec
         beforeFinishEnumeratingChanges?()
         finishes.append((anchor, moreComing))
         reportedCountsAtFinish.append(changedItems.count + deletedItemIdentifiers.count)
+        finishesDeliveredOnMainThread.append(Thread.isMainThread)
         // moreComing: the framework would re-invoke enumerateChanges from this anchor for the next batch.
         isComplete = !moreComing
         batchComplete = true
@@ -116,6 +126,7 @@ public class MockChangeObserver: NSObject, NSFileProviderChangeObserver, @unchec
         deletedItemIdentifiers = []
         finishes = []
         reportedCountsAtFinish = []
+        finishesDeliveredOnMainThread = []
         error = nil
         isComplete = false
         batchComplete = false
