@@ -16,20 +16,8 @@ final class FilesDatabaseManagerTests: NextcloudFileProviderKitTestCase {
 
     static let dbManager = FilesDatabaseManager(account: account, databaseDirectory: makeDatabaseDirectory(), fileProviderDomainIdentifier: NSFileProviderDomainIdentifier("test"), log: FileProviderLogMock())
 
-    /// Retains the in-memory Realm for the whole test. Without a live reference the
-    /// store is deallocated once a write returns, so data written earlier in the test
-    /// vanishes when the next database access reopens the Realm.
-    private var keepAliveRealm: Realm?
-
-    override func setUp() {
-        super.setUp()
-        Realm.Configuration.defaultConfiguration.inMemoryIdentifier = name
-        keepAliveRealm = Self.dbManager.ncDatabase()
-    }
-
-    override func tearDown() {
-        keepAliveRealm = nil
-        super.tearDown()
+    override var testDatabaseManager: FilesDatabaseManager? {
+        Self.dbManager
     }
 
     func testFilesDatabaseManagerInitialization() {
@@ -152,6 +140,7 @@ final class FilesDatabaseManagerTests: NextcloudFileProviderKitTestCase {
     /// the root (root excluded) — the set of folders whose "Remove download"
     /// visibility must be refreshed when that file materializes (#10085).
     func testAncestorContainerIdentifiersForMaterializedFile() throws {
+        expectLoggedErrors()
         let folder = RealmItemMetadata()
         folder.ocId = "folder-1"
         folder.account = Self.account.ncKitAccount
@@ -1485,6 +1474,7 @@ final class FilesDatabaseManagerTests: NextcloudFileProviderKitTestCase {
     }
 
     func testParentItemIdentifierWithRemoteFallback() async throws {
+        expectLoggedErrors()
         let rootItem = MockRemoteItem.rootItem(account: Self.account)
 
         let remoteFolder = MockRemoteItem(
@@ -1903,6 +1893,7 @@ final class FilesDatabaseManagerTests: NextcloudFileProviderKitTestCase {
     }
 
     func testDepth1ReadDoesNotEvictInFlightSibling() throws {
+        expectLoggedErrors()
         let account = Account(user: "test", id: "t", serverUrl: "https://example.com", password: "")
 
         var rootMetadata = SendableItemMetadata(ocId: "root", fileName: "", account: account)
@@ -2102,6 +2093,7 @@ final class FilesDatabaseManagerTests: NextcloudFileProviderKitTestCase {
     }
 
     func testStartupCleanupSkipsInTransitDuplicate() throws {
+        expectLoggedErrors()
         let testAccount = "TestAccount"
         let testServerUrl = "https://example.com"
         let fileName = "in-flight.bin"

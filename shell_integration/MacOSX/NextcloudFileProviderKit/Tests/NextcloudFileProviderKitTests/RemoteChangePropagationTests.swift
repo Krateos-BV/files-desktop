@@ -554,6 +554,7 @@ final class RemoteChangePropagationTests: NextcloudFileProviderKitTestCase {
     /// the web never appear" bug). The incomplete scan must also NOT advance the working-set sync point,
     /// so the next signal re-derives and can pick up the folder it could not read this pass.
     func testWorkingSetScanContinuesPastAFailedFolderRead() async throws {
+        expectLoggedErrors()
         let db = Self.dbManager.ncDatabase(); debugPrint(db)
 
         // "a" sorts before "zzzzzzzzzz" by remote-path length, so the failing folder is scanned first.
