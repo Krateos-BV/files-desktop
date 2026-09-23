@@ -13,20 +13,8 @@ final class UploadTests: NextcloudFileProviderKitTestCase {
     static let account = Account(user: "user", id: "id", serverUrl: "test.cloud.com", password: "1234")
     static let dbManager = FilesDatabaseManager(account: account, databaseDirectory: makeDatabaseDirectory(), fileProviderDomainIdentifier: NSFileProviderDomainIdentifier("test"), log: FileProviderLogMock())
 
-    /// Retains the in-memory Realm for the whole test. Without a live reference the
-    /// store is deallocated once a write returns, so data written earlier in the test
-    /// vanishes when the next database access reopens the Realm.
-    private var keepAliveRealm: Realm?
-
-    override func setUp() {
-        super.setUp()
-        Realm.Configuration.defaultConfiguration.inMemoryIdentifier = name
-        keepAliveRealm = Self.dbManager.ncDatabase()
-    }
-
-    override func tearDown() {
-        keepAliveRealm = nil
-        super.tearDown()
+    override var testDatabaseManager: FilesDatabaseManager? {
+        Self.dbManager
     }
 
     func testStandardUpload() async throws {

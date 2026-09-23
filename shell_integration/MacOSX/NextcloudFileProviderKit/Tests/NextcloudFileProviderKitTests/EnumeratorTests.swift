@@ -27,15 +27,12 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
 
     static let dbManager = FilesDatabaseManager(account: account, databaseDirectory: makeDatabaseDirectory(), fileProviderDomainIdentifier: NSFileProviderDomainIdentifier("test"), log: FileProviderLogMock())
 
-    /// Retains the in-memory Realm for the whole test. Without a live reference the
-    /// store is deallocated once a write returns, so data written earlier in the test
-    /// vanishes when the next database access reopens the Realm.
-    private var keepAliveRealm: Realm?
+    override var testDatabaseManager: FilesDatabaseManager? {
+        Self.dbManager
+    }
 
     override func setUp() {
         super.setUp()
-        Realm.Configuration.defaultConfiguration.inMemoryIdentifier = name
-        keepAliveRealm = Self.dbManager.ncDatabase()
 
         rootItem = MockRemoteItem.rootItem(account: Self.account)
 
@@ -128,11 +125,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
         remoteTrashItemA.parent = rootTrashItem
         remoteTrashItemB.parent = rootTrashItem
         remoteTrashItemC.parent = rootTrashItem
-    }
-
-    override func tearDown() {
-        keepAliveRealm = nil
-        super.tearDown()
     }
 
     func testRootEnumeration() async throws {
@@ -1362,6 +1354,7 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     }
 
     func testTrashItemEnumerationFailWhenNoTrashInCapabilities() async throws {
+        expectLoggedErrors()
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, rootTrashItem: rootTrashItem)
         XCTAssert(remoteInterface.capabilities.contains(##""undelete": true,"##))
         remoteInterface.capabilities =
@@ -1423,6 +1416,7 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     }
 
     func testTrashChangeEnumerationFailWhenNoTrashInCapabilities() async throws {
+        expectLoggedErrors()
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, rootTrashItem: rootTrashItem)
         XCTAssert(remoteInterface.capabilities.contains(##""undelete": true,"##))
         remoteInterface.capabilities =
@@ -1484,6 +1478,7 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     /// Tests situation where we are enumerating files and we can no longer find the parent item
     /// in the database. So we need to simulate a situation where this takes place.
     func testCorrectEnumerateFileWithMissingParentInDb() async throws {
+        expectLoggedErrors()
         let db = Self.dbManager.ncDatabase() // Strong ref for in memory test db
         debugPrint(db)
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
@@ -2268,17 +2263,7 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
             )
             let nextObserver = MockChangeObserver(enumerator: nextEnumerator)
             nextObserver.suggestedBatchSize = batchSize
-            nextEnumerator.enumerateChanges(for: nextObserver, from: currentAnchor)
-
-            for _ in 0 ..< 5000 {
-                if !nextObserver.finishes.isEmpty || nextObserver.error != nil {
-                    break
-                }
-                try await Task.sleep(nanoseconds: 1_000_000)
-            }
-
-            XCTAssertNil(nextObserver.error)
-            let finish = try XCTUnwrap(nextObserver.finishes.first)
+            let finish = try await nextObserver.enumerateChangesBatch(from: currentAnchor)
             reportedOcIds += nextObserver.changedItems.map(\.itemIdentifier.rawValue)
             XCTAssertTrue(
                 continuationAnchors.insert(finish.anchor.rawValue).inserted,
