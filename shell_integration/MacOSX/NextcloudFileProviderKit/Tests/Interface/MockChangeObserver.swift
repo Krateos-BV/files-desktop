@@ -67,6 +67,12 @@ public class MockChangeObserver: NSObject, NSFileProviderChangeObserver, @unchec
             while !batchComplete {
                 try await Task.sleep(nanoseconds: 1_000_000)
             }
+            // `batchComplete` is set inside `finishEnumeratingChanges`, but the production batch job
+            // goes on to call `changeBuffer.acknowledgeBatch(...)` — the soft-delete and hard-remove
+            // writes — in the same MainActor job, without suspending in between. Hopping to the
+            // MainActor here therefore waits for that job to finish, so the caller's assertions and
+            // the next batch both see an acknowledged database rather than racing it.
+            await MainActor.run {}
             if let error {
                 throw error
             }
