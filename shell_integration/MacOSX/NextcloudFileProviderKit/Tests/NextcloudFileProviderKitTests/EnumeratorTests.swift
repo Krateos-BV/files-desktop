@@ -1322,6 +1322,60 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
         XCTAssertEqual(Self.dbManager.itemMetadata(ocId: remoteTrashItemA.identifier)?.deleted, true)
     }
 
+    /// Every change batch must be reported on the main actor, trash included.
+    ///
+    /// Production acknowledges a batch — the soft-delete and hard-remove writes — immediately after
+    /// reporting it finished, in the same job and without suspending. A caller can only get behind
+    /// those writes by joining that job, which is what ``MockChangeObserver/enumerateChangesBatch(from:)``
+    /// does by hopping to the MainActor. Report a batch off the main actor and that hop orders nothing,
+    /// so every assertion about the database after a batch becomes a coin toss. The trash path did
+    /// exactly that and was the last of XNT-174's flakes.
+    func testChangeBatchesAreReportedOnTheMainActor() async throws {
+        let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, rootTrashItem: rootTrashItem)
+
+        rootTrashItem.children = [remoteTrashItemA]
+        remoteTrashItemA.parent = rootTrashItem
+        Self.dbManager.addItemMetadata(
+            remoteTrashItemA.toNKTrash().toItemMetadata(account: Self.account)
+        )
+
+        let trashEnumerator = try Enumerator(
+            enumeratedItemIdentifier: .trashContainer,
+            account: Self.account,
+            remoteInterface: remoteInterface,
+            dbManager: Self.dbManager,
+            log: FileProviderLogMock()
+        )
+        let trashObserver = MockChangeObserver(enumerator: trashEnumerator)
+        try await trashObserver.enumerateChanges()
+
+        XCTAssertFalse(trashObserver.finishesDeliveredOnMainThread.isEmpty)
+        XCTAssertFalse(
+            trashObserver.finishesDeliveredOnMainThread.contains(false),
+            "Trash change batches must be reported on the main actor so the acknowledgement is ordered."
+        )
+
+        // The working set already does this; assert it here so both paths are held to one contract.
+        _ = seedMaterialisedWorkingSetFiles(count: 2, syncTime: Date())
+        let workingSetEnumerator = try Enumerator(
+            enumeratedItemIdentifier: .workingSet,
+            account: Self.account,
+            remoteInterface: remoteInterface,
+            dbManager: Self.dbManager,
+            log: FileProviderLogMock()
+        )
+        let workingSetObserver = MockChangeObserver(enumerator: workingSetEnumerator)
+        try await workingSetObserver.enumerateChanges(
+            from: Enumerator.syncAnchor(at: Date().addingTimeInterval(-300))
+        )
+
+        XCTAssertFalse(workingSetObserver.finishesDeliveredOnMainThread.isEmpty)
+        XCTAssertFalse(
+            workingSetObserver.finishesDeliveredOnMainThread.contains(false),
+            "Working set change batches must be reported on the main actor."
+        )
+    }
+
     func testTrashItemEnumerationFailWhenNoTrashInCapabilities() async throws {
         expectLoggedErrors()
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, rootTrashItem: rootTrashItem)
