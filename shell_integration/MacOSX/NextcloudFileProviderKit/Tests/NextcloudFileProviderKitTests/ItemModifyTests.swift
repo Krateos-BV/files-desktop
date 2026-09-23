@@ -783,9 +783,6 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
 
     /// Verify the framework callback sequence caused by excluding a remotely synced bundle.
     func testModifyRemoteBundleExclusionDoesNotDeleteRemoteBundle() async throws {
-        let db = Self.dbManager.ncDatabase()
-        debugPrint(db)
-
         let bundleFilename = "test.key"
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, rootTrashItem: rootTrashItem)
         let remoteBundle = MockRemoteItem(

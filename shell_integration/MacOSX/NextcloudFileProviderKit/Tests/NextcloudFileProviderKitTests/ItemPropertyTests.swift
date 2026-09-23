@@ -807,9 +807,6 @@ final class ItemPropertyTests: NextcloudFileProviderKitTestCase {
     }
 
     func testStoredItemTrashabilityFalseAffectedByCapabilities() async {
-        let db = Self.dbManager.ncDatabase()
-        debugPrint(db)
-
         let remoteInterface = MockRemoteInterface(account: Self.account)
         XCTAssert(remoteInterface.capabilities.contains(##""undelete": true,"##))
         remoteInterface.capabilities =
@@ -828,9 +825,6 @@ final class ItemPropertyTests: NextcloudFileProviderKitTestCase {
     }
 
     func testStoredItemTrashabilityTrueAffectedByCapabilities() async {
-        let db = Self.dbManager.ncDatabase()
-        debugPrint(db)
-
         let remoteInterface = MockRemoteInterface(account: Self.account)
         XCTAssert(remoteInterface.capabilities.contains(##""undelete": true,"##))
         let metadata =

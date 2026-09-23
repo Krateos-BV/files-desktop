@@ -128,8 +128,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     }
 
     func testRootEnumeration() async throws {
-        let db = Self.dbManager.ncDatabase() // Strong ref for in memory test db
-        debugPrint(db) // Avoid build-time warning about unused variable, ensure compiler won't free
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
 
         let enumerator = try Enumerator(
@@ -189,8 +187,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     func testWorkingSetEnumeration() async throws {
         // This test verifies that the working set enumerator correctly returns ONLY the
         // items that are "materialised" (downloaded files or visited directories) from the database
-        let db = Self.dbManager.ncDatabase() // Init DB
-        debugPrint(db)
 
         // Item 1: A downloaded file (should be in working set)
         var downloadedFile = remoteItemA.toItemMetadata(account: Self.account)
@@ -254,8 +250,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
         // no materialized items in the database.
 
         // 1. Arrange
-        let db = Self.dbManager.ncDatabase()
-        debugPrint(db)
 
         // Add items to the DB, but none are materialised.
         var notDownloadedFile = remoteItemA.toItemMetadata(account: Self.account)
@@ -300,8 +294,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
             remoteFolder.children.append(childItem)
         }
 
-        let db = Self.dbManager.ncDatabase()
-        debugPrint(db)
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, pagination: true)
 
         // Pre-populate the folder's metadata with an old etag to verify it gets updated
@@ -390,8 +382,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     func testHandlePagedReadResults() {
         // 1. Arrange
         let dbManager = Self.dbManager
-        let db = dbManager.ncDatabase()
-        debugPrint(db)
 
         let parentNKFile = remoteFolder.toNKFile()
         let childrenNKFiles = (0 ..< 5).map { i in
@@ -625,9 +615,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
         // This test verifies that `enumerateChanges` for the working set correctly
         // queries the local database for changes since the provided sync anchor date.
 
-        let db = Self.dbManager.ncDatabase()
-        debugPrint(db)
-
         let anchorDate = Date().addingTimeInterval(-300) // 5 minutes ago
         let tenMinutesAgo = Date().addingTimeInterval(-600)
         let now = Date()
@@ -722,8 +709,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     ///
     func testChildDirectoriesOfAnUnchangedServerDirectoryShouldNotBeEnumerated() async throws {
         // 1. Setup: Create a directory hierarchy with a parent and child directory
-        let db = Self.dbManager.ncDatabase()
-        debugPrint(db)
 
         // Create a child directory within remoteFolder
         let remoteChildFolder = MockRemoteItem(
@@ -836,8 +821,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     }
 
     func testFolderEnumeration() async throws {
-        let db = Self.dbManager.ncDatabase() // Strong ref for in memory test db
-        debugPrint(db)
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
 
         let oldEtag = "OLD"
@@ -891,8 +874,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     }
 
     func testEnumerateFile() async throws {
-        let db = Self.dbManager.ncDatabase() // Strong ref for in memory test db
-        debugPrint(db)
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
 
         let folderMetadata = remoteFolder.toItemMetadata(account: Self.account)
@@ -957,8 +938,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     }
 
     func testFolderAndContentsChangeEnumeration() async throws {
-        let db = Self.dbManager.ncDatabase() // Strong ref for in memory test db
-        debugPrint(db)
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
 
         remoteFolder.children.removeAll(where: { $0.identifier == remoteItemB.identifier })
@@ -1068,8 +1047,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     }
 
     func testFileMoveChangeEnumeration() async throws {
-        let db = Self.dbManager.ncDatabase() // Strong ref for in memory test db
-        debugPrint(db)
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
 
         remoteFolder.children.removeAll(where: { $0.identifier == remoteItemA.identifier })
@@ -1163,8 +1140,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     }
 
     func testFileLockStateEnumeration() async throws {
-        let db = Self.dbManager.ncDatabase() // Strong ref for in memory test db
-        debugPrint(db)
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
 
         remoteFolder.children.append(remoteItemC)
@@ -1258,8 +1233,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     /// Test that we have a fallback to avoid this, even if something catastrophic happens in the
     /// server and the file has no filename
     func testEnsureNoEmptyItemNameEnumeration() async throws {
-        let db = Self.dbManager.ncDatabase() // Strong ref for in memory test db
-        debugPrint(db) // Avoid build-time warning about unused variable, ensure compiler won't free
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
 
         remoteItemA.name = ""
@@ -1298,8 +1271,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     }
 
     func testTrashEnumeration() async throws {
-        let db = Self.dbManager.ncDatabase() // Strong ref for in memory test db
-        debugPrint(db) // Avoid build-time warning about unused variable, ensure compiler won't free
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, rootTrashItem: rootTrashItem)
         let enumerator = try Enumerator(
             enumeratedItemIdentifier: .trashContainer,
@@ -1313,8 +1284,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     }
 
     func testTrashChangeEnumeration() async throws {
-        let db = Self.dbManager.ncDatabase() // Strong ref for in memory test db
-        debugPrint(db) // Avoid build-time warning about unused variable, ensure compiler won't free
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, rootTrashItem: rootTrashItem)
         rootTrashItem.children = [remoteTrashItemA]
         remoteTrashItemA.parent = rootTrashItem
@@ -1414,8 +1383,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
         remoteInterface.capabilities =
             remoteInterface.capabilities.replacingOccurrences(of: ##""undelete": true,"##, with: "")
 
-        let db = Self.dbManager.ncDatabase() // Strong ref for in memory test db
-        debugPrint(db) // Avoid build-time warning about unused variable, ensure compiler won't free
         let enumerator = try Enumerator(
             enumeratedItemIdentifier: .trashContainer,
             account: Self.account,
@@ -1433,8 +1400,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     }
 
     func testKeepDownloadedRetainedDuringEnumeration() async throws {
-        let db = Self.dbManager.ncDatabase()
-        debugPrint(db)
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
 
         let existingFolder = remoteFolder.toItemMetadata(account: Self.account)
@@ -1476,8 +1441,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
         remoteInterface.capabilities =
             remoteInterface.capabilities.replacingOccurrences(of: ##""undelete": true,"##, with: "")
 
-        let db = Self.dbManager.ncDatabase() // Strong ref for in memory test db
-        debugPrint(db) // Avoid build-time warning about unused variable, ensure compiler won't free
         let enumerator = try Enumerator(
             enumeratedItemIdentifier: .trashContainer,
             account: Self.account,
@@ -1495,8 +1458,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     }
 
     func testRemoteLockFilesNotEnumerated() async throws {
-        let db = Self.dbManager.ncDatabase() // Strong ref for in memory test db
-        debugPrint(db) // Avoid build-time warning about unused variable, ensure compiler won't free
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, rootTrashItem: rootTrashItem)
 
         rootItem.children = [remoteFolder]
@@ -1533,8 +1494,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     /// in the database. So we need to simulate a situation where this takes place.
     func testCorrectEnumerateFileWithMissingParentInDb() async throws {
         expectLoggedErrors()
-        let db = Self.dbManager.ncDatabase() // Strong ref for in memory test db
-        debugPrint(db)
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
 
         var itemAMetadata = remoteItemA.toItemMetadata(account: Self.account)
@@ -1603,8 +1562,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
             remoteFolder.children.append(childItem)
         }
 
-        let db = Self.dbManager.ncDatabase() // Strong ref for in memory test db
-        debugPrint(db)
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, pagination: true)
 
         let oldEtag = "OLD"
@@ -1647,8 +1604,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
         Self.dbManager.addItemMetadata(remoteFolder.toItemMetadata(account: Self.account))
         XCTAssertNotNil(Self.dbManager.itemMetadata(ocId: remoteFolder.identifier), "Folder metadata should be in DB for enumeration.")
 
-        let db = Self.dbManager.ncDatabase() // Strong ref for in-memory test db
-        debugPrint(db)
         // Enable pagination in MockRemoteInterface to ensure the pagination path is taken
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, pagination: true)
 
@@ -1715,8 +1670,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
         Self.dbManager.addItemMetadata(remoteFolder.toItemMetadata(account: Self.account))
         XCTAssertNotNil(Self.dbManager.itemMetadata(ocId: remoteFolder.identifier))
 
-        let db = Self.dbManager.ncDatabase()
-        debugPrint(db)
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, pagination: true)
 
         // 2. Create enumerator with pageSize > number of children.
@@ -1770,8 +1723,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     func testVisitedDirectoryStatePreservedDuringUpdate() async throws {
         // This test verifies that visitedDirectory state is preserved when updating
         // existing folder metadata during enumeration, addressing the fix in FilesDatabaseManager
-        let db = Self.dbManager.ncDatabase()
-        debugPrint(db)
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
 
         // Setup root container metadata in database (required for enumeration)
@@ -1812,8 +1763,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     func testVisitedDirectorySetDuringDirectoryRead() async throws {
         // This test verifies that visitedDirectory is correctly set to true
         // when a directory is the target of a depth-1 read operation
-        let db = Self.dbManager.ncDatabase()
-        debugPrint(db)
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
 
         // Setup root container metadata in database (required for enumeration)
@@ -1851,8 +1800,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     func testVisitedDirectoryStateInWorkingSet() async throws {
         // This test verifies that folders marked as visitedDirectory appear in working set
         // and that the state is preserved correctly across operations
-        let db = Self.dbManager.ncDatabase()
-        debugPrint(db)
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
 
         // Setup root container metadata in database (required for enumeration)
@@ -1951,9 +1898,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
 
     /// Test that pagination is enabled when server is Nextcloud 31 or newer
     func testPaginationEnabledForNC31Plus() async throws {
-        let db = Self.dbManager.ncDatabase()
-        debugPrint(db)
-
         // Setup a folder with many children to trigger pagination
         remoteFolder.children = []
         for i in 0 ..< 25 {
@@ -2022,9 +1966,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
 
     /// Test that pagination is disabled when server is older than Nextcloud 31
     func testPaginationDisabledForOldServers() async throws {
-        let db = Self.dbManager.ncDatabase()
-        debugPrint(db)
-
         // Setup a folder with children
         remoteFolder.children = []
         for i in 0 ..< 10 {
@@ -2128,9 +2069,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     }
 
     func testLockTokenPreservedDuringTargetDepthRead() async throws {
-        let db = Self.dbManager.ncDatabase()
-        debugPrint(db)
-
         let remoteFile = MockRemoteItem(
             identifier: "lockTokenTestFile",
             versionIdentifier: "V1",
@@ -2208,8 +2146,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
         // framework rejects past 100× the suggested size (≈20000). It must now be split into batches no
         // larger than the suggested size, with no change dropped or duplicated, and without re-running the
         // destructive scan on the framework's moreComing re-invocations.
-        let db = Self.dbManager.ncDatabase()
-        debugPrint(db)
 
         let anchorDate = Date().addingTimeInterval(-300)
         let anchor = Enumerator.syncAnchor(at: anchorDate)
@@ -2270,8 +2206,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     func testWorkingSetChangesResumeAcrossNewEnumeratorInstances() async throws {
         // fileproviderd may invalidate the enumerator after an intermediate batch. The continuation must
         // therefore resume from durable state when the next request is handled by a new Enumerator.
-        let db = Self.dbManager.ncDatabase()
-        debugPrint(db)
 
         let anchor = Enumerator.syncAnchor(at: Date().addingTimeInterval(-300))
         let itemCount = 10
@@ -2288,17 +2222,9 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
         )
         let firstObserver = MockChangeObserver(enumerator: firstEnumerator)
         firstObserver.suggestedBatchSize = batchSize
-        firstEnumerator.enumerateChanges(for: firstObserver, from: anchor)
-
-        for _ in 0 ..< 5000 {
-            if !firstObserver.finishes.isEmpty || firstObserver.error != nil {
-                break
-            }
-            try await Task.sleep(nanoseconds: 1_000_000)
-        }
+        let firstFinish = try await firstObserver.enumerateChangesBatch(from: anchor)
 
         XCTAssertNil(firstObserver.error)
-        let firstFinish = try XCTUnwrap(firstObserver.finishes.first)
         XCTAssertTrue(firstFinish.moreComing)
 
         var reportedOcIds = firstObserver.changedItems.map(\.itemIdentifier.rawValue)
@@ -2342,8 +2268,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     func testWorkingSetChangesReportSingleBatchWhenUnderCap() async throws {
         // With no system suggestion the default batch size applies, so a small change set is delivered in
         // exactly one batch — preserving the pre-existing single-batch behaviour and the final anchor.
-        let db = Self.dbManager.ncDatabase()
-        debugPrint(db)
 
         let anchorDate = Date().addingTimeInterval(-300)
         let anchor = Enumerator.syncAnchor(at: anchorDate)
@@ -2369,8 +2293,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
 
     func testWorkingSetChangesEmptyReportsSingleFinalBatch() async throws {
         // No materialised items, no changes: exactly one finish, moreComing == false, advancing the anchor.
-        let db = Self.dbManager.ncDatabase()
-        debugPrint(db)
 
         let anchor = Enumerator.syncAnchor(at: Date().addingTimeInterval(-300))
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
@@ -2395,8 +2317,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     func testWorkingSetItemsArePaginatedUnderSuggestedPageSize() async throws {
         // The working-set item enumeration read all materialised items in a single page. It must now be
         // paged under the suggested page size, delivering every item exactly once across the pages.
-        let db = Self.dbManager.ncDatabase()
-        debugPrint(db)
 
         let itemCount = 7
         let expectedOcIds = seedMaterialisedWorkingSetFiles(count: itemCount, syncTime: Date())
@@ -2425,8 +2345,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
 
     func testContainerChangesDeliveredInBatches() async throws {
         // A regular container's change set must also batch under the suggested size.
-        let db = Self.dbManager.ncDatabase()
-        debugPrint(db)
 
         // Folder known locally (unchanged etag) with several brand-new children on the server.
         var folderMetadata = remoteFolder.toItemMetadata(account: Self.account)
@@ -2484,8 +2402,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
         // An overflowing change set containing BOTH updates and deletions: exercises takeBatch's combined
         // update+delete budget, deletions landing in later batches, and the per-batch hard-removal of
         // delivered deletions across batch boundaries.
-        let db = Self.dbManager.ncDatabase()
-        debugPrint(db)
 
         let anchorDate = Date().addingTimeInterval(-300)
         let anchor = Enumerator.syncAnchor(at: anchorDate)
@@ -2556,9 +2472,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     }
 
     func testEffectiveBatchSizeClampsAndFallsBack() throws {
-        let db = Self.dbManager.ncDatabase()
-        debugPrint(db)
-
         let enumerator = try Enumerator(
             enumeratedItemIdentifier: .workingSet,
             account: Self.account,
@@ -2576,8 +2489,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
 
     func testTrashChangesDeliveredInBatches() async throws {
         // A large permanent purge of trash items must batch its deletions under the suggested size.
-        let db = Self.dbManager.ncDatabase()
-        debugPrint(db)
 
         let remoteInterface = MockRemoteInterface(
             account: Self.account, rootItem: rootItem, rootTrashItem: rootTrashItem
