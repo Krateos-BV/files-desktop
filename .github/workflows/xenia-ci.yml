@@ -11,15 +11,47 @@ on:
   workflow_dispatch:
 
 jobs:
+  # XNT-168: the AppImage build container tag used to be pinned literally here
+  # as well as in `.github/workflows/linux-appimage.yml`. Upstream bumps its own
+  # tag whenever `admin/linux/build-appimage.sh` gains a build-time dependency
+  # (XNT-154: openvfs needs libfuse at configure time, which only `-6` carries),
+  # and an upstream sync updates linux-appimage.yml but never this file — so the
+  # two drifted silently and the Linux job died at configure time inside a
+  # third-party CMake file. The tag is now read out of linux-appimage.yml at run
+  # time: it is defined exactly once, and follows every sync on its own.
+  resolve-container:
+    name: Resolve AppImage container tag
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.pin.outputs.image }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+
+      - name: Read the container pin from linux-appimage.yml
+        id: pin
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE=.github/workflows/linux-appimage.yml
+          # That file has exactly one `container:` key. Fail loudly if it ever
+          # gains, loses or moves one, rather than handing the build job an
+          # empty image and failing somewhere far less legible.
+          IMAGE=$(grep -oP '^\s*container:\s*\K\S+' "${SOURCE}" || true)
+          COUNT=$(printf '%s' "${IMAGE}" | grep -c . || true)
+          if [ "${COUNT}" != "1" ]; then
+            echo "::error file=${SOURCE}::expected exactly one container: pin, found ${COUNT}. Adjust XNT-168's resolve-container job to match the new layout."
+            exit 1
+          fi
+          echo "AppImage container: ${IMAGE}"
+          echo "image=${IMAGE}" >> "${GITHUB_OUTPUT}"
+
   linux-appimage:
     name: Linux AppImage (unsigned)
+    needs: resolve-container
     runs-on: ubuntu-latest
-    # XNT-154: keep this tag in step with `.github/workflows/linux-appimage.yml`.
-    # Since the upstream sync, build-appimage.sh also builds opencloud-eu/openvfs,
-    # which needs libfuse at configure time; `-4` has no fuse3-devel, `-6` does.
-    # The tag is pinned separately in both workflows, so it drifts on every
-    # upstream sync — re-check it against linux-appimage.yml after each one.
-    container: ghcr.io/nextcloud/continuous-integration-client-appimage-qt6:client-appimage-el8-6.10.2-6
+    container: ${{ needs.resolve-container.outputs.image }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
