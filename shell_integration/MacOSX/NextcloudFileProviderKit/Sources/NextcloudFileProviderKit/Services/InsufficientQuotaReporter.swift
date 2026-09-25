@@ -52,6 +52,16 @@ enum InsufficientQuotaReporter {
         func clear(domain: String) {
             reportedDomains.remove(domain)
         }
+
+        ///
+        /// Drop every domain's dedup state.
+        ///
+        /// This is process-wide state, so it outlives an individual test. Tests reset it between
+        /// runs; production code clears per-domain via `clear(domain:)` instead.
+        ///
+        func resetAll() {
+            reportedDomains.removeAll()
+        }
     }
 
     ///
@@ -134,5 +144,18 @@ enum InsufficientQuotaReporter {
         }
 
         await SummaryDedupState.shared.clear(domain: domainIdentifier.rawValue)
+    }
+
+    ///
+    /// Drop summary dedup state for every domain.
+    ///
+    /// The dedup set lives on a process-wide singleton, so it survives from one test to the next
+    /// and a test that reports a summary leaves the next one for the same domain deduped into
+    /// silence. `NextcloudFileProviderKitTestCase.setUp()` calls this so no test has to know that.
+    /// Production code has no reason to call it: it clears per-domain on upload success via
+    /// `clearSummaryDedup(domainIdentifier:)`.
+    ///
+    static func resetSummaryDedupForTesting() async {
+        await SummaryDedupState.shared.resetAll()
     }
 }

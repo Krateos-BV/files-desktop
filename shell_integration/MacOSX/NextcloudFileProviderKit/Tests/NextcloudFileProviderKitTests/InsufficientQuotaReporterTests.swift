@@ -73,13 +73,6 @@ final class InsufficientQuotaReporterTests: NextcloudFileProviderKitTestCase {
     private let domainA = NSFileProviderDomainIdentifier("domain-a")
     private let domainB = NSFileProviderDomainIdentifier("domain-b")
 
-    override func setUp() async throws {
-        try await super.setUp()
-        // Reset shared dedup state between tests so order doesn't matter.
-        await InsufficientQuotaReporter.clearSummaryDedup(domainIdentifier: domainA)
-        await InsufficientQuotaReporter.clearSummaryDedup(domainIdentifier: domainB)
-    }
-
     func testReportItemForwardsArguments() {
         let proxy = CapturingAppProxy()
         InsufficientQuotaReporter.reportItem(
