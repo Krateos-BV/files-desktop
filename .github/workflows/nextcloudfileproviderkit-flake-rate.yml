@@ -63,8 +63,8 @@ jobs:
             # Name them here too. The step summary is web-UI only — no REST API exposes it — so
             # without this the log says a run was red and gives no way to find out which test, which
             # is how this job gets read from `gh` or by an agent.
-            grep -hoE "Test Case '-\[[A-Za-z]+\.[A-Za-z]+ test[A-Za-z0-9_]+\]' failed" "$RUNNER_TEMP/flake/run-$run.log" \
-              | sed -E "s/Test Case '-\[([A-Za-z.]+) (test[A-Za-z0-9_]+)\]' failed/          \1.\2/" \
+            grep -hoE "Test Case '-\[[A-Za-z0-9_]+\.[A-Za-z0-9_]+ [A-Za-z0-9_]+\]' failed" "$RUNNER_TEMP/flake/run-$run.log" \
+              | sed -E "s/Test Case '-\[([A-Za-z0-9_.]+) ([A-Za-z0-9_]+)\]' failed/          \1.\2/" \
               | sort -u
           fi
         done
@@ -86,8 +86,8 @@ jobs:
           echo
           echo "| failures | test |"
           echo "| --- | --- |"
-          grep -hoE "Test Case '-\[[A-Za-z]+\.[A-Za-z]+ test[A-Za-z0-9_]+\]' failed" "$RUNNER_TEMP"/flake/run-*.log \
-            | sed -E "s/Test Case '-\[([A-Za-z.]+) (test[A-Za-z0-9_]+)\]' failed/\1.\2/" \
+          grep -hoE "Test Case '-\[[A-Za-z0-9_]+\.[A-Za-z0-9_]+ [A-Za-z0-9_]+\]' failed" "$RUNNER_TEMP"/flake/run-*.log \
+            | sed -E "s/Test Case '-\[([A-Za-z0-9_.]+) ([A-Za-z0-9_]+)\]' failed/\1.\2/" \
             | sort | uniq -c | sort -rn \
             | awk '{ printf "| %s | %s |\n", $1, $2 }'
           echo
