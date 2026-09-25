@@ -53,6 +53,24 @@ class NextcloudFileProviderKitTestCase: XCTestCase {
     ///
     private var keepAliveRealm: Realm?
 
+    ///
+    /// Drop process-wide state that would otherwise leak from the previous test.
+    ///
+    /// `InsufficientQuotaReporter` dedups its per-domain summary on a singleton actor, so a test
+    /// that reports a summary leaves the next test using that domain deduped into silence. That is
+    /// invisible in a normal run, where each class happens to use its own domain string, and shows
+    /// up the moment a test runs twice in the same process — under `-test-iterations`, every repeat
+    /// after the first failed on the missing summary (XNT-127).
+    ///
+    /// Resetting here rather than in each class is deliberate: it makes the whole bug class
+    /// impossible instead of fixed once per class, the same reasoning as the in-memory Realm setup
+    /// below (XNT-176).
+    ///
+    override func setUp() async throws {
+        try await super.setUp()
+        await InsufficientQuotaReporter.resetSummaryDedupForTesting()
+    }
+
     override func setUp() {
         super.setUp()
         FileProviderLogProblemRecorder.reset()
