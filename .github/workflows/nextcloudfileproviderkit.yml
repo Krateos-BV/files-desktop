@@ -6,9 +6,9 @@ name: NextcloudFileProviderKit
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "master", "main" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "master", "main" ]
     types: [opened, reopened, synchronize, ready_for_review]
 
 jobs:
