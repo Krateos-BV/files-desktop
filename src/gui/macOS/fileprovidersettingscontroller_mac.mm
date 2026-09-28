@@ -30,6 +30,11 @@ namespace {
 // NSUserDefaults entries
 constexpr auto enabledAccountsSettingsKey = "enabledAccounts";
 
+bool domainRestorationRequiresXpcReconfiguration(const QString &storedIdentifier, const QString &restoredIdentifier)
+{
+    return !storedIdentifier.isEmpty() && !restoredIdentifier.isEmpty() && storedIdentifier != restoredIdentifier;
+}
+
 } // namespace
 
 namespace OCC {
@@ -226,6 +231,12 @@ public:
     {
         ConfigFile cfg;
 
+        // Stay off while enforced off, so lifting the policy does not re-enable File Provider.
+        if (const auto managedVfs = cfg.managedVirtualFilesMode(); managedVfs.isEnforced && !managedVfs.enabled) {
+            cfg.setMacFileProviderModeEnabled(false);
+            return;
+        }
+
         const auto brandingDisablesVfs = Theme::instance()->disableVirtualFilesSyncFolder();
         const auto accounts = AccountManager::instance()->accounts();
 
@@ -265,6 +276,7 @@ public:
         if (modeEnabled) {
             const auto domains = Mac::FileProvider::instance()->domainManager()->getDomains();
             QSet<QString> existingDomainIdentifiers;
+            auto restoredDomain = false;
 
             for (NSFileProviderDomain * const domain : domains) {
                 existingDomainIdentifiers.insert(QString::fromNSString(domain.identifier));
@@ -293,8 +305,14 @@ public:
 
                     if (newIdentifier.isEmpty() == false) {
                         AccountManager::instance()->setFileProviderDomainIdentifier(userIdAtHost, newIdentifier);
+                        restoredDomain |= domainRestorationRequiresXpcReconfiguration(identifier, newIdentifier);
                     }
                 }
+            }
+
+            if (restoredDomain) {
+                // A changed identifier means addDomainForAccount() registered a new domain; rediscover its XPC service.
+                Mac::FileProvider::instance()->configureXPC();
             }
         } else {
             for (const auto &accountState : accountStates) {
@@ -553,6 +571,14 @@ void FileProviderSettingsController::setFileProviderModeEnabled(const bool enabl
     if (enabled && !Mac::FileProvider::available()) {
         qCWarning(lcFileProviderSettingsController) << "Cannot enable file provider mode, it is unavailable on this system.";
         return;
+    }
+
+    if (enabled) {
+        if (const auto managedVfs = ConfigFile().managedVirtualFilesMode(); managedVfs.isEnforced && !managedVfs.enabled) {
+            qCWarning(lcFileProviderSettingsController) << "Cannot enable file provider mode, virtual files are enforced off by policy.";
+            Q_EMIT fileProviderModeEnabledChanged(false);
+            return;
+        }
     }
 
     // The flag records the user's intent up front. Should anything below fail or the
