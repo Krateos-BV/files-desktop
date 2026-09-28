@@ -94,4 +94,11 @@ jobs:
       - name: Run tests
         run: |
           cd ${{ github.workspace }}/${{ inputs.CRAFT_TARGET }}/build/nextcloud-client/work/build
-          ctest --output-on-failure --output-junit testResult.xml
+          # PermissionsTest (test/testpermissions.cpp) is a known flake on macOS runners:
+          # its read-only-fixture setup/teardown races, and it fails a different case each
+          # time, on unrelated code (XNT-201). Run it separately with a bounded retry so a
+          # transient "Permission denied" on the fixture doesn't block unrelated PRs, while
+          # still failing the job if it is consistently red (which would indicate a real
+          # regression rather than the known race).
+          ctest --output-on-failure --output-junit testResult.xml -E '^PermissionsTest$'
+          ctest --output-on-failure --output-junit testResult-permissions.xml -R '^PermissionsTest$' --repeat until-pass:3
