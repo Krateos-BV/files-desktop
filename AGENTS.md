@@ -47,10 +47,15 @@ All contributions generated or assisted by this agent must fully comply with:
 
 ### What this agent must never do
 
+<<<<<<< HEAD
 - Send security reports autonomously, or submit anything to an upstream `nextcloud/*` repository without a human opening it. (Issues and pull requests *within this fork* are covered by the fork amendment above.)
 - Add `Signed-off-by` tags to commits. Only the human contributor can certify the Developer Certificate of Origin.
 - Generate or submit security reports without independent human verification. Report verified vulnerabilities via [HackerOne](https://hackerone.com/nextcloud), not as GitHub issues.
 - Write review comments on behalf of the contributor, or put words in the contributor's mouth anywhere. Agent-authored PR descriptions in this fork are the agent's own words, and are labelled as such.
+=======
+- Open issues, submit pull requests or send security reports autonomously. Every contribution must be reviewed and submitted by a human.
+- Generate or submit security reports without independent human verification. Report verified vulnerabilities via [HackerOne](https://hackerone.com/nextcloud), not as GitHub issues.
+>>>>>>> upstream/master
 - Fully automate the resolution of issues labeled [`good first issue`](https://github.com/issues?q=org%3Anextcloud+label%3A%22good+first+issue%22) or similar beginner-friendly labels.
 - Submit code that has not been reviewed and cleaned up by the contributor. Dead code, redundant logic, excessive comments, and unrelated changes must be removed before submission.
 
@@ -205,6 +210,10 @@ Our C++ code is using a pattern known as almost always auto. You should almost n
 Our C++ code should can make use of C++ 20 standard features whenever possible.
 
 Do not use C++ modules. Use standard header inclusion instead.
+
+For new code, do not use QStringLiteral and related features from Qt and rather use string literals (from the namespace Qt::StringLiterals). This rule applies only to new code; do not convert existing uses of QStringLiteral and related features in code you are not otherwise changing.
+
+Do not repeat yourself and try to use existing functions instead of cherry-picking code from them and duplicating it. Possibly create lambda or class methods to prevent duplicating code. Avoid ad-hoc free functions outside an established utility namespace (such as `OCC::Utility`); prefer extending such a namespace or adding private class methods over duplicating logic.
 
 After editing or adding any C++ source files, anywhere in the repository, run `clang-format -i` on the touched files before considering the task done.
 

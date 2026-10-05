@@ -5,14 +5,17 @@
 
 #include "account.h"
 #include "configfile.h"
+#include "folder.h"
 #include "gui/localnetworkpermission.h"
 #include "gui/wizard/accountwizardcontroller.h"
+#include "managedsettingstestutils.h"
 #include "theme.h"
 
 #ifdef BUILD_FILE_PROVIDER_MODULE
 #include "gui/macOS/fileprovider.h"
 #endif
 
+#include <QDialog>
 #include <QScopeGuard>
 #include <QSignalSpy>
 #include <QStandardPaths>
@@ -20,6 +23,7 @@
 #include <QTest>
 
 using namespace OCC;
+using namespace Qt::StringLiterals;
 
 namespace OCC {
 
@@ -38,6 +42,46 @@ public:
         controller._account = Account::create();
         controller._account->setUrl(url);
     }
+
+    static void setSyncMode(AccountWizardController &controller, AccountWizardController::SyncMode mode)
+    {
+        controller._syncMode = mode;
+    }
+
+    static void chooseSyncModeAfterCapabilities(AccountWizardController &controller)
+    {
+        controller.chooseSyncModeAfterCapabilities();
+    }
+
+    static void setLocalSyncFolderPicker(AccountWizardController &controller, AccountWizardController::LocalSyncFolderPicker picker)
+    {
+        controller._localSyncFolderPicker = std::move(picker);
+    }
+
+    static FolderDefinition syncFolderDefinition(const AccountWizardController &controller)
+    {
+        return controller.syncFolderDefinition();
+    }
+
+    static void openInitialLocalSyncFolderDialog(AccountWizardController &controller)
+    {
+        controller.openLocalSyncFolderDialog(true);
+    }
+
+    static void setLocalSyncFolderOverride(AccountWizardController &controller, bool localSyncFolderOverride)
+    {
+        controller._localSyncFolderOverride = localSyncFolderOverride;
+    }
+
+    static bool localSyncFolderOverride(const AccountWizardController &controller)
+    {
+        return controller._localSyncFolderOverride;
+    }
+
+    static void setCurrentStep(AccountWizardController &controller, AccountWizardController::Step step)
+    {
+        controller.setCurrentStep(step);
+    }
 };
 
 }
@@ -50,6 +94,167 @@ private Q_SLOTS:
     void initTestCase()
     {
         QStandardPaths::setTestModeEnabled(true);
+    }
+
+    // Keeps tests off the device policy of the machine running them.
+    void init()
+    {
+        ConfigFile::setDeviceSourcesFactory([] {
+            return std::vector<std::unique_ptr<SettingSource>>{};
+        });
+    }
+
+    void cleanup()
+    {
+        ConfigFile::setDeviceSourcesFactory({});
+    }
+
+    void choosingLocalSyncFolderKeepsItsBookmarkForTheSyncFolder()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const auto bookmarkData = "bookmark"_ba;
+
+        AccountWizardController controller;
+        AccountWizardControllerTestAccess::setLocalSyncFolderPicker(controller, [&](const QString &, const QString &, const auto &completion) {
+            completion(dir.path(), bookmarkData);
+        });
+        controller.chooseLocalSyncFolder();
+
+        QCOMPARE(controller.localSyncFolder(), QDir::fromNativeSeparators(dir.path()));
+        const auto definition = AccountWizardControllerTestAccess::syncFolderDefinition(controller);
+        QCOMPARE(definition.localPath, FolderDefinition::prepareLocalPath(dir.path()));
+        QCOMPARE(definition.securityScopedBookmarkData, bookmarkData);
+    }
+
+    void cancellingLocalSyncFolderPickerKeepsTheChosenFolder()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const auto bookmarkData = "bookmark"_ba;
+        auto cancel = false;
+
+        AccountWizardController controller;
+        AccountWizardControllerTestAccess::setLocalSyncFolderPicker(controller, [&](const QString &, const QString &, const auto &completion) {
+            completion(cancel ? QString{} : dir.path(), cancel ? QByteArray{} : bookmarkData);
+        });
+        controller.chooseLocalSyncFolder();
+        cancel = true;
+        controller.chooseLocalSyncFolder();
+
+        QCOMPARE(controller.localSyncFolder(), QDir::fromNativeSeparators(dir.path()));
+        QCOMPARE(AccountWizardControllerTestAccess::syncFolderDefinition(controller).securityScopedBookmarkData, bookmarkData);
+    }
+
+    void choosingLocalSyncFolderWithoutBookmarkDropsThePreviousBookmark()
+    {
+        QTemporaryDir firstDir;
+        QTemporaryDir secondDir;
+        QVERIFY(firstDir.isValid());
+        QVERIFY(secondDir.isValid());
+        auto chosenDir = firstDir.path();
+        auto chosenBookmarkData = "bookmark"_ba;
+
+        AccountWizardController controller;
+        AccountWizardControllerTestAccess::setLocalSyncFolderPicker(controller, [&](const QString &, const QString &, const auto &completion) {
+            completion(chosenDir, chosenBookmarkData);
+        });
+        controller.chooseLocalSyncFolder();
+        chosenDir = secondDir.path();
+        chosenBookmarkData.clear();
+        controller.chooseLocalSyncFolder();
+
+        QCOMPARE(controller.localSyncFolder(), QDir::fromNativeSeparators(secondDir.path()));
+        QVERIFY(AccountWizardControllerTestAccess::syncFolderDefinition(controller).securityScopedBookmarkData.isEmpty());
+    }
+
+    void closingReportsAcceptedOnlyAfterSetupCompleted()
+    {
+        AccountWizardController controller;
+        QCOMPARE(controller.resultOnClose(), static_cast<int>(QDialog::Rejected));
+
+        AccountWizardControllerTestAccess::setCurrentStep(controller, AccountWizardController::SyncOptionsStep);
+        QCOMPARE(controller.resultOnClose(), static_cast<int>(QDialog::Rejected));
+
+        AccountWizardControllerTestAccess::setCurrentStep(controller, AccountWizardController::CompletedStep);
+        QCOMPARE(controller.resultOnClose(), static_cast<int>(QDialog::Accepted));
+    }
+
+    void localSyncFolderPickerOpensOnceWhilePending()
+    {
+        auto pickerCalls = 0;
+        std::function<void(const QString &, const QByteArray &)> pendingCompletion;
+
+        AccountWizardController controller;
+        AccountWizardControllerTestAccess::setLocalSyncFolderPicker(controller, [&](const QString &, const QString &, const auto &completion) {
+            ++pickerCalls;
+            pendingCompletion = completion;
+        });
+        controller.chooseLocalSyncFolder();
+        controller.chooseLocalSyncFolder();
+        QCOMPARE(pickerCalls, 1);
+
+        pendingCompletion({}, {});
+        controller.chooseLocalSyncFolder();
+        QCOMPARE(pickerCalls, 2);
+    }
+
+    void localSyncFolderPickerCompletionAfterControllerIsGoneIsIgnored()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        std::function<void(const QString &, const QByteArray &)> pendingCompletion;
+
+        {
+            AccountWizardController controller;
+            AccountWizardControllerTestAccess::setLocalSyncFolderPicker(controller, [&](const QString &, const QString &, const auto &completion) {
+                pendingCompletion = completion;
+            });
+            controller.chooseLocalSyncFolder();
+        }
+
+        QVERIFY(pendingCompletion);
+        pendingCompletion(dir.path(), "bookmark"_ba);
+    }
+
+    void initialLocalSyncFolderSelectionKeepsTheOverride()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+
+        AccountWizardController controller;
+        AccountWizardControllerTestAccess::setLocalSyncFolderPicker(controller, [&](const QString &, const QString &, const auto &completion) {
+            completion(dir.path(), {});
+        });
+        AccountWizardControllerTestAccess::setLocalSyncFolderOverride(controller, true);
+        AccountWizardControllerTestAccess::openInitialLocalSyncFolderDialog(controller);
+        QVERIFY(AccountWizardControllerTestAccess::localSyncFolderOverride(controller));
+
+        controller.chooseLocalSyncFolder();
+        QVERIFY(!AccountWizardControllerTestAccess::localSyncFolderOverride(controller));
+    }
+
+    void switchesAwayFromVirtualFilesWhenEnforcedOff()
+    {
+        ConfigFile::setDeviceSourcesFactory([] {
+            std::vector<std::unique_ptr<SettingSource>> sources;
+            sources.push_back(std::make_unique<MapSource>(SettingSourceType::PlatformPolicy,
+                                                          EnforcementState::Enforced,
+                                                          200,
+                                                          QVariantMap{{QStringLiteral("virtualFilesMode"), QStringLiteral("off")}}));
+            return sources;
+        });
+
+        AccountWizardController controller;
+        AccountWizardControllerTestAccess::setAccountUrl(controller, QUrl(QStringLiteral("https://cloud.example")));
+        AccountWizardControllerTestAccess::setSyncMode(controller, AccountWizardController::VirtualFiles);
+        QCOMPARE(controller.syncMode(), AccountWizardController::VirtualFiles);
+
+        AccountWizardControllerTestAccess::chooseSyncModeAfterCapabilities(controller);
+
+        QVERIFY(controller.syncMode() != AccountWizardController::VirtualFiles);
+        QVERIFY(controller.needsSyncOptions());
+        QVERIFY(controller.localSyncFolderRequired());
     }
 
     void normalizesCommonServerUrlSuffixes()
@@ -204,6 +409,26 @@ private Q_SLOTS:
 
         controller.setProxyPort(3128);
         QCOMPARE(controller.proxyPort(), 3128);
+    }
+
+    void seedsProxySettingsFromManagedDefault()
+    {
+        ConfigFile::setDeviceSourcesFactory([] {
+            std::vector<std::unique_ptr<SettingSource>> sources;
+            sources.push_back(std::make_unique<MapSource>(
+                SettingSourceType::PlatformDefault,
+                EnforcementState::NotEnforced,
+                20,
+                QVariantMap{{u"proxyType"_s, int(QNetworkProxy::HttpProxy)}, {u"proxyHost"_s, u"proxy.example.com"_s}, {u"proxyPort"_s, 8080}}));
+            return sources;
+        });
+
+        AccountWizardController controller;
+
+        QCOMPARE(controller.proxyMode(), 2);
+        QCOMPARE(controller.manualProxyType(), 0);
+        QCOMPARE(controller.proxyHost(), u"proxy.example.com"_s);
+        QCOMPARE(controller.proxyPort(), 8080);
     }
 
     void warnsWhenManualProxyTargetsLocalhost_data()
