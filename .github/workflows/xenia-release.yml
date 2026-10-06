@@ -1,0 +1,511 @@
+# SPDX-FileCopyrightText: 2026 Nextcloud GmbH and Nextcloud contributors
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# Xenia Files release: builds the three desktop platforms from a CalVer tag and
+# attaches them to a DRAFT GitHub Release on this fork. A human reviews the draft
+# and publishes it; nothing here makes a release public on its own.
+#
+# Modelled on Krateos-BV/talk-desktop's xenia-release.yml. The build jobs mirror
+# .github/workflows/xenia-ci.yml, which is where they are exercised on demand.
+#
+# Trigger: only a pushed tag in talk-desktop's CalVer scheme, vYY.M.D or vYY.M.D.N
+# (talk-desktop has v26.9.13 and v26.9.19.0). The glob is deliberately not 'v*':
+# this fork carries upstream's tags (v34.0.3, v33.0.0-rc4, ...), and a broad
+# pattern would cut a Xenia release from any upstream tag that reached the fork.
+# 'v2[6-9]' cannot match an upstream tag such as v34.* or v2.6.*.
+#
+# Signing is optional and decided per platform by the secrets-report job:
+#   macOS   - signed and notarised only if all five APPLE_* secrets resolve.
+#   Windows - signed only if WINDOWS_CODESIGN_PFX and WINDOWS_CODESIGN_PASSWORD
+#             resolve.
+#   Linux   - the AppImage is never signed.
+# Anything not signed is published with "unsigned" in its file name and is listed
+# as unsigned in the release notes. An org secret that exists but is not scoped to
+# this repository resolves to an empty string, so "absent" here means "not usable
+# by this repository", not necessarily "does not exist".
+name: Xenia Files Release
+
+on:
+  push:
+    tags:
+      - 'v2[6-9].[0-9]+.[0-9]+'
+      - 'v2[6-9].[0-9]+.[0-9]+.[0-9]+'
+
+permissions: {}
+
+concurrency:
+  group: xenia-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # Fail before spending three platform builds on a malformed tag or on a tag that
+  # does not point at main.
+  verify-tag:
+    name: Verify release tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      client-version: ${{ steps.version.outputs.client-version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Check the tag is a valid CalVer date
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          if [[ ! "${TAG}" =~ ^v([0-9]{2})\.([1-9]|1[0-2])\.([1-9]|[12][0-9]|3[01])(\.[0-9]+)?$ ]]; then
+            echo "::error::Tag ${TAG} is not CalVer vYY.M.D[.N] (no leading zeros)."
+            exit 1
+          fi
+          DATE="20${BASH_REMATCH[1]}-${BASH_REMATCH[2]}-${BASH_REMATCH[3]}"
+          if ! date -u -d "${DATE}" +%F >/dev/null 2>&1; then
+            echo "::error::Tag ${TAG} names a date that does not exist (${DATE})."
+            exit 1
+          fi
+          echo "Tag ${TAG} is CalVer for ${DATE}."
+
+      - name: Check the tagged commit is on main
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
+            echo "::error::Tag ${GITHUB_REF_NAME} points at ${GITHUB_SHA}, which is not on main. Release only from main."
+            exit 1
+          fi
+          echo "${GITHUB_SHA} is on main."
+
+      # The CalVer tag is the Xenia release name; the client still reports the
+      # upstream-derived version from VERSION.cmake. Both go into the release notes.
+      - name: Read the client version from VERSION.cmake
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          read_var() { sed -nE "s/^set\($1[[:space:]]+\"?([^\")]+)\"?\).*/\1/p" VERSION.cmake | head -n1; }
+          MAJOR=$(read_var MIRALL_VERSION_MAJOR)
+          MINOR=$(read_var MIRALL_VERSION_MINOR)
+          PATCH=$(read_var MIRALL_VERSION_PATCH)
+          CLIENT_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "Client version: ${CLIENT_VERSION}"
+          echo "client-version=${CLIENT_VERSION}" >> "${GITHUB_OUTPUT}"
+
+  # Names-only report, as in xenia-ci.yml: never reads out or prints a value. It
+  # turns secret presence into two booleans the build jobs gate on, because
+  # `secrets` cannot be used in a job-level `if:`.
+  secrets-report:
+    name: Signing secrets visibility (names only)
+    needs: verify-tag
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      macos-sign: ${{ steps.report.outputs.macos-sign }}
+      windows-sign: ${{ steps.report.outputs.windows-sign }}
+    env:
+      APPLE_CERT_P12: ${{ secrets.APPLE_CERT_P12 }}
+      APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      WINDOWS_CODESIGN_PFX: ${{ secrets.WINDOWS_CODESIGN_PFX }}
+      WINDOWS_CODESIGN_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PASSWORD }}
+    steps:
+      - name: Report which signing secrets resolve
+        id: report
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Sets RESULT to "true" if every named variable is non-empty. Warns with the
+          # empty names when the set is only partly present, since that is almost
+          # always a scoping mistake rather than an intent not to sign.
+          check_set() {
+            local platform="$1"; shift
+            local missing="" present=0
+            for n in "$@"; do
+              if [ -n "${!n}" ]; then s=present; present=$((present + 1)); else s=ABSENT; missing="${missing} ${n}"; fi
+              echo "${n}: ${s}"
+              echo "| ${platform} | \`${n}\` | ${s} |" >> "${GITHUB_STEP_SUMMARY}"
+            done
+            RESULT=false
+            if [ -z "${missing}" ]; then
+              RESULT=true
+            elif [ "${present}" -gt 0 ]; then
+              echo "::warning::${platform}: only part of the signing secret set resolves; missing:${missing}. Building ${platform} UNSIGNED."
+            fi
+          }
+
+          echo "| Platform | Secret | Status |" >> "${GITHUB_STEP_SUMMARY}"
+          echo "|---|---|---|" >> "${GITHUB_STEP_SUMMARY}"
+          check_set macOS APPLE_CERT_P12 APPLE_CERT_PASSWORD APPLE_ID APPLE_ID_PASSWORD APPLE_TEAM_ID
+          MAC="${RESULT}"
+          check_set Windows WINDOWS_CODESIGN_PFX WINDOWS_CODESIGN_PASSWORD
+          WIN="${RESULT}"
+          echo "macOS signing: ${MAC}; Windows signing: ${WIN}"
+          echo "macos-sign=${MAC}" >> "${GITHUB_OUTPUT}"
+          echo "windows-sign=${WIN}" >> "${GITHUB_OUTPUT}"
+
+  resolve-container:
+    name: Resolve AppImage container tag
+    needs: verify-tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      image: ${{ steps.pin.outputs.image }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+
+      # Same lookup as xenia-ci.yml (XNT-168): the tag lives only in linux-appimage.yml.
+      - name: Read the container pin from linux-appimage.yml
+        id: pin
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE=.github/workflows/linux-appimage.yml
+          IMAGE=$(grep -oP '^\s*container:\s*\K\S+' "${SOURCE}" || true)
+          COUNT=$(printf '%s' "${IMAGE}" | grep -c . || true)
+          if [ "${COUNT}" != "1" ]; then
+            echo "::error file=${SOURCE}::expected exactly one container: pin, found ${COUNT}."
+            exit 1
+          fi
+          echo "AppImage container: ${IMAGE}"
+          echo "image=${IMAGE}" >> "${GITHUB_OUTPUT}"
+
+  linux-appimage:
+    name: Linux AppImage (unsigned)
+    needs: resolve-container
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    container: ${{ needs.resolve-container.outputs.image }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+
+      - name: Configure, compile and package
+        id: build-appimage
+        env:
+          APPNAME: "Xenia Files"
+          APPICON_NAME: "Xenia Files"
+          EXECUTABLE_NAME: xenia-files
+          VERSION_SUFFIX: ${{ github.ref_name }}
+        # BUILD_UPDATER=OFF: Xenia has no update channel of its own (XNT-113).
+        run: |
+          BUILDNR=${GITHUB_RUN_ID} BUILD_UPDATER=OFF DESKTOP_CLIENT_ROOT="$(pwd)" QT_BASE_DIR=/root/linux-gcc-x86_64 /bin/bash -c "./admin/linux/build-appimage.sh"
+
+      - name: Upload AppImage
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-linux
+          path: ${{ steps.build-appimage.outputs.APPIMAGE_NAME }}
+          if-no-files-found: error
+          compression-level: 0 # squashfs is already compressed
+          retention-days: 7
+
+  windows-build:
+    name: Windows build
+    needs: secrets-report
+    runs-on: windows-2022
+    permissions:
+      contents: read
+    env:
+      CRAFT_TARGET: windows-msvc2022_64-cl
+      CRAFT_MASTER_LOCATION: ${{ github.workspace }}\CraftMaster
+      CRAFT_MASTER_CONFIG: ${{ github.workspace }}\craftmaster.ini
+      SIGN: ${{ needs.secrets-report.outputs.windows-sign }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Install Craft Master with Nextcloud Client Deps
+        shell: pwsh
+        run: |
+          & cmd /C "git clone -q --depth=1 https://invent.kde.org/packaging/craftmaster.git ${{ env.CRAFT_MASTER_LOCATION }} 2>&1"
+
+          function craft() {
+              python "${{ env.CRAFT_MASTER_LOCATION }}\CraftMaster.py" --config "${{ env.CRAFT_MASTER_CONFIG }}" --target ${{ env.CRAFT_TARGET }} -c $args
+              if($LASTEXITCODE -ne 0) {exit $LASTEXITCODE}
+          }
+
+          craft --add-blueprint-repository "https://github.com/nextcloud/craft-blueprints-kde.git|stable-34.0|"
+          craft --add-blueprint-repository "https://github.com/nextcloud/craft-blueprints-nextcloud.git|stable-34.0|"
+          craft craft
+          craft --install-deps nextcloud-client
+
+      - name: Install inkscape
+        shell: pwsh
+        run: |
+          choco install inkscape
+
+      - name: Setup PATH
+        shell: pwsh
+        run: |
+          echo "${{ github.workspace }}\${{ env.CRAFT_TARGET }}\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Compile
+        shell: pwsh
+        run: |
+          function craft() {
+              python "${{ env.CRAFT_MASTER_LOCATION }}\CraftMaster.py" --config "${{ env.CRAFT_MASTER_CONFIG }}" --target ${{ env.CRAFT_TARGET }} -c $args
+              if($LASTEXITCODE -ne 0) {exit $LASTEXITCODE}
+          }
+
+          craft --src-dir ${{ github.workspace }} nextcloud-client
+
+      # Runs only when both Windows signing secrets resolve. Signs every .exe and
+      # .dll the client build produced, with an RFC 3161 timestamp.
+      - name: Sign binaries
+        if: env.SIGN == 'true'
+        shell: pwsh
+        env:
+          WINDOWS_CODESIGN_PFX: ${{ secrets.WINDOWS_CODESIGN_PFX }}
+          WINDOWS_CODESIGN_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PASSWORD }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $signtool = Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe' |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $signtool) { throw 'signtool.exe not found' }
+          $pfx = Join-Path $env:RUNNER_TEMP 'codesign.pfx'
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CODESIGN_PFX))
+          try {
+            $bin = "${{ github.workspace }}\${{ env.CRAFT_TARGET }}\build\nextcloud-client\work\build\bin"
+            $files = Get-ChildItem $bin -Recurse -Include *.exe,*.dll
+            if (-not $files) { throw "No binaries found under $bin" }
+            & $signtool.FullName sign /f $pfx /p $env:WINDOWS_CODESIGN_PASSWORD /fd sha256 /tr http://timestamp.digicert.com /td sha256 $files.FullName
+            if ($LASTEXITCODE -ne 0) { throw "signtool exited with $LASTEXITCODE" }
+          } finally {
+            Remove-Item $pfx -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Archive build output
+        shell: pwsh
+        run: |
+          $suffix = if ($env:SIGN -eq 'true') { 'signed' } else { 'unsigned' }
+          $bin = "${{ github.workspace }}\${{ env.CRAFT_TARGET }}\build\nextcloud-client\work\build\bin"
+          Compress-Archive -Path "$bin\*" -DestinationPath "${{ runner.temp }}\xenia-files-windows-x64-$suffix.zip"
+
+      - name: Upload Windows archive
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-windows
+          path: ${{ runner.temp }}\xenia-files-windows-x64-*.zip
+          if-no-files-found: error
+          retention-days: 7
+
+  macos-build:
+    name: macOS build (with File Provider)
+    needs: secrets-report
+    runs-on: macos-26
+    timeout-minutes: 150
+    permissions:
+      contents: read
+    env:
+      SIGN: ${{ needs.secrets-report.outputs.macos-sign }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        with:
+          xcode-version: latest-stable
+
+      # mac-crafter refuses to sign with a team that differs from DEVELOPMENT_TEAM in
+      # NEXTCLOUD.cmake. Check it here so the failure names its cause.
+      - name: Import Developer ID certificate
+        id: keychain
+        if: env.SIGN == 'true'
+        env:
+          APPLE_CERT_P12: ${{ secrets.APPLE_CERT_P12 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          CMAKE_TEAM=$(sed -nE 's/^[[:space:]]*set[[:space:]]*\([[:space:]]*DEVELOPMENT_TEAM[[:space:]]+"?([^"[:space:])]+).*/\1/p' NEXTCLOUD.cmake | head -n1)
+          if [ "${CMAKE_TEAM}" != "${APPLE_TEAM_ID}" ]; then
+            echo "::error file=NEXTCLOUD.cmake::DEVELOPMENT_TEAM (${CMAKE_TEAM}) does not match the APPLE_TEAM_ID secret. Update NEXTCLOUD.cmake before signing."
+            exit 1
+          fi
+
+          KEYCHAIN="${RUNNER_TEMP}/signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN}"
+          security set-keychain-settings -lut 21600 "${KEYCHAIN}"
+          security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN}"
+
+          printf '%s' "${APPLE_CERT_P12}" | base64 --decode > "${RUNNER_TEMP}/cert.p12"
+          security import "${RUNNER_TEMP}/cert.p12" -k "${KEYCHAIN}" -P "${APPLE_CERT_PASSWORD}" \
+            -T /usr/bin/codesign -T /usr/bin/security
+          rm -f "${RUNNER_TEMP}/cert.p12"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${KEYCHAIN_PASSWORD}" "${KEYCHAIN}" >/dev/null
+          # Prepend, don't replace: dropping the login keychain breaks unrelated tooling.
+          read -r -a EXISTING <<< "$(security list-keychains -d user | tr -d '"' | tr '\n' ' ')"
+          security list-keychain -d user -s "${KEYCHAIN}" "${EXISTING[@]}"
+
+          IDENTITY=$(security find-identity -v -p codesigning "${KEYCHAIN}" | grep -o '"Developer ID Application: [^"]*"' | head -n1 | tr -d '"')
+          if [ -z "${IDENTITY}" ]; then
+            echo "::error::No 'Developer ID Application' identity in the imported certificate (exported without its private key?)."
+            exit 1
+          fi
+          echo "identity=${IDENTITY}" >> "${GITHUB_OUTPUT}"
+
+      - name: Build Xenia Files.app with mac-crafter
+        working-directory: admin/osx/mac-crafter
+        env:
+          CODESIGN_IDENTITY: ${{ steps.keychain.outputs.identity }}
+        run: |
+          set -euo pipefail
+          SIGN_ARGS=()
+          if [ "${SIGN}" = "true" ]; then
+            SIGN_ARGS=(--code-sign-identity "${CODESIGN_IDENTITY}")
+          fi
+          swift run mac-crafter build "${GITHUB_WORKSPACE}" \
+            --app-name "Xenia Files" \
+            --arch arm64 \
+            --build-file-provider-module \
+            --disable-auto-updater \
+            --kde-blueprints-git-ref stable-34.0 \
+            --client-blueprints-git-url https://github.com/nextcloud/craft-blueprints-nextcloud.git \
+            --client-blueprints-git-ref stable-34.0 \
+            --build-path "${RUNNER_TEMP}/mc-build" \
+            --product-path "${RUNNER_TEMP}/mc-product" \
+            ${SIGN_ARGS[@]+"${SIGN_ARGS[@]}"}
+
+      - name: Notarise and staple
+        if: env.SIGN == 'true'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          cd "${RUNNER_TEMP}/mc-product"
+          ditto -c -k --keepParent "Xenia Files.app" "${RUNNER_TEMP}/notarise.zip"
+          RESULT=$(xcrun notarytool submit "${RUNNER_TEMP}/notarise.zip" \
+            --apple-id "${APPLE_ID}" --password "${APPLE_ID_PASSWORD}" --team-id "${APPLE_TEAM_ID}" \
+            --wait --output-format json)
+          echo "${RESULT}"
+          STATUS=$(printf '%s' "${RESULT}" | jq -r .status)
+          if [ "${STATUS}" != "Accepted" ]; then
+            echo "::error::Notarisation status: ${STATUS}"
+            exit 1
+          fi
+          xcrun stapler staple "Xenia Files.app"
+          rm -f "${RUNNER_TEMP}/notarise.zip"
+
+      - name: Zip the app bundle
+        run: |
+          set -euo pipefail
+          if [ "${SIGN}" = "true" ]; then SUFFIX=signed; else SUFFIX=unsigned; fi
+          cd "${RUNNER_TEMP}/mc-product"
+          ditto -c -k --keepParent "Xenia Files.app" "${RUNNER_TEMP}/xenia-files-macos-arm64-${SUFFIX}.zip"
+
+      - name: Upload macOS archive
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-macos
+          path: ${{ runner.temp }}/xenia-files-macos-arm64-*.zip
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Remove signing keychain
+        if: always() && env.SIGN == 'true'
+        run: security delete-keychain "${RUNNER_TEMP}/signing.keychain-db" || true
+
+  # The only job with write access. It creates a DRAFT release; publishing it is a
+  # human decision made in the GitHub UI.
+  release:
+    name: Create draft GitHub Release
+    needs:
+      - verify-tag
+      - secrets-report
+      - linux-appimage
+      - windows-build
+      - macos-build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: release-*
+          path: artifacts
+
+      - name: Collect and name distributables
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          mkdir -p dist
+          shopt -s nullglob
+          appimages=(artifacts/release-linux/*.AppImage)
+          if [ "${#appimages[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one AppImage, found ${#appimages[@]}."
+            exit 1
+          fi
+          cp -v "${appimages[0]}" "dist/Xenia-Files-${TAG}-linux-x86_64-unsigned.AppImage"
+          for f in artifacts/release-windows/*.zip artifacts/release-macos/*.zip; do
+            cp -v "${f}" "dist/Xenia-Files-${TAG}-$(basename "${f}" | sed 's/^xenia-files-//')"
+          done
+          ls -l dist
+          [ "$(find dist -type f | wc -l)" -eq 3 ] || { echo "::error::Expected three release assets."; exit 1; }
+          (cd dist && sha256sum -- * > SHA256SUMS)
+
+      - name: Write release notes
+        shell: bash
+        env:
+          MACOS_SIGN: ${{ needs.secrets-report.outputs.macos-sign }}
+          WINDOWS_SIGN: ${{ needs.secrets-report.outputs.windows-sign }}
+          CLIENT_VERSION: ${{ needs.verify-tag.outputs.client-version }}
+        run: |
+          set -euo pipefail
+          state() { if [ "$1" = "true" ]; then echo "$2"; else echo "**UNSIGNED**"; fi; }
+          {
+            echo "Xenia Files ${GITHUB_REF_NAME} (client version ${CLIENT_VERSION}, commit ${GITHUB_SHA})."
+            echo
+            echo "This is a draft created by the release workflow. Review the assets before publishing."
+            echo
+            echo "| Platform | Asset | Signing |"
+            echo "|---|---|---|"
+            echo "| macOS (arm64) | .app in .zip | $(state "${MACOS_SIGN}" 'signed and notarised (Developer ID)') |"
+            echo "| Windows (x64) | build output .zip, not an installer | $(state "${WINDOWS_SIGN}" 'signed (Authenticode)') |"
+            echo "| Linux (x86_64) | AppImage | **UNSIGNED** (AppImages are not signed) |"
+            echo
+            if [ "${MACOS_SIGN}" != "true" ] || [ "${WINDOWS_SIGN}" != "true" ]; then
+              echo "Unsigned assets carry \`unsigned\` in their file names. macOS Gatekeeper and Windows SmartScreen will warn when they are opened."
+              echo
+            fi
+            echo "Checksums are in SHA256SUMS."
+          } > notes.md
+          cat notes.md
+
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MACOS_SIGN: ${{ needs.secrets-report.outputs.macos-sign }}
+          WINDOWS_SIGN: ${{ needs.secrets-report.outputs.windows-sign }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          FLAGS=(--draft)
+          if [ "${MACOS_SIGN}" != "true" ] || [ "${WINDOWS_SIGN}" != "true" ]; then
+            FLAGS+=(--prerelease)
+          fi
+          gh release create "${GITHUB_REF_NAME}" dist/* \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "Xenia Files ${GITHUB_REF_NAME}" \
+            --notes-file notes.md \
+            --verify-tag \
+            "${FLAGS[@]}"
