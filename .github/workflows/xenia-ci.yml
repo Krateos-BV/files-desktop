@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
 # XNT-48: manual-dispatch CI for the Xenia Files rebrand (Krateos-BV fork).
-# Unsigned build only — no code-signing step. Push trigger deferred until
+# Unsigned build only — no code-signing step (the secrets-report job below
+# only reports which secret NAMES resolve; it never reads or prints a value). Push trigger deferred until
 # XNT-47 (Krateos-BV Actions minutes/billing check) resolves; re-add
 # `on: push: branches: [master]` once that's confirmed.
 name: Xenia Files CI (unsigned)
@@ -157,4 +158,75 @@ jobs:
         with:
           name: xenia-files-windows-build-${{ steps.safe-ref.outputs.value }}-${{ github.sha }}
           path: ${{ github.workspace }}\${{ env.CRAFT_TARGET }}\build\nextcloud-client\work\build\bin
+          if-no-files-found: error
+
+  # Names-only report: tells us whether the Apple signing secrets are granted to
+  # this repo, without ever printing a value. An org secret that is not scoped
+  # to the repo resolves to an empty string, so emptiness == "not granted".
+  secrets-report:
+    name: Signing secrets visibility (names only)
+    runs-on: ubuntu-latest
+    env:
+      APPLE_DEVELOPER_ID_APPLICATION_P12: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION_P12 }}
+      APPLE_DEVELOPER_ID_INSTALLER_P12: ${{ secrets.APPLE_DEVELOPER_ID_INSTALLER_P12 }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      WINDOWS_CERTIFICATE_PFX: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
+    steps:
+      - name: Report which signing secrets resolve
+        shell: bash
+        run: |
+          for n in APPLE_DEVELOPER_ID_APPLICATION_P12 APPLE_DEVELOPER_ID_INSTALLER_P12 APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID WINDOWS_CERTIFICATE_PFX; do
+            if [ -n "${!n}" ]; then s=present; else s=ABSENT; fi
+            echo "${n}: ${s}"
+            echo "| \`${n}\` | ${s} |" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+  macos-build:
+    name: macOS build (unsigned, with File Provider)
+    runs-on: macos-26
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        with:
+          xcode-version: latest-stable
+
+      - name: Sanitise ref name
+        id: safe-ref
+        shell: bash
+        run: echo "value=${GITHUB_REF_NAME//\//-}" >> "$GITHUB_OUTPUT"
+
+      # No codesign identity and no notarisation options are passed: the .app is
+      # unsigned on purpose until the Developer ID secrets (XNT-198) are granted.
+      - name: Build Xenia Files.app with mac-crafter
+        working-directory: admin/osx/mac-crafter
+        run: |
+          swift run mac-crafter build ${{ github.workspace }} \
+            --app-name "Xenia Files" \
+            --arch arm64 \
+            --build-file-provider-module \
+            --disable-auto-updater \
+            --kde-blueprints-git-ref stable-34.0 \
+            --client-blueprints-git-url https://github.com/nextcloud/craft-blueprints-nextcloud.git \
+            --client-blueprints-git-ref stable-34.0 \
+            --build-path ${{ runner.temp }}/mc-build \
+            --product-path ${{ runner.temp }}/mc-product
+
+      - name: Zip the app bundle
+        run: |
+          cd "${{ runner.temp }}/mc-product"
+          ls -la
+          ditto -c -k --keepParent "Xenia Files.app" "${{ runner.temp }}/xenia-files-macos-unsigned.zip"
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: xenia-files-macos-unsigned-${{ steps.safe-ref.outputs.value }}-${{ github.sha }}
+          path: ${{ runner.temp }}/xenia-files-macos-unsigned.zip
           if-no-files-found: error
