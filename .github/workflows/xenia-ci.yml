@@ -167,17 +167,16 @@ jobs:
     name: Signing secrets visibility (names only)
     runs-on: ubuntu-latest
     env:
-      APPLE_DEVELOPER_ID_APPLICATION_P12: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION_P12 }}
-      APPLE_DEVELOPER_ID_INSTALLER_P12: ${{ secrets.APPLE_DEVELOPER_ID_INSTALLER_P12 }}
+      APPLE_CERT_P12: ${{ secrets.APPLE_CERT_P12 }}
+      APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
       APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      WINDOWS_CERTIFICATE_PFX: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
     steps:
       - name: Report which signing secrets resolve
         shell: bash
         run: |
-          for n in APPLE_DEVELOPER_ID_APPLICATION_P12 APPLE_DEVELOPER_ID_INSTALLER_P12 APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID WINDOWS_CERTIFICATE_PFX; do
+          for n in APPLE_CERT_P12 APPLE_CERT_PASSWORD APPLE_ID APPLE_ID_PASSWORD APPLE_TEAM_ID; do
             if [ -n "${!n}" ]; then s=present; else s=ABSENT; fi
             echo "${n}: ${s}"
             echo "| \`${n}\` | ${s} |" >> "$GITHUB_STEP_SUMMARY"
