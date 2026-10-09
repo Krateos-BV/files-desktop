@@ -5,12 +5,16 @@ name: Upstream Sync
 on:
   schedule:
     - cron: '0 6 * * 1'   # Weekly, Monday 06:00 UTC
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Look up the sync PR and attempt the merge, but do not push or open a PR'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
   pull-requests: write
-  issues: write
 
 jobs:
   sync:
@@ -35,15 +39,28 @@ jobs:
       - name: Check for an existing open sync PR
         id: existing
         if: steps.check.outputs.behind != '0'
+        # --repo is load-bearing: without it gh prefers the `upstream` remote and lists
+        # nextcloud/desktop's PRs, so an open sync PR here was never seen and every Monday
+        # opened a duplicate (PR #35 and #36 were open at the same time). (XEN-284)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BEHIND: ${{ steps.check.outputs.behind }}
         run: |
-          open_pr=$(gh pr list --state open --json headRefName --jq '[.[] | select(.headRefName | startswith("sync/upstream-"))][0].headRefName // ""')
+          open_pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 200 --json headRefName --jq '[.[] | select(.headRefName | startswith("sync/upstream-"))][0].headRefName // ""')
           echo "pr=$open_pr" >> "$GITHUB_OUTPUT"
+          if [ -n "$open_pr" ]; then
+            msg="Sync PR from $open_pr is still open in $GITHUB_REPOSITORY - not opening another. $BEHIND upstream commit(s) are pending; merge or close it and the next run picks them up."
+            echo "::notice title=Upstream sync skipped::$msg"
+            echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No open sync/upstream-* PR in $GITHUB_REPOSITORY."
+          fi
 
       - name: Attempt merge on sync branch
         if: steps.check.outputs.behind != '0' && steps.existing.outputs.pr == ''
         id: merge
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
           DATE=$(date +%Y-%m-%d)
           BRANCH="sync/upstream-$DATE"
@@ -75,10 +92,16 @@ jobs:
             git commit -m "chore: merge nextcloud/desktop master (conflicts need manual resolution)"
             echo "status=conflict" >> "$GITHUB_OUTPUT"
           fi
-          git push origin "$BRANCH"
+          if [ "$DRY_RUN" = "true" ]; then
+            msg="DRY RUN: would push $BRANCH ($(git rev-parse --short HEAD), clean merge: $MERGE_OK) and open a PR against ${{ github.event.repository.default_branch }}. Nothing was pushed."
+            echo "::notice title=Upstream sync dry run::$msg"
+            echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+          else
+            git push origin "$BRANCH"
+          fi
 
       - name: Open PR
-        if: steps.check.outputs.behind != '0' && steps.existing.outputs.pr == ''
+        if: steps.check.outputs.behind != '0' && steps.existing.outputs.pr == '' && inputs.dry_run != true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -94,5 +117,7 @@ jobs:
             -f title="Upstream sync: ${{ steps.merge.outputs.branch }}" \
             -f body="Automated merge of nextcloud/desktop:master (${{ steps.check.outputs.behind }} commits behind).
 
-          $status_line" \
+          $status_line
+
+          Merge it with **Create a merge commit** - never squash or rebase. Either drops the upstream ancestry, and the same upstream commits then come back in the next sync (XEN-256)." \
             -f base="${{ github.event.repository.default_branch }}" -f head="${{ steps.merge.outputs.branch }}"
