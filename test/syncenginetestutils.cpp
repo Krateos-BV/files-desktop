@@ -807,8 +807,8 @@ void FakeMoveReply::respond()
     Q_EMIT finished();
 }
 
-FakeGetReply::FakeGetReply(FileInfo &remoteRootFileInfo, QNetworkAccessManager::Operation op, const QNetworkRequest &request, QObject *parent)
-    : FakeReply { parent }
+FakeGetReply::FakeGetReply(FileInfo &remoteRootFileInfo, QNetworkAccessManager::Operation op, const QNetworkRequest &request, QObject *parent, bool autoRespond)
+    : FakeReply{parent}
 {
     setRequest(request);
     setUrl(request.url());
@@ -823,7 +823,9 @@ FakeGetReply::FakeGetReply(FileInfo &remoteRootFileInfo, QNetworkAccessManager::
                  << " meh;";
     }
     Q_ASSERT_X(fileInfo, Q_FUNC_INFO, "Could not find file on the remote");
-    QMetaObject::invokeMethod(this, &FakeGetReply::respond, Qt::QueuedConnection);
+    if (autoRespond) {
+        QMetaObject::invokeMethod(this, &FakeGetReply::respond, Qt::QueuedConnection);
+    }
 }
 
 void FakeGetReply::respond()
@@ -1130,16 +1132,37 @@ FakeHangingReply::FakeHangingReply(QNetworkAccessManager::Operation op, const QN
     setUrl(request.url());
     setOperation(op);
     open(QIODevice::ReadOnly);
+    if (request.transferTimeoutAsDuration() > std::chrono::milliseconds::zero()) {
+        QMetaObject::invokeMethod(
+            this,
+            [this]() {
+                abortWithError(TimeoutError);
+            },
+            Qt::QueuedConnection);
+    }
 }
 
 void FakeHangingReply::abort()
 {
-    // Follow more or less the implementation of QNetworkReplyImpl::abort
+    abortWithError(OperationCanceledError);
+}
+
+void FakeHangingReply::abortWithError(QNetworkReply::NetworkError error)
+{
+    // Follow more or less the implementation of QNetworkReplyHttpImpl::abortImpl
+    // the first error is kept, so aborting a reply that timed out still reports TimeoutError
+    if (isFinished()) {
+        return;
+    }
     close();
-    setError(OperationCanceledError, tr("Operation canceled"));
-    Q_EMIT errorOccurred(OperationCanceledError);
-    setFinished(true);
-    Q_EMIT finished();
+    if (this->error() == NoError) {
+        setError(error, error == TimeoutError ? tr("Operation timed out") : tr("Operation canceled"));
+        Q_EMIT errorOccurred(error);
+    }
+    if (!isFinished()) {
+        setFinished(true);
+        Q_EMIT finished();
+    }
 }
 
 FakeQNAM::FakeQNAM(FileInfo initialRoot)
