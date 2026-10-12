@@ -148,6 +148,7 @@ Systray::Systray()
 #if defined(Q_OS_MACOS) && __MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_14 && defined(BUILD_OWNCLOUD_OSX_BUNDLE)
     setUserNotificationCenterDelegate();
     checkNotificationAuth(MacNotificationAuthorizationOptions::Default); // No provisional auth, ask user explicitly first time
+    //: Name of the macOS notification category for file downloads.
     registerNotificationCategories(QString(tr("Download")));
 #elif !defined(Q_OS_MACOS)
     connect(AccountManager::instance(), &AccountManager::accountAdded,
@@ -213,16 +214,20 @@ void Systray::showTrayPopup(WindowPosition position)
 
 void Systray::hideWindow()
 {
+#ifndef Q_OS_MACOS
     if (!isOpen()) {
         return;
     }
+#endif
 
 #ifdef Q_OS_MACOS
     hideMacOSTrayPopup();
 #else
     hideQtTrayPopup();
 #endif
-    setIsOpen(false);
+    if (isOpen()) {
+        setIsOpen(false);
+    }
 }
 
 void Systray::showActivitiesWindow(int userIndex)
