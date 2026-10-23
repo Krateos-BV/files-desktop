@@ -20,10 +20,25 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # Push and PR use a GitHub App installation token, as the other forks'
+      # xenia-upstream-sync.yml do. A PR opened with GITHUB_TOKEN starts its
+      # pull_request workflows only as `action_required` (waiting for "Approve and
+      # run"), so the required conflict-markers check never reports on it. A PR
+      # opened with an App installation token runs its checks.
+      - name: Mint a GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          # The App's client ID is an identifier, not a secret (read it with:
+          # gh api /apps/xenia-upstream-sync --jq .client_id).
+          client-id: Iv23li86RZXU8iKG6Dx1
+          private-key: ${{ secrets.XENIA_SYNC_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           fetch-depth: 0
           ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
 
       - name: Add upstream remote
         run: |
@@ -43,7 +58,7 @@ jobs:
         # nextcloud/desktop's PRs, so an open sync PR here was never seen and every Monday
         # opened a duplicate (PR #35 and #36 were open at the same time). (XEN-284)
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           BEHIND: ${{ steps.check.outputs.behind }}
         run: |
           open_pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 200 --json headRefName --jq '[.[] | select(.headRefName | startswith("sync/upstream-"))][0].headRefName // ""')
@@ -61,22 +76,24 @@ jobs:
         id: merge
         env:
           DRY_RUN: ${{ inputs.dry_run }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          BASE: ${{ github.event.repository.default_branch }}
         run: |
           DATE=$(date +%Y-%m-%d)
           BRANCH="sync/upstream-$DATE"
           echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          # The base tip, recorded before the merge moves HEAD, for the commit list below.
+          echo "base=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           git checkout -b "$BRANCH"
           git config user.name "xenia-sync-bot"
           git config user.email "bot@xeniacloud.eu"
           MERGE_OK=true
           git merge --no-commit --no-ff upstream/master || MERGE_OK=false
 
-          # GITHUB_TOKEN can never push changes to .github/workflows/ - GitHub
-          # hard-blocks it regardless of granted permissions (there is no valid
-          # `permissions:` key for this; don't try adding one again), to stop a
-          # workflow from self-modifying/escalating other workflows. Discard any
-          # changes to that directory from the merge so the branch stays pushable,
-          # in both the clean and conflicted cases.
+          # Upstream's changes under .github/workflows/ are discarded, in the clean and
+          # the conflicted case alike, so this fork's CI is not replaced by upstream's
+          # (upstream jobs use runner labels such as ubuntu-latest-low that never run
+          # here). The App token could push them; this is a choice, not a limitation.
           git checkout --no-overlay HEAD -- .github/workflows/ 2>/dev/null || true
           git add -A
 
@@ -93,31 +110,67 @@ jobs:
             echo "status=conflict" >> "$GITHUB_OUTPUT"
           fi
           if [ "$DRY_RUN" = "true" ]; then
-            msg="DRY RUN: would push $BRANCH ($(git rev-parse --short HEAD), clean merge: $MERGE_OK) and open a PR against ${{ github.event.repository.default_branch }}. Nothing was pushed."
+            msg="DRY RUN: would push $BRANCH ($(git rev-parse --short HEAD), clean merge: $MERGE_OK) and open a PR against $BASE. Nothing was pushed."
             echo "::notice title=Upstream sync dry run::$msg"
             echo "$msg" >> "$GITHUB_STEP_SUMMARY"
           else
-            git push origin "$BRANCH"
+            # persist-credentials is off, so the push authenticates explicitly. A plain
+            # push (no force): a same-day re-run finds the dated branch already there
+            # and fails loudly instead of overwriting it.
+            git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$BRANCH"
           fi
 
       - name: Open PR
         if: steps.check.outputs.behind != '0' && steps.existing.outputs.pr == '' && inputs.dry_run != true
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          BRANCH: ${{ steps.merge.outputs.branch }}
+          BASE: ${{ github.event.repository.default_branch }}
+          BASE_SHA: ${{ steps.merge.outputs.base }}
+          BEHIND: ${{ steps.check.outputs.behind }}
+          MERGE_STATUS: ${{ steps.merge.outputs.status }}
         run: |
           status_line="This merge was clean. Review before merging — theme/colored/* is a rebrand collision point even on clean merges."
-          if [ "${{ steps.merge.outputs.status }}" == "conflict" ]; then
+          if [ "$MERGE_STATUS" == "conflict" ]; then
             status_line="**This merge has unresolved conflicts** (committed as-is with conflict markers) - resolve them on this branch before merging."
           fi
-          # `gh pr create` drives GitHub's GraphQL createPullRequest mutation, which enforces a
-          # stricter/buggier permission check than the equivalent REST endpoint for GITHUB_TOKEN
-          # on forked repos — it 403s ("Resource not accessible by integration") even when the
-          # REST call with the same token succeeds. Use REST directly instead (INF-225).
-          gh api repos/${{ github.repository }}/pulls \
-            -f title="Upstream sync: ${{ steps.merge.outputs.branch }}" \
-            -f body="Automated merge of nextcloud/desktop:master (${{ steps.check.outputs.behind }} commits behind).
+
+          # Commit list, capped so a large sync stays under GitHub's 65,536-character PR
+          # body limit, and fenced so upstream @mentions and owner/repo#N references in
+          # commit subjects neither notify anyone nor leave cross-references upstream.
+          total=$(git rev-list --count "$BASE_SHA..upstream/master")
+          log=$(git log --max-count=300 --format='- %h %s' "$BASE_SHA..upstream/master")
+          if [ "$total" -gt 300 ]; then
+            log="$log
+          - ... and $((total - 300)) more (git log $BASE_SHA..upstream/master)"
+          fi
+          fence='````'
+
+          body=$(cat <<EOF
+          Automated merge of nextcloud/desktop:master ($BEHIND commits behind).
 
           $status_line
 
-          Merge it with **Create a merge commit** - never squash or rebase. Either drops the upstream ancestry, and the same upstream commits then come back in the next sync (XEN-256)." \
-            -f base="${{ github.event.repository.default_branch }}" -f head="${{ steps.merge.outputs.branch }}"
+          Merge it with **Create a merge commit** - never squash or rebase. Either drops the upstream ancestry, and the same upstream commits then come back in the next sync (XEN-256).
+
+          Upstream changes under .github/workflows/ are deliberately left out of this merge.
+
+          ## Upstream commits
+
+          ${fence}text
+          $log
+          ${fence}
+          EOF
+          )
+
+          # `gh pr create` drives GitHub's GraphQL createPullRequest mutation, which refuses
+          # tokens that the REST endpoint accepts ("Resource not accessible by
+          # integration"), so the PR is created through REST.
+          jq -n \
+            --arg title "Upstream sync: $BRANCH" \
+            --arg head "$BRANCH" \
+            --arg base "$BASE" \
+            --arg body "$body" \
+            '{title: $title, head: $head, base: $base, body: $body}' \
+          | gh api --method POST "repos/${GITHUB_REPOSITORY}/pulls" --input - \
+              --jq '"Opened PR #\(.number): \(.html_url)"'
