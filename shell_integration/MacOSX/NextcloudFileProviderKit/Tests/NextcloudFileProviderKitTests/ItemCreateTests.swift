@@ -60,6 +60,8 @@ final class ItemCreateTests: NextcloudFileProviderKitTestCase {
 
     var rootItem: MockRemoteItem!
     static let dbManager = FilesDatabaseManager(account: account, databaseDirectory: makeDatabaseDirectory(), fileProviderDomainIdentifier: NSFileProviderDomainIdentifier("test"), log: FileProviderLogMock())
+    /// An in-memory Realm loses its contents when its last instance is released.
+    private var keepAliveRealm: Realm?
 
     override var testDatabaseManager: FilesDatabaseManager? {
         Self.dbManager
@@ -67,11 +69,22 @@ final class ItemCreateTests: NextcloudFileProviderKitTestCase {
 
     override func setUp() {
         super.setUp()
+<<<<<<< HEAD
+=======
+        // The manager's initializer replaces Realm's default configuration.
+        _ = Self.dbManager
+        Realm.Configuration.defaultConfiguration.inMemoryIdentifier = name
+        keepAliveRealm = Self.dbManager.ncDatabase()
+>>>>>>> upstream/master
         rootItem = MockRemoteItem.rootItem(account: Self.account)
     }
 
     override func tearDown() {
         rootItem.children = []
+<<<<<<< HEAD
+=======
+        keepAliveRealm = nil
+>>>>>>> upstream/master
         super.tearDown()
     }
 
