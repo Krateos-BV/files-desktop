@@ -174,11 +174,13 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
     }
 
     func testFailedContentModificationRemainsUnuploaded() async throws {
+        expectLoggedErrors()
         try await assertFailedContentModificationRemainsUnuploaded(errorCode: 500, chunkSize: nil)
         try await assertFailedContentModificationRemainsUnuploaded(errorCode: 500, chunkSize: 2)
     }
 
     func testCancelledContentModificationRemainsUnuploaded() async throws {
+        expectLoggedErrors()
         try await assertFailedContentModificationRemainsUnuploaded(errorCode: NSURLErrorCancelled, chunkSize: nil)
         try await assertFailedContentModificationRemainsUnuploaded(errorCode: NSURLErrorCancelled, chunkSize: 2)
     }
@@ -976,6 +978,7 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
     }
 
     func testModifyIntoIgnoredDestinationRemovesExclusionMarkerWhenRemoteDeleteFails() async {
+        expectLoggedErrors()
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, rootTrashItem: rootTrashItem)
         remoteInterface.deleteError = .urlError
         let ignoredMatcher = IgnoredFilesMatcher(ignoreList: ["*.blend1"], log: FileProviderLogMock())
@@ -1170,6 +1173,7 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
     }
 
     func testModifyIntoIgnoredDestinationFailsWhenExclusionMarkerCannotBeWritten() async {
+        expectLoggedErrors()
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, rootTrashItem: rootTrashItem)
         let ignoredMatcher = IgnoredFilesMatcher(ignoreList: ["*.blend1"], log: FileProviderLogMock())
         let itemMetadata = remoteItem.toItemMetadata(account: Self.account)
@@ -2305,6 +2309,7 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
     }
 
     func testModifyIntoIgnoredDestinationKeepsRemoteItemWhenCleanupFails() async {
+        expectLoggedErrors()
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, rootTrashItem: rootTrashItem)
         remoteInterface.deleteError = .urlError
         let ignoredMatcher = IgnoredFilesMatcher(ignoreList: ["*.blend1"], log: FileProviderLogMock())
@@ -2347,6 +2352,7 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
     }
 
     func testModifyIntoIgnoredDestinationKeepsExclusionAfterPermanentRemoteDeleteFailure() async throws {
+        expectLoggedErrors()
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, rootTrashItem: rootTrashItem)
         remoteInterface.deleteError = NKError(statusCode: 403, fallbackDescription: "Forbidden")
         let ignoredMatcher = IgnoredFilesMatcher(ignoreList: ["*.blend1"], log: FileProviderLogMock())

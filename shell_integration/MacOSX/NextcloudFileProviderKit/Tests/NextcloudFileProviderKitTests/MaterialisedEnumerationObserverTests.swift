@@ -27,6 +27,7 @@ final class MaterialisedEnumerationObserverTests: NextcloudFileProviderKitTestCa
     }
 
     func testFailedMaterializedEnumerationDoesNotEvictUnseenItems() {
+        expectLoggedErrors()
         var existing = SendableItemMetadata(ocId: "existing", fileName: "existing.txt", account: Self.account)
         existing.downloaded = true
         let dbManager = FilesDatabaseManager(account: Self.account, databaseDirectory: makeDatabaseDirectory(), fileProviderDomainIdentifier: NSFileProviderDomainIdentifier("test"), log: FileProviderLogMock())
@@ -48,6 +49,7 @@ final class MaterialisedEnumerationObserverTests: NextcloudFileProviderKitTestCa
     }
 
     func testPartialMaterializedEnumerationFailurePreservesMetadata() {
+        expectLoggedErrors()
         var unseen = SendableItemMetadata(ocId: "unseen", fileName: "unseen.txt", account: Self.account)
         unseen.downloaded = true
         var seen = SendableItemMetadata(ocId: "seen", fileName: "seen.txt", account: Self.account)
