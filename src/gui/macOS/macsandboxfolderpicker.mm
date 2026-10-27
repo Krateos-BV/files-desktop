@@ -6,24 +6,26 @@
 #include "macsandboxfolderpicker.h"
 
 #include <QLoggingCategory>
+#include <QWindow>
 
 #include <utility>
 
 #import <AppKit/AppKit.h>
 
+static_assert(__has_feature(objc_arc), "macsandboxfolderpicker requires ARC.");
+
 Q_LOGGING_CATEGORY(lcMacSandboxFolderPicker, "nextcloud.gui.mac.sandbox.folderpicker", QtInfoMsg)
 
 namespace OCC::Mac::SandboxFolderPicker {
 
-void select(const QString &caption,
-            const QString &initialPath,
-            std::function<void(FolderSelection)> completionHandler)
+void select(QWindow *parentWindow, const QString &caption, const QString &initialPath, std::function<void(FolderSelection)> completionHandler)
 {
     qCInfo(lcMacSandboxFolderPicker) << "Opening native folder panel." << "initialPath" << initialPath;
 
     NSOpenPanel *const panel = [NSOpenPanel openPanel];
     panel.canChooseFiles = NO;
     panel.canChooseDirectories = YES;
+    panel.canCreateDirectories = YES;
     panel.allowsMultipleSelection = NO;
     panel.resolvesAliases = YES;
     panel.message = caption.toNSString();
@@ -34,7 +36,15 @@ void select(const QString &caption,
 
     // Use AppKit's asynchronous panel API instead of runModal(). Qt's Cocoa
     // event dispatcher can dismiss a nested native modal loop immediately.
-    NSWindow *const parentWindow = NSApp.keyWindow ?: NSApp.mainWindow;
+    // Activating the parent first keeps the sheet on it while another app is in front.
+    NSWindow *sheetParent = nil;
+    if (parentWindow) {
+        parentWindow->requestActivate();
+        sheetParent = ((__bridge NSView *)reinterpret_cast<void *>(parentWindow->winId())).window;
+    }
+    if (!sheetParent) {
+        sheetParent = NSApp.keyWindow ?: NSApp.mainWindow;
+    }
     const auto completionHandlerBlock = ^(NSModalResponse response) {
         qCInfo(lcMacSandboxFolderPicker) << "Native folder panel returned." << static_cast<NSInteger>(response);
         FolderSelection selection;
@@ -77,8 +87,8 @@ void select(const QString &caption,
         completionHandler(std::move(selection));
     };
 
-    if (parentWindow) {
-        [panel beginSheetModalForWindow:parentWindow completionHandler:completionHandlerBlock];
+    if (sheetParent) {
+        [panel beginSheetModalForWindow:sheetParent completionHandler:completionHandlerBlock];
     } else {
         [panel beginWithCompletionHandler:completionHandlerBlock];
     }

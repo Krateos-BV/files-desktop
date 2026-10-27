@@ -26,6 +26,7 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     var remoteTrashItemC: MockRemoteItem!
 
     static let dbManager = FilesDatabaseManager(account: account, databaseDirectory: makeDatabaseDirectory(), fileProviderDomainIdentifier: NSFileProviderDomainIdentifier("test"), log: FileProviderLogMock())
+    static let acknowledgementTimeout: TimeInterval = 5
 
     override var testDatabaseManager: FilesDatabaseManager? {
         Self.dbManager
@@ -995,7 +996,10 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
         let dbItemCMetadata = try XCTUnwrap(
             Self.dbManager.itemMetadata(ocId: remoteItemC.identifier)
         )
-        XCTAssertNil(Self.dbManager.itemMetadata(ocId: remoteItemB.identifier))
+        let itemBIdentifier = remoteItemB.identifier
+        await waitForAcknowledgement("The deleted item is removed.") {
+            Self.dbManager.itemMetadata(ocId: itemBIdentifier) == nil
+        }
         XCTAssertEqual(dbFolderMetadata.etag, remoteFolder.versionIdentifier)
         XCTAssertTrue(dbFolderMetadata.downloaded)
         XCTAssertEqual(dbItemAMetadata.etag, remoteItemA.versionIdentifier)
@@ -1319,7 +1323,10 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
         try await observer.enumerateChanges()
         XCTAssertEqual(observer.changedItems.count, 0)
         XCTAssertEqual(observer.deletedItemIdentifiers.count, 1)
-        XCTAssertEqual(Self.dbManager.itemMetadata(ocId: remoteTrashItemA.identifier)?.deleted, true)
+        let trashItemIdentifier = remoteTrashItemA.identifier
+        await waitForAcknowledgement("The orphaned trash item is marked deleted.") {
+            Self.dbManager.itemMetadata(ocId: trashItemIdentifier)?.deleted == true
+        }
     }
 
     /// Every change batch must be reported on the main actor, trash included.
@@ -2460,9 +2467,10 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
             previousTotal = total
         }
 
-        // Every delivered deletion's row is hard-removed by the time its (possibly later) batch finishes.
-        for deletedOcId in expectedDeleted {
-            XCTAssertNil(Self.dbManager.itemMetadata(ocId: deletedOcId), "Delivered deletions must be hard-removed across batch boundaries.")
+        // Every delivered deletion's row is hard-removed across batch boundaries.
+        let deletedOcIds = expectedDeleted
+        await waitForAcknowledgement("Delivered deletions are hard-removed.") {
+            deletedOcIds.allSatisfy { Self.dbManager.itemMetadata(ocId: $0) == nil }
         }
 
         // Anchors stay within the framework's 500-byte page/anchor limit.
@@ -2540,9 +2548,20 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
         }
         XCTAssertEqual(observer.finishes.last?.moreComing, false)
 
-        // Delivered orphans are soft-deleted by the time their batch finishes.
-        for ocId in expectedOcIds {
-            XCTAssertEqual(Self.dbManager.itemMetadata(ocId: ocId)?.deleted, true, "Delivered trash orphans must be soft-deleted.")
+        // Delivered orphans are soft-deleted.
+        let orphanOcIds = expectedOcIds
+        await waitForAcknowledgement("Delivered trash orphans are soft-deleted.") {
+            orphanOcIds.allSatisfy { Self.dbManager.itemMetadata(ocId: $0)?.deleted == true }
         }
+    }
+
+    ///
+    /// Wait for database state which the enumerator writes when it acknowledges a batch. That happens only after
+    /// the observer received the batch, so it can still be pending when `enumerateChanges()` returns.
+    ///
+    private func waitForAcknowledgement(_ description: String, _ condition: @escaping @Sendable () -> Bool) async {
+        let expectation = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in condition() }, object: NSObject())
+        expectation.expectationDescription = description
+        await fulfillment(of: [expectation], timeout: Self.acknowledgementTimeout)
     }
 }
