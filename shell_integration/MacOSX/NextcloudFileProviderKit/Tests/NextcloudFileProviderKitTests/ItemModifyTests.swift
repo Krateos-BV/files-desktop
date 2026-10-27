@@ -1335,6 +1335,7 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
     }
 
     func testDestinationWithSimilarFilesRootPrefixIsNotExcluded() async {
+        expectLoggedErrors()
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, rootTrashItem: rootTrashItem)
         let ignoredMatcher = IgnoredFilesMatcher(ignoreList: ["*.blend1"], log: FileProviderLogMock())
 
