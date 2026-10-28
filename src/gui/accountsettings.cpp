@@ -724,6 +724,7 @@ void AccountSettings::slotSubfolderContextMenuRequested(const QModelIndex& index
 
     const auto folder = info->_folder;
     if (folder && folder->virtualFilesEnabled()) {
+        //: Name of the submenu containing virtual-file availability actions.
         auto availabilityMenu = menu.addMenu(tr("Availability"));
 
         // Has '/' suffix convention for paths here but VFS and
@@ -814,6 +815,7 @@ void AccountSettings::slotCustomContextMenuRequested(const QPoint &pos)
     connect(ac, &QAction::triggered, this, &AccountSettings::slotRemoveCurrentFolder);
 
     if (folder->virtualFilesEnabled()) {
+        //: Name of the submenu containing virtual-file availability actions.
         auto availabilityMenu = menu->addMenu(tr("Availability"));
 
         ac = availabilityMenu->addAction(Utility::vfsPinActionText());
@@ -927,6 +929,7 @@ void AccountSettings::slotFolderWizardAccepted()
         folderWizard->field(QLatin1String("sourceFolder")).toString());
     definition.targetPath = FolderDefinition::prepareTargetPath(
         folderWizard->property("targetPath").toString());
+    definition.securityScopedBookmarkData = folderWizard->securityScopedBookmarkData();
 
     if (folderWizard->property("useVirtualFiles").toBool()) {
         definition.virtualFilesMode = bestAvailableVfsMode();
@@ -1046,6 +1049,7 @@ void AccountSettings::slotFixSandboxBookmark(Folder *folder)
     const QPointer<AccountSettings> settings(this);
     const QPointer<Folder> pendingFolder(folder);
     Mac::SandboxFolderPicker::select(
+        window()->windowHandle(),
         tr("Grant access to sync folder"),
         expectedPath,
         [settings, pendingFolder, expectedPath](Mac::SandboxFolderPicker::FolderSelection selection) {
