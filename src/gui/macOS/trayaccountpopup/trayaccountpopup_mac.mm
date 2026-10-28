@@ -16,6 +16,8 @@
 #include <QRect>
 #include <QScreen>
 
+static_assert(__has_feature(objc_arc), "trayaccountpopup_mac requires ARC.");
+
 using namespace OCC::Mac::TrayPopupViewUtils;
 
 static NSScreen *nsScreenForQtScreen(QScreen *qtScreen)
@@ -96,6 +98,11 @@ bool showMacOSTrayPopup(const QRect &iconRect)
 void hideMacOSTrayPopup()
 {
     [s_popup orderOut:nil];
+}
+
+bool macOSTrayPopupWasVisibleAtCurrentMouseDown()
+{
+    return s_popup && [s_popup wasVisibleAtMouseDownForEvent:NSApp.currentEvent];
 }
 
 } // namespace OCC
