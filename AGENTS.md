@@ -20,7 +20,8 @@ Other platforms like iOS and Android are irrelevant for this project.
 > `nextcloud/desktop`. In this fork, work is reviewed on the pull request itself
 > rather than before it is opened, so the agent opens its own PRs and writes
 > their descriptions (see "What this agent may do in this fork"). Every other
-> rule below stands unchanged. **This amendment applies only to pull requests
+> rule below stands unchanged, except the model-version part of the
+> `Assisted-by` trailer (same section). **This amendment applies only to pull requests
 > targeting branches of `Krateos-BV/nextcloud-desktop`.** Anything destined for
 > an upstream `nextcloud/*` repository follows the unmodified upstream policy,
 > where a human opens the PR and writes it in their own words.
@@ -62,6 +63,21 @@ All contributions generated or assisted by this agent must fully comply with:
   verified and what was not, so the reviewer can tell evidence from assertion.
 - This does not relax the DCO rule above. The agent still never adds
   `Signed-off-by` - only the human contributor can certify it.
+- Commit trailers in this fork (one convention shared by `Krateos-BV/talk-desktop`
+  and `Krateos-BV/files-desktop`). Every commit containing AI-assisted content
+  carries:
+  - `Assisted-by: Claude Code` - required. `AGENT_NAME` is spelled exactly
+    `Claude Code`. Append `:MODEL_VERSION` (`Assisted-by: Claude Code:<model-id>`)
+    only when the session is allowed to write a model identifier into commits.
+    Some agent sessions are not, and for them the trailer without a version is
+    complete, not a breach of the `Assisted-by` rule above.
+  - `Claude-Session: <session URL>` when the session has one. It identifies the
+    session that wrote the commit, which is where the model can be looked up
+    when the commit does not name it.
+  - `Refs: <JIRA-KEY>` when the work has a ticket.
+
+  A `Co-Authored-By` line added by the tool may stay, but it does not replace
+  `Assisted-by`. The agent still never adds `Signed-off-by` (DCO rule above).
 
 ## Your Role
 
@@ -168,6 +184,10 @@ Closes #123.
 
 Assisted-by: ClaudeCode:claude-sonnet-4-6
 ```
+
+In this fork, the trailer convention under "What this agent may do in this fork"
+applies: `Assisted-by: Claude Code`, with `:MODEL_VERSION` only when the session
+may write one.
 
 ### Developer Certificate of Origin (DCO)
 
