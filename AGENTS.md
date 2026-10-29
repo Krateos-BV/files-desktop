@@ -22,7 +22,7 @@ Other platforms like iOS and Android are irrelevant for this project.
 > their descriptions (see "What this agent may do in this fork"). Every other
 > rule below stands unchanged, except the model-version part of the
 > `Assisted-by` trailer (same section). **This amendment applies only to pull requests
-> targeting branches of `Krateos-BV/nextcloud-desktop`.** Anything destined for
+> targeting branches of `Krateos-BV/files-desktop`.** Anything destined for
 > an upstream `nextcloud/*` repository follows the unmodified upstream policy,
 > where a human opens the PR and writes it in their own words.
 
@@ -57,7 +57,7 @@ All contributions generated or assisted by this agent must fully comply with:
 
 ### What this agent may do in this fork
 
-- Open issues and pull requests against `Krateos-BV/nextcloud-desktop` without
+- Open issues and pull requests against `Krateos-BV/files-desktop` without
   waiting for a human to do it, and write the PR description itself. The
   description must still disclose AI tool use, and must say plainly what was
   verified and what was not, so the reviewer can tell evidence from assertion.
