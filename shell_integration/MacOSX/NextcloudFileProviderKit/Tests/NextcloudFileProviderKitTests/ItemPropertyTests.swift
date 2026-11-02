@@ -5,7 +5,6 @@
 @testable import NextcloudFileProviderKit
 import NextcloudFileProviderKitMocks
 import NextcloudKit
-import RealmSwift
 import TestInterface
 import UniformTypeIdentifiers
 import XCTest
@@ -14,10 +13,16 @@ final class ItemPropertyTests: NextcloudFileProviderKitTestCase {
     static let account = Account(
         user: "testUser", id: "testUserId", serverUrl: "https://mock.nc.com", password: "abcd"
     )
-    static let dbManager = FilesDatabaseManager(account: account, databaseDirectory: makeDatabaseDirectory(), fileProviderDomainIdentifier: NSFileProviderDomainIdentifier("test"), log: FileProviderLogMock())
+    static let dbManager = try! FilesDatabaseManager(account: account, databaseDirectory: makeDatabaseDirectory(), fileProviderDomainIdentifier: NSFileProviderDomainIdentifier("test"), log: FileProviderLogMock())
 
+<<<<<<< HEAD
     override var testDatabaseManager: FilesDatabaseManager? {
         Self.dbManager
+=======
+    override func setUp() {
+        super.setUp()
+        try! Self.dbManager.removeAllRowsForTesting()
+>>>>>>> upstream/master
     }
 
     func testMetadataContentType() {
@@ -346,14 +351,14 @@ final class ItemPropertyTests: NextcloudFileProviderKitTestCase {
 
     // Unlike the file cases above (which read `displayEvict` straight off the
     // metadata), directory eviction visibility depends on descendant *file* rows
-    // in the database, so these tests seed the per-test Realm first.
+    // in the database, so these tests seed the per-test database first.
 
     /// Full server path of the folder produced by `makeFolderItem()`.
     private var folderServerPath: String {
         Self.account.davFilesUrl + "/folder"
     }
 
-    /// Seed one metadata row into the per-test Realm.
+    /// Seed one metadata row into the per-test database.
     private func seedMetadataRow(
         ocId: String,
         fileName: String,
@@ -364,18 +369,17 @@ final class ItemPropertyTests: NextcloudFileProviderKitTestCase {
         deleted: Bool = false,
         keepDownloaded: Bool = false
     ) throws {
-        let row = RealmItemMetadata()
-        row.ocId = ocId
+        var row = SendableItemMetadata.rawRow(ocId: ocId)
         row.account = Self.account.ncKitAccount
-        row.updateLocation(serverUrl: serverUrl, fileName: fileName)
+        row.serverUrl = serverUrl
+        row.fileName = fileName
         row.directory = directory
         row.downloaded = downloaded
         row.visitedDirectory = visitedDirectory
         row.deleted = deleted
         row.keepDownloaded = keepDownloaded
 
-        let realm = Self.dbManager.ncDatabase()
-        try realm.write { realm.add(row) }
+        try Self.dbManager.insertForTesting(row)
     }
 
     /// A directory `Item` at `folderServerPath`; its descendants are whatever
@@ -646,9 +650,7 @@ final class ItemPropertyTests: NextcloudFileProviderKitTestCase {
     }
 
     func testItemUserInfoDisplayOpenInBrowserUploadedItem() {
-        // An uploaded item with a numeric fileId is the canonical case the
-        // "Open in browser" action targets: PROPFIND for the private link can
-        // resolve to a web URL the main app opens via QDesktopServices.
+        // An uploaded item has the numeric file ID needed to build its browser URL.
         var metadata = SendableItemMetadata(ocId: "test-id", fileName: "test.txt", account: Self.account)
         metadata.fileId = "42"
         metadata.uploaded = true
@@ -712,9 +714,7 @@ final class ItemPropertyTests: NextcloudFileProviderKitTestCase {
     }
 
     func testItemUserInfoDisplayCopyInternalLinkUploadedItem() {
-        // An uploaded item with a numeric fileId is the canonical case the
-        // "Copy internal link" action targets: PROPFIND for the private link
-        // can resolve to the URL the main app writes to the clipboard.
+        // An uploaded item has the numeric file ID needed to build its internal link.
         var metadata = SendableItemMetadata(ocId: "test-id", fileName: "test.txt", account: Self.account)
         metadata.fileId = "42"
         metadata.uploaded = true

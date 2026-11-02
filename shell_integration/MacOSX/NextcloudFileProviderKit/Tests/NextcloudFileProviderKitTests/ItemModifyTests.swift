@@ -6,7 +6,6 @@
 import NextcloudFileProviderKitMocks
 import NextcloudFileProviderXPC
 import NextcloudKit
-import RealmSwift
 import TestInterface
 import UniformTypeIdentifiers
 import XCTest
@@ -98,7 +97,7 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
     var remoteTrashFolder: MockRemoteItem!
     var remoteTrashFolderChildItem: MockRemoteItem!
 
-    static let dbManager = FilesDatabaseManager(account: account, databaseDirectory: makeDatabaseDirectory(), fileProviderDomainIdentifier: NSFileProviderDomainIdentifier("test"), log: FileProviderLogMock())
+    static let dbManager = try! FilesDatabaseManager(account: account, databaseDirectory: makeDatabaseDirectory(), fileProviderDomainIdentifier: NSFileProviderDomainIdentifier("test"), log: FileProviderLogMock())
 
     override var testDatabaseManager: FilesDatabaseManager? {
         Self.dbManager
@@ -106,6 +105,10 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
 
     override func setUp() {
         super.setUp()
+<<<<<<< HEAD
+=======
+        try! Self.dbManager.removeAllRowsForTesting()
+>>>>>>> upstream/master
 
         remoteItem = MockRemoteItem(
             identifier: "item",
@@ -325,7 +328,7 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
         let itemMetadata = remoteItem.toItemMetadata(account: Self.account)
         Self.dbManager.addItemMetadata(itemMetadata)
 
-        let newContents = "Hello, much bigger New World!".data(using: .utf8)!
+        let newContents = try XCTUnwrap("Hello, much bigger New World!".data(using: .utf8))
         let newContentsUrl = FileManager.default.temporaryDirectory
             .appendingPathComponent("quota-report-modify")
         try newContents.write(to: newContentsUrl)
@@ -384,7 +387,7 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
         Self.dbManager.addItemMetadata(itemMetadata)
 
         let originalRemoteData = remoteItem.data
-        let newContents = "Hello, much bigger New World!".data(using: .utf8)!
+        let newContents = try XCTUnwrap("Hello, much bigger New World!".data(using: .utf8))
         let newContentsUrl = FileManager.default.temporaryDirectory
             .appendingPathComponent("quota-blocked-modify")
         try newContents.write(to: newContentsUrl)
@@ -1122,14 +1125,13 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
         remoteInterface.chunkUploadDirectories[chunkUploadId] = chunksDirectory
         defer { try? FileManager.default.removeItem(at: chunksDirectory) }
 
-        let db = Self.dbManager.ncDatabase()
-        try db.write {
-            db.add(RemoteFileChunk(
+        Self.dbManager.addRemoteFileChunks([
+            RemoteFileChunk(
                 fileName: "2",
                 size: 3,
                 remoteChunkStoreFolderName: chunkUploadId
-            ))
-        }
+            )
+        ])
 
         var targetMetadata = SendableItemMetadata(value: folderMetadata)
         targetMetadata.apply(fileName: "renamed-folder")
@@ -1165,9 +1167,7 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
         XCTAssertTrue(rootTrashItem.children.contains { $0.identifier == folderMetadata.ocId + trashedItemIdSuffix })
         XCTAssertFalse(FileManager.default.fileExists(atPath: chunksDirectory.path))
         XCTAssertEqual(
-            db.objects(RemoteFileChunk.self)
-                .where { $0.remoteChunkStoreFolderName == chunkUploadId }
-                .count,
+            Self.dbManager.remoteFileChunks(uploadId: chunkUploadId)?.count,
             0
         )
     }
@@ -1810,7 +1810,7 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
         let folderMetadata = remoteFolder.toItemMetadata(account: Self.account)
         Self.dbManager.addItemMetadata(folderMetadata)
 
-        let newContents = "I've changed!".data(using: .utf8)!
+        let newContents = try XCTUnwrap("I've changed!".data(using: .utf8))
         let newContentsUrl = FileManager.default.temporaryDirectory.appendingPathComponent("test")
         try newContents.write(to: newContentsUrl)
 
@@ -2205,21 +2205,18 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
         )
         remoteInterface.currentChunks = [chunkUploadId: [preexistingChunk]]
 
-        let db = Self.dbManager.ncDatabase()
-        try db.write {
-            db.add([
-                RemoteFileChunk(
-                    fileName: String(previousUploadedChunkNum + 1),
-                    size: Int64(chunkSize),
-                    remoteChunkStoreFolderName: chunkUploadId
-                ),
-                RemoteFileChunk(
-                    fileName: String(previousUploadedChunkNum + 2),
-                    size: Int64(chunkSize),
-                    remoteChunkStoreFolderName: chunkUploadId
-                )
-            ])
-        }
+        Self.dbManager.addRemoteFileChunks([
+            RemoteFileChunk(
+                fileName: String(previousUploadedChunkNum + 1),
+                size: Int64(chunkSize),
+                remoteChunkStoreFolderName: chunkUploadId
+            ),
+            RemoteFileChunk(
+                fileName: String(previousUploadedChunkNum + 2),
+                size: Int64(chunkSize),
+                remoteChunkStoreFolderName: chunkUploadId
+            )
+        ])
 
         var targetItemMetadata = SendableItemMetadata(value: itemMetadata)
         targetItemMetadata.date = modificationDate

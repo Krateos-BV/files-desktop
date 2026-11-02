@@ -81,4 +81,29 @@ docker run \
     nextcloud
 ```
 
+<<<<<<< HEAD
 This simple test server already suffices in most cases. For more advanced server test deployments upstream also recommends [Nextcloud development environment on Docker Compose](https://juliusknorr.github.io/nextcloud-docker-dev/).
+=======
+This simple test server already suffices in the most cases. For more advanced server test deployments we also recommend [Nextcloud development environment on Docker Compose](https://nextcloud.github.io/nextcloud-docker-dev/).
+
+## Get in touch 💬
+* [📋 Forum](https://help.nextcloud.com)
+* [🐘 Mastodon](https://mastodon.xyz/@nextcloud)
+* [🔗 LinkedIn](https://www.linkedin.com/company/nextcloud-gmbh/)
+* [🦋 Bluesky](https://bsky.app/profile/nextcloud.bsky.social)
+* [👥 Facebook](https://www.facebook.com/nextclouders)
+
+You can also [get professional support for Nextcloud and the desktop client](https://nextcloud.com/support)!
+
+## License 📜
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+    or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
+    for more details.
+>>>>>>> upstream/master

@@ -5,7 +5,6 @@
 @testable import NextcloudFileProviderKit
 import NextcloudFileProviderKitMocks
 import NextcloudKit
-import RealmSwift
 import TestInterface
 import UniformTypeIdentifiers
 import XCTest
@@ -16,10 +15,16 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     )
 
     lazy var rootItem = MockRemoteItem.rootItem(account: Self.account)
-    static let dbManager = FilesDatabaseManager(account: account, databaseDirectory: makeDatabaseDirectory(), fileProviderDomainIdentifier: NSFileProviderDomainIdentifier("test"), log: FileProviderLogMock())
+    static let dbManager = try! FilesDatabaseManager(account: account, databaseDirectory: makeDatabaseDirectory(), fileProviderDomainIdentifier: NSFileProviderDomainIdentifier("test"), log: FileProviderLogMock())
 
+<<<<<<< HEAD
     override var testDatabaseManager: FilesDatabaseManager? {
         Self.dbManager
+=======
+    override func setUp() {
+        super.setUp()
+        try! Self.dbManager.removeAllRowsForTesting()
+>>>>>>> upstream/master
     }
 
     override func tearDown() {

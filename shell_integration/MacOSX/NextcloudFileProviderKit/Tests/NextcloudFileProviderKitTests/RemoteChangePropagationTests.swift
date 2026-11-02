@@ -38,7 +38,6 @@
 @testable import NextcloudFileProviderKit
 import NextcloudFileProviderKitMocks
 import NextcloudKit
-import RealmSwift
 @testable import TestInterface
 import XCTest
 
@@ -66,7 +65,7 @@ final class RemoteChangePropagationTests: NextcloudFileProviderKitTestCase {
         user: "testUser", id: "testUserId", serverUrl: "https://mock.nc.com", password: "abcd"
     )
 
-    static let dbManager = FilesDatabaseManager(
+    static let dbManager = try! FilesDatabaseManager(
         account: account,
         databaseDirectory: makeDatabaseDirectory(),
         fileProviderDomainIdentifier: NSFileProviderDomainIdentifier("test"),
@@ -82,10 +81,7 @@ final class RemoteChangePropagationTests: NextcloudFileProviderKitTestCase {
 
     override func setUp() {
         super.setUp()
-        let database = Self.dbManager.ncDatabase()
-        try! database.write {
-            database.deleteAll()
-        }
+        try! Self.dbManager.removeAllRowsForTesting()
         rootItem = MockRemoteItem.rootItem(account: Self.account)
     }
 
@@ -156,7 +152,7 @@ final class RemoteChangePropagationTests: NextcloudFileProviderKitTestCase {
             log: FileProviderLogMock()
         )
         let observer = MockChangeObserver(enumerator: enumerator)
-        try await observer.enumerateChanges(from: Enumerator.syncAnchor(at: anchorDate))
+        try await observer.enumerateChanges(from: Enumerator.syncAnchor(at: anchorDate, storeIdentity: Self.dbManager.storeIdentity))
         return observer
     }
 
@@ -211,14 +207,13 @@ final class RemoteChangePropagationTests: NextcloudFileProviderKitTestCase {
         // delete reconciliation considers it. This stands in for the first "safe save" write whose
         // ocId the server rotated away.
         let storedLive = try XCTUnwrap(Self.dbManager.itemMetadata(ocId: liveFile.identifier))
-        let realm = Self.dbManager.ncDatabase()
-        let ghost = RealmItemMetadata()
-        ghost.ocId = "staleGhost"
+        var ghost = SendableItemMetadata.rawRow(ocId: "staleGhost")
         ghost.account = Self.account.ncKitAccount
-        ghost.updateLocation(serverUrl: storedLive.serverUrl, fileName: storedLive.fileName)
+        ghost.serverUrl = storedLive.serverUrl
+        ghost.fileName = storedLive.fileName
         ghost.uploaded = true
         ghost.syncTime = oldSyncTime
-        try realm.write { realm.add(ghost) }
+        try Self.dbManager.insertForTesting(ghost)
 
         // The live file also changed on the server (the recreate), so it is a genuine update.
         liveFile.versionIdentifier = "pdf-v2"
@@ -267,7 +262,7 @@ final class RemoteChangePropagationTests: NextcloudFileProviderKitTestCase {
         folder.children = []
 
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
-        let inputAnchor = Enumerator.syncAnchor(at: anchorDate)
+        let inputAnchor = Enumerator.syncAnchor(at: anchorDate, storeIdentity: Self.dbManager.storeIdentity)
         let firstEnumerator = try Enumerator(
             enumeratedItemIdentifier: .workingSet,
             account: Self.account,
@@ -546,8 +541,11 @@ final class RemoteChangePropagationTests: NextcloudFileProviderKitTestCase {
     /// the web never appear" bug). The incomplete scan must also NOT advance the working-set sync point,
     /// so the next signal re-derives and can pick up the folder it could not read this pass.
     func testWorkingSetScanContinuesPastAFailedFolderRead() async throws {
+<<<<<<< HEAD
         expectLoggedErrors()
 
+=======
+>>>>>>> upstream/master
         // "a" sorts before "zzzzzzzzzz" by remote-path length, so the failing folder is scanned first.
         let failingFolder = makeFolder(name: "a", parent: rootItem, etag: "a-v1")
         let healthyFolder = makeFolder(name: "zzzzzzzzzz", parent: rootItem, etag: "z-v1")
@@ -569,7 +567,7 @@ final class RemoteChangePropagationTests: NextcloudFileProviderKitTestCase {
             "/a": NKError(statusCode: 500, fallbackDescription: "Internal Server Error")
         ]
 
-        let inputAnchor = Enumerator.syncAnchor(at: anchorDate)
+        let inputAnchor = Enumerator.syncAnchor(at: anchorDate, storeIdentity: Self.dbManager.storeIdentity)
         let enumerator = try Enumerator(
             enumeratedItemIdentifier: .workingSet,
             account: Self.account,
