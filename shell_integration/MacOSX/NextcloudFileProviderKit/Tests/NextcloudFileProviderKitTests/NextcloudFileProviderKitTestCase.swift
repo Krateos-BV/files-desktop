@@ -11,6 +11,7 @@ import XCTest
 ///
 class NextcloudFileProviderKitTestCase: XCTestCase {
     ///
+<<<<<<< HEAD
     /// Whether this test expects its production code to log `.error` or `.fault` messages.
     ///
     /// Left `false`, ``tearDown()`` fails the test when anything was logged at those levels. Several
@@ -125,6 +126,9 @@ class NextcloudFileProviderKitTestCase: XCTestCase {
 
     ///
     /// Create a unique and temporary directory for Realm database testing purposes.
+=======
+    /// Create a unique and temporary directory for database testing purposes.
+>>>>>>> upstream/master
     ///
     /// - Returns: A URL pointing to a temporary directory which also contains a UUID to distinguish it clearly from any other calls.
     ///

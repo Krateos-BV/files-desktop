@@ -5,7 +5,6 @@
 import Foundation
 @testable import NextcloudFileProviderKit
 import NextcloudFileProviderKitMocks
-import RealmSwift
 @testable import TestInterface
 import XCTest
 
@@ -32,7 +31,7 @@ final class VisitedDirectoryTests: NextcloudFileProviderKitTestCase {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("VisitedDirectoryTests-\(UUID().uuidString)", isDirectory: true)
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        dbManager = FilesDatabaseManager(
+        dbManager = try! FilesDatabaseManager(
             account: Self.account,
             databaseDirectory: directory,
             fileProviderDomainIdentifier: NSFileProviderDomainIdentifier("test"),
