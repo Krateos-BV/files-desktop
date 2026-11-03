@@ -133,6 +133,10 @@ rm -rf ./squashfs-root
 APPIMAGE=$(ls *.AppImage)
 ./"${APPIMAGE}" --appimage-extract
 rm ./"${APPIMAGE}"
+# XEN-305: Qt's QML directories land in the AppDir with mode 0700, and the current
+# appimagetool refuses to package an AppDir that other users cannot read. Make
+# everything world-readable (and directories traversable) before packaging.
+chmod -R a+rX ./squashfs-root
 LD_LIBRARY_PATH="$PWD/appimagetool-squashfs-root/usr/lib":$LD_LIBRARY_PATH PATH="$PWD/appimagetool-squashfs-root/usr/bin":$PATH appimagetool -n ./squashfs-root "${APPIMAGE}"
 
 #move AppImage
