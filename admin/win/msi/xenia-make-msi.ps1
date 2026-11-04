@@ -86,8 +86,15 @@ $env:PATH = "$($uuidgen.DirectoryName);$env:PATH"
 Copy-Item "$archive\msi\*" $work -Recurse
 Push-Location $work
 try {
-    & cmd /c "make-msi.bat `"$stage`""
-    if ($LASTEXITCODE -ne 0) { throw "make-msi.bat exited with $LASTEXITCODE" }
+    # make-msi.bat tests %ERRORLEVEL% inside parenthesised loops, where it is expanded
+    # before the tool runs, so a failing candle/light does not stop it. Fail on any
+    # WiX error line instead (the first CI run produced an MSI despite LGHT0204/ICE03).
+    $log = & cmd /c "make-msi.bat `"$stage`" 2>&1"
+    $code = $LASTEXITCODE
+    $log | ForEach-Object { Write-Host $_ }
+    if ($code -ne 0) { throw "make-msi.bat exited with $code" }
+    $errors = @($log | Where-Object { $_ -match ' : error [A-Z]+[0-9]+' })
+    if ($errors.Count -gt 0) { throw "WiX reported $($errors.Count) error(s); the MSI is not trustworthy." }
 } finally {
     Pop-Location
 }

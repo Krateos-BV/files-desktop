@@ -38,7 +38,7 @@
     <Property Id="MSIRMSHUTDOWN" Value="1" />
     <Property Id="REBOOT" Value="ReallySuppress" />
 
-    <Media Id="1" Cabinet="$(var.AppShortName).cab" EmbedCab="yes" />
+    <Media Id="1" Cabinet="$(var.AppCabinet)" EmbedCab="yes" />
 
     <!-- If already installed: Use previously chosen path (use 32-bit registry like NSIS does) -->
     <Property Id="INSTALLDIR">

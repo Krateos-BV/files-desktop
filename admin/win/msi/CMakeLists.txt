@@ -10,7 +10,7 @@ string(SUBSTRING ${GIT_SHA1} 0 7 GIT_REVISION)
 
 set(VERSION "${MIRALL_VERSION_MAJOR}.${MIRALL_VERSION_MINOR}.${MIRALL_VERSION_PATCH}.${MIRALL_VERSION_BUILD}")
 
-if (NOT DEFINED MIRALL_VERSION_SUFFIX OR MIRALL_VERSION_SUFFIX MATCHES "git")
+if (NOT MIRALL_VERSION_SUFFIX OR MIRALL_VERSION_SUFFIX MATCHES "git")
     set(VERSION_SUFFIX "")
 else()
     set(VERSION_SUFFIX "-${MIRALL_VERSION_SUFFIX}")
@@ -18,16 +18,18 @@ endif()
 
 set(MSI_INSTALLER_FILENAME "${APPLICATION_SHORTNAME}-${VERSION}${VERSION_SUFFIX}-${MSI_BUILD_ARCH}.msi")
 
-# The app icon is both a file in the harvested install dir and a WiX Icon Id, and a
-# WiX Id may only hold letters, digits, '_' and '.'. A branded APPLICATION_ICON_NAME
-# such as "Xenia Files" has a space, so use a sanitised name for both.
-string(REGEX REPLACE "[^A-Za-z0-9_.]" "" MSI_APP_ICON_NAME "${APPLICATION_ICON_NAME}")
+# WiX identifiers may only hold letters, digits, '_' and '.', and a branded name
+# such as "Xenia Files" (or the executable name "xenia-files") does not qualify.
+# Two values in the MSI are such identifiers: the app icon's Id, and the embedded
+# cabinet's stream name (light.exe fails ICE03 on "xenia-files.cab"). Both use
+# this sanitised name.
+string(REGEX REPLACE "[^A-Za-z0-9_.]" "" MSI_ID_NAME "${APPLICATION_SHORTNAME}")
 
 # The client build generates the .ico (src/gui, ecm_add_app_icon) but never installs
 # it, and Nextcloud.wxs expects it next to the executable in the harvested dir.
 install(FILES "${CMAKE_BINARY_DIR}/src/gui/${APPLICATION_ICON_NAME}.ico"
     DESTINATION bin
-    RENAME "${MSI_APP_ICON_NAME}.ico")
+    RENAME "${MSI_ID_NAME}.ico")
 
 configure_file(RegistryCleanup.vbs.in ${CMAKE_CURRENT_BINARY_DIR}/RegistryCleanup.vbs)
 configure_file(OEM.wxi.in ${CMAKE_CURRENT_BINARY_DIR}/OEM.wxi)

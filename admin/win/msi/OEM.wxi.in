@@ -12,7 +12,8 @@
     <?define AppName = "@APPLICATION_NAME@" ?>
     <?define AppShortName = "@APPLICATION_EXECUTABLE@" ?>
 
-    <?define AppIcon = "@MSI_APP_ICON_NAME@.ico" ?>
+    <?define AppIcon = "@MSI_ID_NAME@.ico" ?>
+    <?define AppCabinet = "@MSI_ID_NAME@.cab" ?>
     <?define AppExe = "@APPLICATION_EXECUTABLE@.exe" ?>
 
     <?define AppHelpLink = "https://@APPLICATION_DOMAIN@/" ?>
