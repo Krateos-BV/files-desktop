@@ -90,6 +90,11 @@ public extension Item {
                             handlingNoSuchItemErrorUsingItemIdentifier: itemIdentifier
                         ) ?? NSFileProviderError(.cannotSynchronize)
                     }
+
+                    // The system confirms this download only later, so hold the row against
+                    // reconciliation, recording first so no pass sees `downloaded = true` without
+                    // the entry.
+                    dbManager.pendingMaterializations.recordDownloaded(identifier)
                 }
 
                 metadata.status = Status.normal.rawValue
@@ -215,15 +220,13 @@ public extension Item {
 
         logger.debug("Acquired contents of item.", [.item: ocId, .name: updatedMetadata.fileName])
 
-        if !isDirectory, updatedMetadata.contentType != UTType.aliasFile.identifier {
-            if let fileHandle = try? FileHandle(forReadingFrom: localPath) {
-                let magic = fileHandle.readData(ofLength: 4)
-                try? fileHandle.close()
-                // Apple Bookmark/Alias format magic bytes: "book" (0x62 0x6F 0x6F 0x6B)
-                if magic == Data([0x62, 0x6F, 0x6F, 0x6B]) {
-                    logger.debug("Detected macOS alias file by magic number.", [.name: updatedMetadata.fileName])
-                    updatedMetadata.contentType = UTType.aliasFile.identifier
-                }
+        if !isDirectory, updatedMetadata.contentType != UTType.aliasFile.identifier, let fileHandle = try? FileHandle(forReadingFrom: localPath) {
+            let magic = fileHandle.readData(ofLength: 4)
+            try? fileHandle.close()
+            // Apple Bookmark/Alias format magic bytes: "book" (0x62 0x6F 0x6F 0x6B)
+            if magic == Data([0x62, 0x6F, 0x6F, 0x6B]) {
+                logger.debug("Detected macOS alias file by magic number.", [.name: updatedMetadata.fileName])
+                updatedMetadata.contentType = UTType.aliasFile.identifier
             }
         }
 
@@ -234,6 +237,10 @@ public extension Item {
         // having downloaded incorrectly enumerated files
         updatedMetadata.uploaded = true
         updatedMetadata.sessionError = ""
+
+        // The system confirms this download only later, so hold the row against reconciliation,
+        // recording first so no pass sees `downloaded = true` without the entry.
+        dbManager.pendingMaterializations.recordDownloaded(itemIdentifier)
 
         dbManager.addItemMetadata(updatedMetadata)
 

@@ -5,7 +5,6 @@
 import Foundation
 @testable import NextcloudFileProviderKit
 import NextcloudFileProviderKitMocks
-import RealmSwift
 @testable import TestInterface
 import XCTest
 
@@ -20,19 +19,12 @@ final class VisitedDirectoryTests: NextcloudFileProviderKitTestCase {
 
     private var dbManager: FilesDatabaseManager!
 
-    // This class builds its `FilesDatabaseManager` after `setUp` runs — inside a test, or from a
-    // per-test directory — and `FilesDatabaseManager.init` assigns
-    // `Realm.Configuration.defaultConfiguration` wholesale with a file-based configuration. These
-    // tests therefore run against `test.realm` on disk, not an in-memory store, and leaving
-    // `testDatabaseManager` at `nil` says so deliberately: setting the in-memory identifier here
-    // would be overwritten by that initialiser and achieve nothing.
-
     override func setUp() {
         super.setUp()
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("VisitedDirectoryTests-\(UUID().uuidString)", isDirectory: true)
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        dbManager = FilesDatabaseManager(
+        dbManager = try! FilesDatabaseManager(
             account: Self.account,
             databaseDirectory: directory,
             fileProviderDomainIdentifier: NSFileProviderDomainIdentifier("test"),

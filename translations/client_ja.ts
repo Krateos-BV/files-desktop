@@ -62,17 +62,17 @@
         <translation>詳細設定</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/qml/AccountWizardWindow.qml" line="283"/>
+        <location filename="../src/gui/wizard/qml/AccountWizardWindow.qml" line="285"/>
         <source>Sign up</source>
         <translation>登録する</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/qml/AccountWizardWindow.qml" line="293"/>
+        <location filename="../src/gui/wizard/qml/AccountWizardWindow.qml" line="297"/>
         <source>Self-host</source>
         <translation>セルフホスティング</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/qml/AccountWizardWindow.qml" line="308"/>
+        <location filename="../src/gui/wizard/qml/AccountWizardWindow.qml" line="312"/>
         <source>Proxy settings</source>
         <translation>プロキシ設定</translation>
     </message>
@@ -87,17 +87,17 @@
         <translation>開く</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/qml/AccountWizardWindow.qml" line="359"/>
+        <location filename="../src/gui/wizard/qml/AccountWizardWindow.qml" line="363"/>
         <source>Connect</source>
         <translation>接続する</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/qml/AccountWizardWindow.qml" line="361"/>
+        <location filename="../src/gui/wizard/qml/AccountWizardWindow.qml" line="365"/>
         <source>Done</source>
         <translation>完了</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/qml/AccountWizardWindow.qml" line="363"/>
+        <location filename="../src/gui/wizard/qml/AccountWizardWindow.qml" line="367"/>
         <source>Log in</source>
         <translation>ログイン</translation>
     </message>
@@ -573,13 +573,13 @@
 <context>
     <name>ConfigFile</name>
     <message>
-        <location filename="../src/libsync/configfile.cpp" line="742"/>
+        <location filename="../src/libsync/configfile.cpp" line="750"/>
         <source>Managed by your organization</source>
         <comment>User label when setting is enforced and cannot be changed.</comment>
         <translation>貴組織によって管理されています</translation>
     </message>
     <message>
-        <location filename="../src/libsync/configfile.cpp" line="744"/>
+        <location filename="../src/libsync/configfile.cpp" line="752"/>
         <source>Managed by your system administrator</source>
         <comment>User label when setting is enforced and cannot be changed.</comment>
         <translation>システム管理者によって管理されています</translation>
@@ -735,7 +735,7 @@
 <context>
     <name>FileSystem</name>
     <message>
-        <location filename="../src/libsync/filesystem.cpp" line="537"/>
+        <location filename="../src/libsync/filesystem.cpp" line="519"/>
         <source>Error removing &quot;%1&quot;: %2</source>
         <translation>削除中のエラー &quot;%1&quot;: %2</translation>
     </message>
@@ -845,7 +845,7 @@
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="798"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="799"/>
         <source>Assistant</source>
         <translation>アシスタント</translation>
     </message>
@@ -1337,7 +1337,7 @@ This action will abort any currently running synchronization.</source>
     </message>
     <message>
         <location filename="../src/gui/accountsettings.cpp" line="1578"/>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="748"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="749"/>
         <source>Log in</source>
         <translation>ログイン</translation>
     </message>
@@ -1584,199 +1584,199 @@ This action will abort any currently running synchronization.</source>
 <context>
     <name>OCC::AccountWizardController</name>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="315"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="326"/>
         <source>Will require local storage</source>
         <translation>ローカルストレージが必要になります</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="725"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="736"/>
         <source>Proxy settings are incomplete.</source>
         <translation>プロキシ設定が不完全です。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="732"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="743"/>
         <source>Server address does not seem to be valid</source>
         <translation>サーバーのアドレスが有効ではないようです</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="753"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="764"/>
         <source>Username must not be empty.</source>
         <translation>ユーザー名は空欄にしないでください。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="759"/>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1081"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="770"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1092"/>
         <source>Checking account access</source>
         <translation>アカウントアクセスの確認</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="837"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="848"/>
         <source>Checking server address</source>
         <translation>サーバーアドレスの確認</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="906"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="917"/>
         <source>Preparing browser login</source>
         <translation>ブラウザーでのログインの準備</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="927"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="938"/>
         <source>Invalid URL</source>
         <translation>無効なURL</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="929"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="940"/>
         <source>Failed to connect to %1 at %2:
 %3</source>
         <translation>%2で%1への接続に失敗しました:
 %3</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="945"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="956"/>
         <source>Timeout while trying to connect to %1 at %2.</source>
         <translation>%2の%1への接続中にタイムアウトが発生しました。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1032"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1043"/>
         <source>Unable to open the Browser, please copy the link to your Browser.</source>
         <translation>ブラウザーが開けません。リンクをコピーしてブラウザーに貼り付けてください。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1057"/>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1062"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1068"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1073"/>
         <source>Waiting for authorization</source>
         <translation>承認を待機中</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1067"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1078"/>
         <source>Starting authorization</source>
         <translation>承認を開始</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1072"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1083"/>
         <source>Link copied to clipboard.</source>
         <translation>リンクをクリップボードにコピーしました。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1127"/>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1157"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1138"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1168"/>
         <source>There was an invalid response to an authenticated WebDAV request</source>
         <translation>認証済みの WebDAV 要求に対する無効な応答がありました</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1144"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1155"/>
         <source>The authenticated request to the server was redirected to &quot;%1&quot;. The URL is bad, the server is misconfigured.</source>
         <translation>サーバーへの認証リクエストは &quot;%1&quot; へリダイレクトされました。URLが正しくありません。サーバーが間違って設定されています。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1152"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1163"/>
         <source>Access forbidden by server. To verify that you have proper access, open the service in your browser.</source>
         <translation>サーバーによりアクセスが拒否されました。アクセス権限を確認するには、ブラウザーでこのサービスを開いてください。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1170"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1181"/>
         <source>Account connected.</source>
         <translation>アカウントに接続しました。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1278"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1290"/>
         <source>Will require %1 of storage</source>
         <translation>ストレージの%1が必要になります </translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1454"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1470"/>
         <source>%1 free space</source>
         <comment>%1 gets replaced with the size and a matching unit. Example: 3 MB or 5 GB</comment>
         <translation>空き容量 %1</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1464"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1480"/>
         <source>There isn&apos;t enough free space in the local folder!</source>
         <translation>ローカルフォルダーに十分な空き容量がありません。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1481"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1497"/>
         <source>Please choose a local sync folder.</source>
         <translation>ローカルの同期フォルダーを選択してください。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1486"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1502"/>
         <source>Please choose an empty local sync folder.</source>
         <translation>空のローカル同期フォルダーを選択してください。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1551"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1567"/>
         <source>Could not create local folder %1</source>
         <translation>ローカルフォルダー %1 を作成できませんでした</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1565"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1581"/>
         <source>Checking remote folder</source>
         <translation>リモートフォルダーの確認</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1611"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1627"/>
         <source>No remote folder specified!</source>
         <translation>リモートフォルダーが指定されていません！</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1620"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1636"/>
         <source>Error: %1</source>
         <translation>エラー: %1</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1625"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1641"/>
         <source>Creating remote folder</source>
         <translation>リモートフォルダーの作成</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1644"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1660"/>
         <source>The folder creation resulted in HTTP error code %1</source>
         <translation>フォルダーの作成中にHTTPエラーコード%1が発生しました</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1646"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1662"/>
         <source>The remote folder creation failed because the provided credentials are wrong. Please go back and check your credentials.</source>
         <translation>指定された認証情報が正しくないため、リモートフォルダーの作成に失敗しました。戻って認証情報を確認してください。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1648"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1664"/>
         <source>Remote folder %1 creation failed with error &lt;tt&gt;%2&lt;/tt&gt;.</source>
         <translation>リモートフォルダー %1 の作成がエラーで失敗しました。&lt;tt&gt;%2&lt;/tt&gt;.</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1695"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1711"/>
         <source>Account setup failed while creating the sync folder.</source>
         <translation>同期フォルダーの作成中にアカウントの設定に失敗しました。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1707"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1723"/>
         <source>Could not create the sync folder.</source>
         <translation>同期フォルダーを作成できませんでした。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1813"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1829"/>
         <source>Local Sync Folder</source>
         <translation>ローカル同期フォルダー</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="2088"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="2104"/>
         <source>Select a certificate</source>
         <translation>証明書を選択</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="2090"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="2106"/>
         <source>Certificate files (*.p12 *.pfx)</source>
         <translation>証明書ファイル (*.p12 *.pfx)</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="2098"/>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="2118"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="2114"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="2134"/>
         <source>Could not access the selected certificate file.</source>
         <translation>選択した証明書ファイルにアクセスできませんでした。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="2134"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="2150"/>
         <source>Could not load certificate. Maybe wrong password?</source>
         <translation>証明書を読み込めませんでした。 パスワードが間違っていますか？</translation>
     </message>
@@ -1794,7 +1794,7 @@ This action will abort any currently running synchronization.</source>
         <translation>アクティビティを取得中...</translation>
     </message>
     <message>
-        <location filename="../src/gui/activity/activitylistmodel.cpp" line="773"/>
+        <location filename="../src/gui/activity/activitylistmodel.cpp" line="783"/>
         <source>Network error occurred: client will retry syncing.</source>
         <translation>ネットワークエラーが発生しました：クライアントは同期を再試行します。</translation>
     </message>
@@ -1895,72 +1895,72 @@ This action will abort any currently running synchronization.</source>
 <context>
     <name>OCC::Application</name>
     <message>
-        <location filename="../src/gui/application.cpp" line="184"/>
+        <location filename="../src/gui/application.cpp" line="185"/>
         <source>Some settings were configured in %1 versions of this client and use features that are not available in this version.&lt;br&gt;&lt;br&gt;Continuing will mean &lt;b&gt;%2 these settings&lt;/b&gt;.&lt;br&gt;&lt;br&gt;The current configuration file was already backed up to &lt;i&gt;%3&lt;/i&gt;.</source>
         <extracomment>%1 is either &quot;newer&quot; or &quot;older&quot;. %2 is either &quot;ignoring&quot; or &quot;deleting&quot;. %3 is a list of configuration backup file paths.</extracomment>
         <translation>一部の設定は、このクライアントの %1 バージョンで構成されており、このバージョンでは使用できない機能を使用しています。&lt;br&gt;&lt;br&gt;続行すると、&lt;b&gt;これらの設定は %2 になります &lt;/b&gt;。&lt;br&gt;&lt;br&gt;現在の設定ファイルは既に&lt;i&gt;%3&lt;/i&gt;にバックアップされています。</translation>
     </message>
     <message>
-        <location filename="../src/gui/application.cpp" line="190"/>
+        <location filename="../src/gui/application.cpp" line="191"/>
         <source>newer</source>
         <comment>newer software version</comment>
         <translation>新しい</translation>
     </message>
     <message>
-        <location filename="../src/gui/application.cpp" line="190"/>
+        <location filename="../src/gui/application.cpp" line="191"/>
         <source>older</source>
         <comment>older software version</comment>
         <translation>古い</translation>
     </message>
     <message>
-        <location filename="../src/gui/application.cpp" line="191"/>
+        <location filename="../src/gui/application.cpp" line="192"/>
         <source>ignoring</source>
         <translation>無視する</translation>
     </message>
     <message>
-        <location filename="../src/gui/application.cpp" line="191"/>
+        <location filename="../src/gui/application.cpp" line="192"/>
         <source>deleting</source>
         <translation>削除しています</translation>
     </message>
     <message>
-        <location filename="../src/gui/application.cpp" line="193"/>
+        <location filename="../src/gui/application.cpp" line="194"/>
         <source>Quit</source>
         <translation>終了</translation>
     </message>
     <message>
-        <location filename="../src/gui/application.cpp" line="194"/>
+        <location filename="../src/gui/application.cpp" line="195"/>
         <source>Continue</source>
         <translation>続ける</translation>
     </message>
     <message>
-        <location filename="../src/gui/application.cpp" line="698"/>
+        <location filename="../src/gui/application.cpp" line="705"/>
         <source>%1 accounts</source>
         <comment>number of accounts imported</comment>
         <translation>%1 アカウント</translation>
     </message>
     <message>
-        <location filename="../src/gui/application.cpp" line="699"/>
+        <location filename="../src/gui/application.cpp" line="706"/>
         <source>1 account</source>
         <translation>1 アカウント</translation>
     </message>
     <message>
-        <location filename="../src/gui/application.cpp" line="701"/>
+        <location filename="../src/gui/application.cpp" line="708"/>
         <source>%1 folders</source>
         <comment>number of folders imported</comment>
         <translation>%1 フォルダ</translation>
     </message>
     <message>
-        <location filename="../src/gui/application.cpp" line="702"/>
+        <location filename="../src/gui/application.cpp" line="709"/>
         <source>1 folder</source>
         <translation>1 フォルダ</translation>
     </message>
     <message>
-        <location filename="../src/gui/application.cpp" line="704"/>
+        <location filename="../src/gui/application.cpp" line="711"/>
         <source>Legacy import</source>
         <translation>レガシーインポート(過去設定の取り込み)</translation>
     </message>
     <message>
-        <location filename="../src/gui/application.cpp" line="705"/>
+        <location filename="../src/gui/application.cpp" line="712"/>
         <source>Imported %1 and %2 from a legacy desktop client.
 %3</source>
         <comment>number of accounts and folders imported. list of users.</comment>
@@ -1968,12 +1968,12 @@ This action will abort any currently running synchronization.</source>
 %3</translation>
     </message>
     <message>
-        <location filename="../src/gui/application.cpp" line="827"/>
+        <location filename="../src/gui/application.cpp" line="834"/>
         <source>Error accessing the configuration file</source>
         <translation>設定ファイルのアクセスでエラーが発生しました</translation>
     </message>
     <message>
-        <location filename="../src/gui/application.cpp" line="828"/>
+        <location filename="../src/gui/application.cpp" line="835"/>
         <source>There was an error while accessing the configuration file at %1. Please make sure the file can be accessed by your system account.</source>
         <translation>%1 の設定ファイルへのアクセス中にエラーが発生しました。 システム・アカウントでファイルにアクセスできることを確認してください。</translation>
     </message>
@@ -2096,23 +2096,23 @@ This action will abort any currently running synchronization.</source>
 <context>
     <name>OCC::BulkPropagatorDownloadJob</name>
     <message>
-        <location filename="../src/libsync/bulkpropagatordownloadjob.cpp" line="79"/>
+        <location filename="../src/libsync/bulkpropagatordownloadjob.cpp" line="94"/>
         <source>File %1 can not be downloaded because of a local file name clash!</source>
         <translation>ファイル %1 は、ローカルファイル名の競合のためダウンロードできません！</translation>
     </message>
     <message>
-        <location filename="../src/libsync/bulkpropagatordownloadjob.cpp" line="101"/>
+        <location filename="../src/libsync/bulkpropagatordownloadjob.cpp" line="116"/>
         <source>Unable to update metadata of new file %1.</source>
         <comment>error with update metadata of new Win VFS file</comment>
         <translation>新しいファイル %1 のメタデータを更新できません。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/bulkpropagatordownloadjob.cpp" line="124"/>
+        <location filename="../src/libsync/bulkpropagatordownloadjob.cpp" line="139"/>
         <source>Error updating metadata: %1</source>
         <translation>メタデータの更新中にエラーが発生しました: %1</translation>
     </message>
     <message>
-        <location filename="../src/libsync/bulkpropagatordownloadjob.cpp" line="127"/>
+        <location filename="../src/libsync/bulkpropagatordownloadjob.cpp" line="142"/>
         <source>The file %1 is currently in use</source>
         <translation>ファイル %1 は現在使用中です</translation>
     </message>
@@ -2334,7 +2334,7 @@ This action will abort any currently running synchronization.</source>
 <context>
     <name>OCC::CleanupPollsJob</name>
     <message>
-        <location filename="../src/libsync/owncloudpropagator.cpp" line="1794"/>
+        <location filename="../src/libsync/owncloudpropagator.cpp" line="1810"/>
         <source>Error writing metadata to the database</source>
         <translation>メタデータのデータベースへの書き込みに失敗</translation>
     </message>
@@ -3481,7 +3481,7 @@ For advanced users: this issue might be related to multiple sync database files 
 <context>
     <name>OCC::FolderWatcher</name>
     <message>
-        <location filename="../src/gui/folderwatcher.cpp" line="171"/>
+        <location filename="../src/gui/folderwatcher.cpp" line="176"/>
         <source>The watcher did not receive a test notification.</source>
         <translation>フォルダーチェックでテストの通知が受け取れませんでした。</translation>
     </message>
@@ -4681,8 +4681,8 @@ Note that using any logging command line options will override this setting.</so
 <context>
     <name>OCC::OwncloudPropagator</name>
     <message>
-        <location filename="../src/libsync/owncloudpropagator.cpp" line="978"/>
-        <location filename="../src/libsync/owncloudpropagator.cpp" line="1057"/>
+        <location filename="../src/libsync/owncloudpropagator.cpp" line="989"/>
+        <location filename="../src/libsync/owncloudpropagator.cpp" line="1068"/>
         <source>Impossible to get modification time for file in conflict %1</source>
         <translation>競合しているファイル %1 の修正日時を取得できません</translation>
     </message>
@@ -4711,215 +4711,215 @@ Note that using any logging command line options will override this setting.</so
 <context>
     <name>OCC::ProcessDirectoryJob</name>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="390"/>
+        <location filename="../src/libsync/owncloudpropagator.cpp" line="898"/>
         <source>Symbolic links are not supported in syncing.</source>
         <translation>シンボリックリンクは同期ではサポートされていません。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="399"/>
+        <location filename="../src/libsync/discovery.cpp" line="412"/>
         <source>File is locked by another application.</source>
         <translation>ファイルは別のアプリケーションによってロックされています。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="402"/>
+        <location filename="../src/libsync/discovery.cpp" line="415"/>
         <source>File is listed on the ignore list.</source>
         <translation>ファイルは除外リストに登録されています。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="406"/>
+        <location filename="../src/libsync/discovery.cpp" line="419"/>
         <source>File names ending with a period are not supported on this file system.</source>
         <translation>ピリオドで終わるファイル名はこのファイルシステムでサポートされていません。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="418"/>
+        <location filename="../src/libsync/discovery.cpp" line="431"/>
         <source>Folder names containing the character &quot;%1&quot; are not supported on this file system.</source>
         <comment>%1: the invalid character</comment>
         <translation>フォルダー名に含まれる文字 &quot;%1&quot; はこのファイルシステムでサポートされていません。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="419"/>
+        <location filename="../src/libsync/discovery.cpp" line="432"/>
         <source>File names containing the character &quot;%1&quot; are not supported on this file system.</source>
         <comment>%1: the invalid character</comment>
         <translation>ファイル名に含まれる文字 &quot;%1&quot; はこのファイルシステムでサポートされていません。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="422"/>
+        <location filename="../src/libsync/discovery.cpp" line="435"/>
         <source>Folder name contains at least one invalid character</source>
         <translation>フォルダー名は少なくとも１つ以上の無効な文字を含んでいます</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="423"/>
+        <location filename="../src/libsync/discovery.cpp" line="436"/>
         <source>File name contains at least one invalid character</source>
         <translation>ファイル名は少なくとも１つ以上の無効な文字を含んでいます</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="426"/>
+        <location filename="../src/libsync/discovery.cpp" line="439"/>
         <source>Folder name is a reserved name on this file system.</source>
         <translation>フォルダー名はこのファイルシステム上で予約された名前です。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="427"/>
+        <location filename="../src/libsync/discovery.cpp" line="440"/>
         <source>File name is a reserved name on this file system.</source>
         <translation>ファイル名はこのファイルシステム上で予約された名前です。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="433"/>
+        <location filename="../src/libsync/discovery.cpp" line="446"/>
         <source>Filename contains trailing spaces.</source>
         <translation>ファイル名末尾にスペースが含まれます。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="436"/>
-        <location filename="../src/libsync/discovery.cpp" line="443"/>
-        <location filename="../src/libsync/discovery.cpp" line="450"/>
-        <location filename="../src/libsync/discovery.cpp" line="492"/>
+        <location filename="../src/libsync/discovery.cpp" line="449"/>
+        <location filename="../src/libsync/discovery.cpp" line="456"/>
+        <location filename="../src/libsync/discovery.cpp" line="463"/>
+        <location filename="../src/libsync/discovery.cpp" line="505"/>
         <source>Cannot be renamed or uploaded.</source>
         <translation>名前の変更やアップロードはできません。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="440"/>
+        <location filename="../src/libsync/discovery.cpp" line="453"/>
         <source>Filename contains leading spaces.</source>
         <translation>ファイル名先頭にスペースが含まれています。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="447"/>
+        <location filename="../src/libsync/discovery.cpp" line="460"/>
         <source>Filename contains leading and trailing spaces.</source>
         <translation>ファイル名の先頭と末尾にスペースが含まれています。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="454"/>
+        <location filename="../src/libsync/discovery.cpp" line="467"/>
         <source>Filename is too long.</source>
         <translation>ファイル名は長すぎます。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="458"/>
+        <location filename="../src/libsync/discovery.cpp" line="471"/>
         <source>File/Folder is ignored because it&apos;s hidden.</source>
         <translation>隠しファイル/フォルダーのため無視されました</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="461"/>
+        <location filename="../src/libsync/discovery.cpp" line="474"/>
         <source>Stat failed.</source>
         <translation>情報取得エラー</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="464"/>
+        <location filename="../src/libsync/discovery.cpp" line="477"/>
         <source>Conflict: Server version downloaded, local copy renamed and not uploaded.</source>
         <translation>コンフリクト: サーバーのバージョンがダウンロードされて、ローカルのコピーはファイル名を変更しアップロードしません。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="468"/>
+        <location filename="../src/libsync/discovery.cpp" line="481"/>
         <source>Case Clash Conflict: Server file downloaded and renamed to avoid clash.</source>
         <translation>大文字小文字の競合： 衝突を避けるためにサーバファイルをダウンロードし、名前を変更しました。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="472"/>
+        <location filename="../src/libsync/discovery.cpp" line="485"/>
         <source>The filename cannot be encoded on your file system.</source>
         <translation>あなたのファイルシステムでファイル名をエンコードできません。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="475"/>
+        <location filename="../src/libsync/discovery.cpp" line="488"/>
         <source>The filename is blacklisted on the server.</source>
         <translation>このファイル名はサーバーにブロックされました。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="478"/>
+        <location filename="../src/libsync/discovery.cpp" line="491"/>
         <source>Reason: the entire filename is forbidden.</source>
         <translation>理由：ファイル名全体が禁止されています。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="481"/>
+        <location filename="../src/libsync/discovery.cpp" line="494"/>
         <source>Reason: the filename has a forbidden base name (filename start).</source>
         <translation> 理由：ファイル名に禁止されているベース名（ファイル名の先頭）があります。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="484"/>
+        <location filename="../src/libsync/discovery.cpp" line="497"/>
         <source>Reason: the file has a forbidden extension (.%1).</source>
         <translation> 理由: ファイルには禁止されている拡張子 (.%1) があります。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="487"/>
+        <location filename="../src/libsync/discovery.cpp" line="500"/>
         <source>Reason: the filename contains a forbidden character (%1).</source>
         <translation> 理由: ファイル名に禁止文字 (%1) が含まれています。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="634"/>
+        <location filename="../src/libsync/discovery.cpp" line="656"/>
         <source>File has extension reserved for virtual files.</source>
         <translation>ファイルの拡張子は仮想ファイル用に予約されています。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="806"/>
+        <location filename="../src/libsync/discovery.cpp" line="859"/>
         <source>Folder is not accessible on the server.</source>
         <comment>server error</comment>
         <translation>サーバー上でフォルダーにアクセスできません。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="807"/>
+        <location filename="../src/libsync/discovery.cpp" line="860"/>
         <source>File is not accessible on the server.</source>
         <comment>server error</comment>
         <translation>サーバー上でファイルにアクセスできません。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="1248"/>
+        <location filename="../src/libsync/discovery.cpp" line="1321"/>
         <source>Cannot sync due to invalid modification time</source>
         <translation>修正日時が無効なため同期できません</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="1264"/>
+        <location filename="../src/libsync/discovery.cpp" line="1337"/>
         <source>Upload of %1 exceeds %2 of space left in personal files.</source>
         <translation>%1のアップロードが個人ファイルに残されたスペースの%2を超えています。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="1267"/>
+        <location filename="../src/libsync/discovery.cpp" line="1340"/>
         <source>Upload of %1 exceeds %2 of space left in folder %3.</source>
         <translation>%1のアップロードがフォルダー%3の空き容量の%2を超えました。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="1283"/>
+        <location filename="../src/libsync/discovery.cpp" line="1356"/>
         <source>Could not upload file, because it is open in &quot;%1&quot;.</source>
         <translation>&quot;%1&quot; で開いているので、ファイルをアップロードできませんでした。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="1336"/>
+        <location filename="../src/libsync/discovery.cpp" line="1412"/>
         <source>Error while deleting file record %1 from the database</source>
         <translation>ファイルレコード %1 をデータベースから削除する際にエラーが発生しました。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="1624"/>
-        <location filename="../src/libsync/discovery.cpp" line="2122"/>
+        <location filename="../src/libsync/discovery.cpp" line="1721"/>
+        <location filename="../src/libsync/discovery.cpp" line="2240"/>
         <source>Moved to invalid target, restoring</source>
         <translation>無効なターゲットに移動し、復元しました</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="1973"/>
+        <location filename="../src/libsync/discovery.cpp" line="2091"/>
         <source>Cannot modify encrypted item because the selected certificate is not valid.</source>
         <translation>選択した証明書が有効でないため、暗号化されたアイテムを変更できません。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="2043"/>
+        <location filename="../src/libsync/discovery.cpp" line="2161"/>
         <source>Ignored because of the &quot;choose what to sync&quot; blacklist</source>
         <translation>&quot;選択されたものを同期する&quot; のブラックリストにあるために無視されました</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="2077"/>
+        <location filename="../src/libsync/discovery.cpp" line="2195"/>
         <source>Not allowed because you don&apos;t have permission to add subfolders to that folder</source>
         <translation>そのフォルダーにサブフォルダーを追加する権限がありません</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="2084"/>
+        <location filename="../src/libsync/discovery.cpp" line="2202"/>
         <source>Not allowed because you don&apos;t have permission to add files in that folder</source>
         <translation>そのフォルダーにファイルを追加する権限がありません</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="2099"/>
+        <location filename="../src/libsync/discovery.cpp" line="2217"/>
         <source>Not allowed to upload this file because it is read-only on the server, restoring</source>
         <translation>サーバー上で読み取り専用のため、ファイルをアップロードできません。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="2136"/>
+        <location filename="../src/libsync/discovery.cpp" line="2254"/>
         <source>Not allowed to remove, restoring</source>
         <translation>削除、復元は許可されていません</translation>
     </message>
     <message>
-        <location filename="../src/libsync/discovery.cpp" line="2309"/>
+        <location filename="../src/libsync/discovery.cpp" line="2427"/>
         <source>Error while reading the database</source>
         <translation>データベースを読み込み中にエラーが発生しました</translation>
     </message>
@@ -4927,38 +4927,38 @@ Note that using any logging command line options will override this setting.</so
 <context>
     <name>OCC::PropagateDirectory</name>
     <message>
-        <location filename="../src/libsync/owncloudpropagator.cpp" line="1493"/>
+        <location filename="../src/libsync/owncloudpropagator.cpp" line="1504"/>
         <source>Could not delete file %1 from local DB</source>
         <translation>ローカルDBからファイル %1 を削除できませんでした</translation>
     </message>
     <message>
-        <location filename="../src/libsync/owncloudpropagator.cpp" line="1507"/>
+        <location filename="../src/libsync/owncloudpropagator.cpp" line="1524"/>
         <source>Error updating metadata due to invalid modification time</source>
         <translation>修正日時が無効なためメタデータの更新時にエラーが発生</translation>
     </message>
     <message>
-        <location filename="../src/libsync/owncloudpropagator.cpp" line="1539"/>
-        <location filename="../src/libsync/owncloudpropagator.cpp" line="1545"/>
-        <location filename="../src/libsync/owncloudpropagator.cpp" line="1551"/>
-        <location filename="../src/libsync/owncloudpropagator.cpp" line="1576"/>
-        <location filename="../src/libsync/owncloudpropagator.cpp" line="1582"/>
-        <location filename="../src/libsync/owncloudpropagator.cpp" line="1588"/>
+        <location filename="../src/libsync/owncloudpropagator.cpp" line="1555"/>
+        <location filename="../src/libsync/owncloudpropagator.cpp" line="1561"/>
+        <location filename="../src/libsync/owncloudpropagator.cpp" line="1567"/>
+        <location filename="../src/libsync/owncloudpropagator.cpp" line="1592"/>
+        <location filename="../src/libsync/owncloudpropagator.cpp" line="1598"/>
+        <location filename="../src/libsync/owncloudpropagator.cpp" line="1604"/>
         <source>The folder %1 cannot be made read-only: %2</source>
         <translation>フォルダ %1 を読み取り専用にできません: %2</translation>
     </message>
     <message>
-        <location filename="../src/libsync/owncloudpropagator.cpp" line="1551"/>
-        <location filename="../src/libsync/owncloudpropagator.cpp" line="1588"/>
+        <location filename="../src/libsync/owncloudpropagator.cpp" line="1567"/>
+        <location filename="../src/libsync/owncloudpropagator.cpp" line="1604"/>
         <source>unknown exception</source>
         <translation>不明な例外</translation>
     </message>
     <message>
-        <location filename="../src/libsync/owncloudpropagator.cpp" line="1595"/>
+        <location filename="../src/libsync/owncloudpropagator.cpp" line="1611"/>
         <source>Error updating metadata: %1</source>
         <translation>メタデータの更新中にエラーが発生しました：%1</translation>
     </message>
     <message>
-        <location filename="../src/libsync/owncloudpropagator.cpp" line="1599"/>
+        <location filename="../src/libsync/owncloudpropagator.cpp" line="1615"/>
         <source>File is currently in use</source>
         <translation>ファイルは現在使用中です</translation>
     </message>
@@ -4966,70 +4966,70 @@ Note that using any logging command line options will override this setting.</so
 <context>
     <name>OCC::PropagateDownloadFile</name>
     <message>
-        <location filename="../src/libsync/propagatedownload.cpp" line="461"/>
+        <location filename="../src/libsync/propagatedownload.cpp" line="468"/>
         <source>Could not get file %1 from local DB</source>
         <translation>ローカルDBからファイル %1 を取得できませんでした</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatedownload.cpp" line="478"/>
+        <location filename="../src/libsync/propagatedownload.cpp" line="485"/>
         <source>File %1 cannot be downloaded because encryption information is missing.</source>
         <translation>暗号化情報がないため、ファイル%1をダウンロードできません。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatedownload.cpp" line="518"/>
-        <location filename="../src/libsync/propagatedownload.cpp" line="1322"/>
+        <location filename="../src/libsync/propagatedownload.cpp" line="525"/>
+        <location filename="../src/libsync/propagatedownload.cpp" line="1345"/>
         <source>Could not delete file record %1 from local DB</source>
         <translation>ローカルDBからファイルレコード %1 を削除できませんでした</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatedownload.cpp" line="705"/>
+        <location filename="../src/libsync/propagatedownload.cpp" line="712"/>
         <source>The download would reduce free local disk space below the limit</source>
         <translation>ダウンロードすることによりローカルディスクの空き容量が制限を下回ります。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatedownload.cpp" line="709"/>
+        <location filename="../src/libsync/propagatedownload.cpp" line="716"/>
         <source>Free space on disk is less than %1</source>
         <translation>ディスク空き容量が %1 よりも少なくなっています</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatedownload.cpp" line="870"/>
+        <location filename="../src/libsync/propagatedownload.cpp" line="877"/>
         <source>File was deleted from server</source>
         <translation>ファイルはサーバーから削除されました</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatedownload.cpp" line="942"/>
+        <location filename="../src/libsync/propagatedownload.cpp" line="949"/>
         <source>The file could not be downloaded completely.</source>
         <translation>このファイルのダウンロードは完了しませんでした</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatedownload.cpp" line="949"/>
+        <location filename="../src/libsync/propagatedownload.cpp" line="956"/>
         <source>The downloaded file is empty, but the server said it should have been %1.</source>
         <translation>ダウンロードしたファイルは空ですが、サーバでは %1 であるはずです。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatedownload.cpp" line="1155"/>
-        <location filename="../src/libsync/propagatedownload.cpp" line="1169"/>
+        <location filename="../src/libsync/propagatedownload.cpp" line="1178"/>
+        <location filename="../src/libsync/propagatedownload.cpp" line="1192"/>
         <source>File %1 has invalid modified time reported by server. Do not save it.</source>
         <translation>ファイル %1 のサーバから報告された修正日時が無効です。保存しないでください。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatedownload.cpp" line="1242"/>
+        <location filename="../src/libsync/propagatedownload.cpp" line="1265"/>
         <source>File %1 downloaded but it resulted in a local file name clash!</source>
         <translation>ファイル %1 がダウンロードされましたが、ローカルファイル名の衝突が発生しました！</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatedownload.cpp" line="1355"/>
+        <location filename="../src/libsync/propagatedownload.cpp" line="1378"/>
         <source>Error updating metadata: %1</source>
         <translation>メタデータの更新中にエラーが発生しました：%1</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatedownload.cpp" line="1358"/>
+        <location filename="../src/libsync/propagatedownload.cpp" line="1381"/>
         <source>The file %1 is currently in use</source>
         <translation>ファイル %1 は現在使用中です</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatedownload.cpp" line="497"/>
-        <location filename="../src/libsync/propagatedownload.cpp" line="1271"/>
+        <location filename="../src/libsync/propagatedownload.cpp" line="504"/>
+        <location filename="../src/libsync/propagatedownload.cpp" line="1294"/>
         <source>File has changed since discovery</source>
         <translation>ファイルは発見以降に変更されました</translation>
     </message>
@@ -5037,13 +5037,13 @@ Note that using any logging command line options will override this setting.</so
 <context>
     <name>OCC::PropagateItemJob</name>
     <message>
-        <location filename="../src/libsync/owncloudpropagator.cpp" line="236"/>
+        <location filename="../src/libsync/owncloudpropagator.cpp" line="237"/>
         <source>%1. Restoration failed: %2</source>
         <comment>%1 is the generic error string, the file restoration error (%2) will be appended here</comment>
         <translation>%1. リストアが失敗しました: %2</translation>
     </message>
     <message>
-        <location filename="../src/libsync/owncloudpropagator.cpp" line="303"/>
+        <location filename="../src/libsync/owncloudpropagator.cpp" line="304"/>
         <source>A file or folder was removed from a read only share, but restoring failed: %1</source>
         <translation>ファイルまたはフォルダーが読み込み専用の共有から削除されましたが、復元に失敗しました: %1</translation>
     </message>
@@ -5051,39 +5051,39 @@ Note that using any logging command line options will override this setting.</so
 <context>
     <name>OCC::PropagateLocalMkdir</name>
     <message>
-        <location filename="../src/libsync/propagatorjobs.cpp" line="257"/>
+        <location filename="../src/libsync/propagatorjobs.cpp" line="273"/>
         <source>could not delete file %1, error: %2</source>
         <translation>ファイル %1 を削除できません。エラー: %2</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatorjobs.cpp" line="272"/>
+        <location filename="../src/libsync/propagatorjobs.cpp" line="288"/>
         <source>Folder %1 cannot be created because of a local file or folder name clash!</source>
         <translation>フォルダ %1 は、ローカルファイルまたはフォルダ名の衝突のため作成できません！</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatorjobs.cpp" line="304"/>
+        <location filename="../src/libsync/propagatorjobs.cpp" line="320"/>
         <source>Could not create folder %1</source>
         <translation>フォルダー %1 を作成できません</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatorjobs.cpp" line="316"/>
-        <location filename="../src/libsync/propagatorjobs.cpp" line="322"/>
-        <location filename="../src/libsync/propagatorjobs.cpp" line="328"/>
+        <location filename="../src/libsync/propagatorjobs.cpp" line="332"/>
+        <location filename="../src/libsync/propagatorjobs.cpp" line="338"/>
+        <location filename="../src/libsync/propagatorjobs.cpp" line="344"/>
         <source>The folder %1 cannot be made read-only: %2</source>
         <translation>フォルダ %1 を読み取り専用にできません: %2</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatorjobs.cpp" line="328"/>
+        <location filename="../src/libsync/propagatorjobs.cpp" line="344"/>
         <source>unknown exception</source>
         <translation>不明な例外</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatorjobs.cpp" line="361"/>
+        <location filename="../src/libsync/propagatorjobs.cpp" line="377"/>
         <source>Error updating metadata: %1</source>
         <translation>メタデータの更新中にエラーが発生しました：%1</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatorjobs.cpp" line="364"/>
+        <location filename="../src/libsync/propagatorjobs.cpp" line="380"/>
         <source>The file %1 is currently in use</source>
         <translation>ファイル %1 は現在使用中です</translation>
     </message>
@@ -5091,19 +5091,19 @@ Note that using any logging command line options will override this setting.</so
 <context>
     <name>OCC::PropagateLocalRemove</name>
     <message>
-        <location filename="../src/libsync/propagatorjobs.cpp" line="156"/>
+        <location filename="../src/libsync/propagatorjobs.cpp" line="166"/>
         <source>Could not remove %1 because of a local file name clash</source>
         <translation>%1 はローカルファイル名が衝突しているため削除できませんでした</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatorjobs.cpp" line="196"/>
-        <location filename="../src/libsync/propagatorjobs.cpp" line="205"/>
+        <location filename="../src/libsync/propagatorjobs.cpp" line="206"/>
         <location filename="../src/libsync/propagatorjobs.cpp" line="215"/>
+        <location filename="../src/libsync/propagatorjobs.cpp" line="225"/>
         <source>Temporary error when removing local item removed from server.</source>
         <translation>サーバーから削除されたローカルアイテムの削除時に一時的なエラーが発生しました。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatorjobs.cpp" line="224"/>
+        <location filename="../src/libsync/propagatorjobs.cpp" line="234"/>
         <source>Could not delete file record %1 from local DB</source>
         <translation>ローカルDBからファイルレコード %1 を削除できませんでした</translation>
     </message>
@@ -5111,49 +5111,49 @@ Note that using any logging command line options will override this setting.</so
 <context>
     <name>OCC::PropagateLocalRename</name>
     <message>
-        <location filename="../src/libsync/propagatorjobs.cpp" line="425"/>
+        <location filename="../src/libsync/propagatorjobs.cpp" line="451"/>
         <source>Folder %1 cannot be renamed because of a local file or folder name clash!</source>
         <translation>ローカルファイルまたはフォルダー名が重複しているため、フォルダー%1の名前を変更できません!</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatorjobs.cpp" line="433"/>
+        <location filename="../src/libsync/propagatorjobs.cpp" line="459"/>
         <source>File %1 downloaded but it resulted in a local file name clash!</source>
         <translation>ファイル %1 がダウンロードされましたが、ローカルファイル名の衝突が発生しました！</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatorjobs.cpp" line="533"/>
-        <location filename="../src/libsync/propagatorjobs.cpp" line="622"/>
+        <location filename="../src/libsync/propagatorjobs.cpp" line="559"/>
+        <location filename="../src/libsync/propagatorjobs.cpp" line="648"/>
         <source>Could not get file %1 from local DB</source>
         <translation>ローカルDBからファイル %1 を取得できませんでした</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatorjobs.cpp" line="546"/>
-        <location filename="../src/libsync/propagatorjobs.cpp" line="609"/>
+        <location filename="../src/libsync/propagatorjobs.cpp" line="572"/>
+        <location filename="../src/libsync/propagatorjobs.cpp" line="635"/>
         <source>Error setting pin state</source>
         <translation>お気に入りに設定エラー</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatorjobs.cpp" line="559"/>
+        <location filename="../src/libsync/propagatorjobs.cpp" line="585"/>
         <source>Error updating metadata: %1</source>
         <translation>メタデータの更新中にエラーが発生しました：%1</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatorjobs.cpp" line="562"/>
+        <location filename="../src/libsync/propagatorjobs.cpp" line="588"/>
         <source>The file %1 is currently in use</source>
         <translation>ファイル %1 は現在使用中です</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatorjobs.cpp" line="599"/>
+        <location filename="../src/libsync/propagatorjobs.cpp" line="625"/>
         <source>Failed to propagate directory rename in hierarchy</source>
         <translation>階層内のディレクトリ名の変更の伝播に失敗しました</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatorjobs.cpp" line="604"/>
+        <location filename="../src/libsync/propagatorjobs.cpp" line="630"/>
         <source>Failed to rename file</source>
         <translation>ファイル名を変更できませんでした</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagatorjobs.cpp" line="627"/>
+        <location filename="../src/libsync/propagatorjobs.cpp" line="653"/>
         <source>Could not delete file record %1 from local DB</source>
         <translation>ローカルDBからファイルレコード %1 を削除できませんでした</translation>
     </message>
@@ -5255,60 +5255,60 @@ Note that using any logging command line options will override this setting.</so
 <context>
     <name>OCC::PropagateUploadFileCommon</name>
     <message>
-        <location filename="../src/libsync/propagateupload.cpp" line="280"/>
+        <location filename="../src/libsync/propagateupload.cpp" line="289"/>
         <source>File %1 cannot be uploaded because another file with the same name, differing only in case, exists</source>
         <translation>ファイル %1 は、大文字と小文字の区別が違う同じ名前のファイルが存在するためアップロードできません</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagateupload.cpp" line="335"/>
-        <location filename="../src/libsync/propagateupload.cpp" line="411"/>
-        <location filename="../src/libsync/propagateupload.cpp" line="424"/>
+        <location filename="../src/libsync/propagateupload.cpp" line="344"/>
+        <location filename="../src/libsync/propagateupload.cpp" line="420"/>
+        <location filename="../src/libsync/propagateupload.cpp" line="433"/>
         <source>File %1 has invalid modification time. Do not upload to the server.</source>
         <translation>ファイル %1 の更新日時が無効です。サーバにアップロードしないでください。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagateupload.cpp" line="434"/>
+        <location filename="../src/libsync/propagateupload.cpp" line="443"/>
         <source>Local file changed during syncing. It will be resumed.</source>
         <translation>ローカルファイルが同期中に変更されました。再開されます。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagateupload.cpp" line="461"/>
+        <location filename="../src/libsync/propagateupload.cpp" line="470"/>
         <source>Local file changed during sync.</source>
         <translation>ローカルのファイルが同期中に変更されました。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagateupload.cpp" line="471"/>
+        <location filename="../src/libsync/propagateupload.cpp" line="480"/>
         <source>Failed to unlock encrypted folder.</source>
         <translation>暗号化されたフォルダーの解除に失敗しました。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagateupload.cpp" line="759"/>
+        <location filename="../src/libsync/propagateupload.cpp" line="768"/>
         <source>Unable to upload an item with invalid characters</source>
         <translation>無効な文字を含むアイテムをアップロードできません</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagateupload.cpp" line="853"/>
+        <location filename="../src/libsync/propagateupload.cpp" line="862"/>
         <source>Error updating metadata: %1</source>
         <translation>メタデータの更新中にエラーが発生しました：%1</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagateupload.cpp" line="856"/>
+        <location filename="../src/libsync/propagateupload.cpp" line="865"/>
         <source>The file %1 is currently in use</source>
         <translation>ファイル %1 は現在使用中です</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagateupload.cpp" line="291"/>
-        <location filename="../src/libsync/propagateupload.cpp" line="753"/>
+        <location filename="../src/libsync/propagateupload.cpp" line="300"/>
+        <location filename="../src/libsync/propagateupload.cpp" line="762"/>
         <source>Upload of %1 exceeds the quota for the folder</source>
         <translation>%1 をアップロードするとフォルダーのクオータを超えます</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagateupload.cpp" line="245"/>
+        <location filename="../src/libsync/propagateupload.cpp" line="254"/>
         <source>Failed to upload encrypted file.</source>
         <translation>暗号化されたファイルをアップロードできませんでした。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagateupload.cpp" line="408"/>
+        <location filename="../src/libsync/propagateupload.cpp" line="417"/>
         <source>File Removed (start upload) %1</source>
         <translation>ファイルが削除されました（アップロード開始）%1</translation>
     </message>
@@ -6042,7 +6042,7 @@ Server replied with error: %2</source>
 <context>
     <name>OCC::SyncJournalDb</name>
     <message>
-        <location filename="../src/common/syncjournaldb.cpp" line="1072"/>
+        <location filename="../src/common/syncjournaldb.cpp" line="1078"/>
         <source>Failed to connect database.</source>
         <translation type="unfinished"/>
     </message>
@@ -6053,19 +6053,19 @@ Server replied with error: %2</source>
         <location filename="../src/gui/activity/syncstatussummary.cpp" line="161"/>
         <location filename="../src/gui/activity/syncstatussummary.cpp" line="211"/>
         <location filename="../src/gui/activity/syncstatussummary.cpp" line="479"/>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="222"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="223"/>
         <source>Offline</source>
         <translation>オフライン</translation>
     </message>
     <message>
         <location filename="../src/gui/activity/syncstatussummary.cpp" line="164"/>
-        <location filename="../src/gui/tray/usermodel.cpp" line="1571"/>
+        <location filename="../src/gui/tray/usermodel.cpp" line="1573"/>
         <source>You need to accept the terms of service</source>
         <translation>利用規約に同意する必要があります</translation>
     </message>
     <message>
         <location filename="../src/gui/activity/syncstatussummary.cpp" line="175"/>
-        <location filename="../src/gui/tray/usermodel.cpp" line="1563"/>
+        <location filename="../src/gui/tray/usermodel.cpp" line="1565"/>
         <source>Reauthorization required</source>
         <translation>再承認が必要</translation>
     </message>
@@ -6083,7 +6083,7 @@ Server replied with error: %2</source>
     </message>
     <message>
         <location filename="../src/gui/activity/syncstatussummary.cpp" line="246"/>
-        <location filename="../src/gui/tray/usermodel.cpp" line="1582"/>
+        <location filename="../src/gui/tray/usermodel.cpp" line="1584"/>
         <source>Some files couldn&apos;t be synced!</source>
         <translation>いくつかのファイルが同期できませんでした！</translation>
     </message>
@@ -6109,7 +6109,7 @@ Server replied with error: %2</source>
     </message>
     <message>
         <location filename="../src/gui/activity/syncstatussummary.cpp" line="272"/>
-        <location filename="../src/gui/tray/usermodel.cpp" line="1583"/>
+        <location filename="../src/gui/tray/usermodel.cpp" line="1585"/>
         <source>Some files could not be synced!</source>
         <translation>いくつかのファイルが同期できませんでした！</translation>
     </message>
@@ -6157,7 +6157,7 @@ Server replied with error: %2</source>
     <message>
         <location filename="../src/gui/settingsdialog.cpp" line="171"/>
         <location filename="../src/gui/systray.cpp" line="574"/>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="877"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="878"/>
         <source>Add account</source>
         <translation>アカウントを追加</translation>
     </message>
@@ -6181,7 +6181,7 @@ Server replied with error: %2</source>
     </message>
     <message>
         <location filename="../src/gui/systray.cpp" line="581"/>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="915"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="916"/>
         <source>Settings</source>
         <translation>設定</translation>
     </message>
@@ -6197,18 +6197,18 @@ Server replied with error: %2</source>
     </message>
     <message>
         <location filename="../src/gui/systray.cpp" line="589"/>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="889"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="890"/>
         <source>Pause sync for all</source>
         <translation>全ての同期を一時停止</translation>
     </message>
     <message>
         <location filename="../src/gui/systray.cpp" line="595"/>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="889"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="890"/>
         <source>Resume sync for all</source>
         <translation>すべての同期を再開</translation>
     </message>
     <message>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="922"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="923"/>
         <source>Quit</source>
         <translation>終了</translation>
     </message>
@@ -6222,12 +6222,12 @@ Server replied with error: %2</source>
         <translation>%1 デスクトップクライアントバージョン %2</translation>
     </message>
     <message>
-        <location filename="../src/libsync/theme.cpp" line="657"/>
+        <location filename="../src/libsync/theme.cpp" line="688"/>
         <source>&lt;p&gt;&lt;small&gt;Using virtual files plugin: %1&lt;/small&gt;&lt;/p&gt;</source>
         <translation>&lt;p&gt;&lt;small&gt;仮想ファイルシステムプラグインを利用：%1&lt;/small&gt;&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../src/libsync/theme.cpp" line="675"/>
+        <location filename="../src/libsync/theme.cpp" line="706"/>
         <source>&lt;p&gt;This release was supplied by %1.&lt;/p&gt;</source>
         <translation>&lt;p&gt;このリリースは %1 によって提供されました。&lt;/p&gt;</translation>
     </message>
@@ -6465,38 +6465,38 @@ Server replied with error: %2</source>
     </message>
     <message>
         <location filename="../src/gui/tray/usermodel.cpp" line="881"/>
-        <location filename="../src/gui/tray/usermodel.cpp" line="1244"/>
+        <location filename="../src/gui/tray/usermodel.cpp" line="1246"/>
         <source>Retry all uploads</source>
         <translation>すべてのアップロードを再試行</translation>
     </message>
     <message>
-        <location filename="../src/gui/tray/usermodel.cpp" line="1295"/>
-        <location filename="../src/gui/tray/usermodel.cpp" line="1457"/>
+        <location filename="../src/gui/tray/usermodel.cpp" line="1297"/>
+        <location filename="../src/gui/tray/usermodel.cpp" line="1459"/>
         <source>Resolve conflict</source>
         <translation>競合の解決</translation>
     </message>
     <message>
-        <location filename="../src/gui/tray/usermodel.cpp" line="1447"/>
+        <location filename="../src/gui/tray/usermodel.cpp" line="1449"/>
         <source>Rename file</source>
         <translation>ファイル名の変更</translation>
     </message>
     <message>
-        <location filename="../src/gui/tray/usermodel.cpp" line="1555"/>
+        <location filename="../src/gui/tray/usermodel.cpp" line="1557"/>
         <source>Sync conflicts</source>
         <translation>同期の競合</translation>
     </message>
     <message>
-        <location filename="../src/gui/tray/usermodel.cpp" line="1698"/>
+        <location filename="../src/gui/tray/usermodel.cpp" line="1700"/>
         <source>Public Share Link</source>
         <translation>公開共有リンク</translation>
     </message>
     <message>
-        <location filename="../src/gui/tray/usermodel.cpp" line="1915"/>
+        <location filename="../src/gui/tray/usermodel.cpp" line="1917"/>
         <source>Quota is updated; %1 percent of the total space is used.</source>
         <translation>クォータが更新されました。総容量の %1 パーセントが使用されています。</translation>
     </message>
     <message>
-        <location filename="../src/gui/tray/usermodel.cpp" line="1935"/>
+        <location filename="../src/gui/tray/usermodel.cpp" line="1937"/>
         <source>Quota Warning - %1 percent or more storage in use</source>
         <translation>クォータ警告 - 使用中のストレージが %1 パーセント以上です</translation>
     </message>
@@ -6539,32 +6539,32 @@ Server replied with error: %2</source>
 <context>
     <name>OCC::UserModel</name>
     <message>
-        <location filename="../src/gui/tray/usermodel.cpp" line="2297"/>
+        <location filename="../src/gui/tray/usermodel.cpp" line="2299"/>
         <source>Confirm Account Removal</source>
         <translation>アカウント削除の確認</translation>
     </message>
     <message>
-        <location filename="../src/gui/tray/usermodel.cpp" line="2298"/>
+        <location filename="../src/gui/tray/usermodel.cpp" line="2300"/>
         <source>&lt;p&gt;Do you really want to remove the connection to the account &lt;i&gt;%1&lt;/i&gt;?&lt;/p&gt;&lt;p&gt;&lt;b&gt;Note:&lt;/b&gt; This will &lt;b&gt;not&lt;/b&gt; delete any files.&lt;/p&gt;</source>
         <translation>&lt;p&gt;本当に &lt;i&gt;%1&lt;/i&gt; アカウントへの接続を解除しますか？ &lt;/p&gt;&lt;p&gt;&lt;b&gt;Note:&lt;/b&gt; この操作ではファイルは&lt;b&gt;削除されません&lt;/b&gt;。&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../src/gui/tray/usermodel.cpp" line="2302"/>
+        <location filename="../src/gui/tray/usermodel.cpp" line="2304"/>
         <source>Remove connection</source>
         <translation>接続を外す</translation>
     </message>
     <message>
-        <location filename="../src/gui/tray/usermodel.cpp" line="2303"/>
+        <location filename="../src/gui/tray/usermodel.cpp" line="2305"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../src/gui/tray/usermodel.cpp" line="2387"/>
+        <location filename="../src/gui/tray/usermodel.cpp" line="2389"/>
         <source>Leave share</source>
         <translation>共有から抜ける</translation>
     </message>
     <message>
-        <location filename="../src/gui/tray/usermodel.cpp" line="2387"/>
+        <location filename="../src/gui/tray/usermodel.cpp" line="2389"/>
         <source>Remove account</source>
         <translation>アカウントを削除</translation>
     </message>
@@ -7014,27 +7014,27 @@ Server replied with error: %2</source>
         <translation>回答</translation>
     </message>
     <message>
-        <location filename="../src/gui/tray/usermodel.cpp" line="1376"/>
+        <location filename="../src/gui/tray/usermodel.cpp" line="1378"/>
         <source>You renamed %1</source>
         <translation>%1 の名前を変更しました</translation>
     </message>
     <message>
-        <location filename="../src/gui/tray/usermodel.cpp" line="1378"/>
+        <location filename="../src/gui/tray/usermodel.cpp" line="1380"/>
         <source>You deleted %1</source>
         <translation>%1 を削除しました</translation>
     </message>
     <message>
-        <location filename="../src/gui/tray/usermodel.cpp" line="1380"/>
+        <location filename="../src/gui/tray/usermodel.cpp" line="1382"/>
         <source>You created %1</source>
         <translation>%1 を作成しました</translation>
     </message>
     <message>
-        <location filename="../src/gui/tray/usermodel.cpp" line="1382"/>
+        <location filename="../src/gui/tray/usermodel.cpp" line="1384"/>
         <source>You changed %1</source>
         <translation>%1 を変更しました</translation>
     </message>
     <message>
-        <location filename="../src/gui/tray/usermodel.cpp" line="1406"/>
+        <location filename="../src/gui/tray/usermodel.cpp" line="1408"/>
         <source>Synced %1</source>
         <translation>%1 を同期しました</translation>
     </message>
@@ -7784,47 +7784,47 @@ Server replied with error: %2</source>
 <context>
     <name>TrayAccountPopup</name>
     <message>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="595"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="596"/>
         <source>No apps available</source>
         <translation>利用可能なアプリはありません</translation>
     </message>
     <message>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="635"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="636"/>
         <source>Notifications</source>
         <translation>通知</translation>
     </message>
     <message>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="659"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="660"/>
         <source>Open</source>
         <translation>開く</translation>
     </message>
     <message>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="672"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="673"/>
         <source>Recent activity</source>
         <translation>最近のアクティビティ</translation>
     </message>
     <message>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="679"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="680"/>
         <source>No recent activity</source>
         <translation>最近のアクティビティはありません</translation>
     </message>
     <message>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="697"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="698"/>
         <source>More activity…</source>
         <translation>その他のアクティビティ…</translation>
     </message>
     <message>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="766"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="767"/>
         <source>Resolve: %1</source>
         <translation>解決策: %1</translation>
     </message>
     <message>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="773"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="774"/>
         <source>User status</source>
         <translation>ユーザーステータス</translation>
     </message>
     <message>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="806"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="807"/>
         <source>Search</source>
         <translation>検索</translation>
     </message>
@@ -7832,8 +7832,8 @@ Server replied with error: %2</source>
 <context>
     <name>TrayFoldersMenuButton</name>
     <message>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="736"/>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="789"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="737"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="790"/>
         <source>Local folder</source>
         <translation>ローカルフォルダー</translation>
     </message>
@@ -7841,7 +7841,7 @@ Server replied with error: %2</source>
 <context>
     <name>TrayWindowHeader</name>
     <message>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="813"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="814"/>
         <source>Apps</source>
         <translation>アプリ</translation>
     </message>
@@ -8091,12 +8091,12 @@ Server replied with error: %2</source>
 <context>
     <name>UriSchemeHandler</name>
     <message>
-        <location filename="../src/gui/urischemehandler.cpp" line="123"/>
+        <location filename="../src/gui/urischemehandler.cpp" line="124"/>
         <source>Could not handle link</source>
         <translation>リンクを処理できませんでした</translation>
     </message>
     <message>
-        <location filename="../src/gui/urischemehandler.cpp" line="191"/>
+        <location filename="../src/gui/urischemehandler.cpp" line="192"/>
         <source>Adding another account is not allowed in this client.</source>
         <translation>このクライアントでは、別のカウントを追加することはできません。</translation>
     </message>
@@ -8111,26 +8111,26 @@ Server replied with error: %2</source>
     </message>
     <message>
         <location filename="../src/gui/UserStatusWindow.qml" line="99"/>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="212"/>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="224"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="213"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="225"/>
         <source>Online</source>
         <translation>オンライン</translation>
     </message>
     <message>
         <location filename="../src/gui/UserStatusWindow.qml" line="108"/>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="214"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="215"/>
         <source>Away</source>
         <translation>離席中</translation>
     </message>
     <message>
         <location filename="../src/gui/UserStatusWindow.qml" line="118"/>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="216"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="217"/>
         <source>Busy</source>
         <translation>取り込み中</translation>
     </message>
     <message>
         <location filename="../src/gui/UserStatusWindow.qml" line="127"/>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="218"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="219"/>
         <source>Do not disturb</source>
         <translation>取り込み中</translation>
     </message>
@@ -8141,7 +8141,7 @@ Server replied with error: %2</source>
     </message>
     <message>
         <location filename="../src/gui/UserStatusWindow.qml" line="139"/>
-        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="220"/>
+        <location filename="../src/gui/trayaccountpopup_qt.cpp" line="221"/>
         <source>Invisible</source>
         <translation>非表示</translation>
     </message>
@@ -8292,7 +8292,7 @@ Server replied with error: %2</source>
 <context>
     <name>nextcloudTheme::aboutInfo()</name>
     <message>
-        <location filename="../src/libsync/theme.cpp" line="638"/>
+        <location filename="../src/libsync/theme.cpp" line="669"/>
         <source>&lt;p&gt;&lt;small&gt;Built from Git revision &lt;a href=&quot;%1&quot;&gt;%2&lt;/a&gt; on %3, %4 using Qt %5, %6&lt;/small&gt;&lt;/p&gt;</source>
         <extracomment>%1 is the full Git commit URL. %2 is the abbreviated Git revision. %3 is the build date. %4 is the build time. %5 is the Qt version. %6 is the TLS library version.</extracomment>
         <translation>&lt;p&gt;&lt;small&gt;Git リビジョン &lt;a href=&quot;%1&quot;&gt;%2&lt;/a&gt; から %3, %4 で Qt %5, %6 を使用してビルドされました&lt;/small&gt;&lt;/p&gt;</translation>

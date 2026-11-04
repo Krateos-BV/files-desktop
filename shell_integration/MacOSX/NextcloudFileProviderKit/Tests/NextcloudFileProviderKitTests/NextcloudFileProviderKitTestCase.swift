@@ -3,7 +3,6 @@
 
 @testable import NextcloudFileProviderKit
 import NextcloudFileProviderKitMocks
-import RealmSwift
 import XCTest
 
 ///
@@ -37,23 +36,6 @@ class NextcloudFileProviderKitTestCase: XCTestCase {
     }
 
     ///
-    /// The database manager this test class runs against, if it has one built before ``setUp()``.
-    ///
-    /// ``setUp()`` needs it to put the in-memory Realm in place correctly; see there for why. Classes
-    /// that build their manager later — inside a test, or from a per-test directory — leave this `nil`
-    /// and get no in-memory store.
-    ///
-    var testDatabaseManager: FilesDatabaseManager? {
-        nil
-    }
-
-    ///
-    /// Retains the in-memory Realm for the whole test. Without a live reference the store is freed
-    /// once a write returns, and the next access reopens an empty database.
-    ///
-    private var keepAliveRealm: Realm?
-
-    ///
     /// Drop process-wide state that would otherwise leak from the previous test.
     ///
     /// `InsufficientQuotaReporter` dedups its per-domain summary on a singleton actor, so a test
@@ -63,8 +45,7 @@ class NextcloudFileProviderKitTestCase: XCTestCase {
     /// after the first failed on the missing summary (XNT-127).
     ///
     /// Resetting here rather than in each class is deliberate: it makes the whole bug class
-    /// impossible instead of fixed once per class, the same reasoning as the in-memory Realm setup
-    /// below (XNT-176).
+    /// impossible instead of fixed once per class.
     ///
     override func setUp() async throws {
         try await super.setUp()
@@ -74,37 +55,9 @@ class NextcloudFileProviderKitTestCase: XCTestCase {
     override func setUp() {
         super.setUp()
         FileProviderLogProblemRecorder.reset()
-
-        // Order matters, and not obviously. `FilesDatabaseManager.init` assigns
-        // `Realm.Configuration.defaultConfiguration` wholesale with a *file-based* configuration, so
-        // forcing the manager to initialise first is what stops it wiping the in-memory identifier set
-        // straight after. Done the other way round — which is what happens when a class sets the
-        // identifier itself and then touches a lazily initialised `static let dbManager` — the class
-        // silently runs against `test.realm` on disk instead, and the first test of every class did
-        // exactly that before this moved here.
-        // Classes that declare no manager are left entirely alone: some of them run against whatever
-        // configuration their own code puts in place, and setting an in-memory identifier for them
-        // here changes which store they use.
-        guard let manager = testDatabaseManager else {
-            return
-        }
-
-        Realm.Configuration.defaultConfiguration.inMemoryIdentifier = name
-        keepAliveRealm = manager.ncDatabase()
-
-        XCTAssertEqual(
-            Realm.Configuration.defaultConfiguration.inMemoryIdentifier,
-            name,
-            "This test must run against an in-memory Realm, not a file on disk."
-        )
-        XCTAssertNil(
-            Realm.Configuration.defaultConfiguration.fileURL,
-            "An in-memory Realm configuration carries no file URL; a URL here means a manager replaced the configuration after it was set."
-        )
     }
 
     override func tearDown() {
-        keepAliveRealm = nil
         super.tearDown()
 
         guard expectsLoggedErrors == false, testDrivesAFailurePath == false else {
@@ -124,7 +77,7 @@ class NextcloudFileProviderKitTestCase: XCTestCase {
     }
 
     ///
-    /// Create a unique and temporary directory for Realm database testing purposes.
+    /// Create a unique and temporary directory for database testing purposes.
     ///
     /// - Returns: A URL pointing to a temporary directory which also contains a UUID to distinguish it clearly from any other calls.
     ///

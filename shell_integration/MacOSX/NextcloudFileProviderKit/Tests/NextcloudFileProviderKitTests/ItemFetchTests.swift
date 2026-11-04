@@ -5,7 +5,6 @@
 @testable import NextcloudFileProviderKit
 import NextcloudFileProviderKitMocks
 import NextcloudKit
-import RealmSwift
 import TestInterface
 import UniformTypeIdentifiers
 import XCTest
@@ -16,15 +15,30 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     )
 
     lazy var rootItem = MockRemoteItem.rootItem(account: Self.account)
-    static let dbManager = FilesDatabaseManager(account: account, databaseDirectory: makeDatabaseDirectory(), fileProviderDomainIdentifier: NSFileProviderDomainIdentifier("test"), log: FileProviderLogMock())
+    static let dbManager = try! FilesDatabaseManager(account: account, databaseDirectory: makeDatabaseDirectory(), fileProviderDomainIdentifier: NSFileProviderDomainIdentifier("test"), log: FileProviderLogMock())
 
-    override var testDatabaseManager: FilesDatabaseManager? {
-        Self.dbManager
+    override func setUp() {
+        super.setUp()
+        try! Self.dbManager.removeAllRowsForTesting()
     }
 
     override func tearDown() {
         rootItem.children = []
         super.tearDown()
+    }
+
+    ///
+    /// Run one materialized-set reconciliation in which the system reports nothing as materialized,
+    /// as it does until it has caught up with a download.
+    ///
+    private func reconcileBeforeTheSystemReportsTheDownloads() async {
+        let finished = XCTestExpectation(description: "Reconciliation finished")
+        let observer = MaterializedEnumerationObserver(
+            account: Self.account, dbManager: Self.dbManager, log: FileProviderLogMock()
+        ) { _, _ in finished.fulfill() }
+
+        observer.finishEnumerating(upTo: nil)
+        await fulfillment(of: [finished], timeout: 1)
     }
 
     func testFetchFileContents() async throws {
@@ -71,6 +85,9 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
         XCTAssertEqual(fetchedItem.itemIdentifier, item.itemIdentifier)
         XCTAssertEqual(fetchedItem.filename, item.filename)
         XCTAssertEqual(fetchedItem.creationDate, item.creationDate)
+
+        await reconcileBeforeTheSystemReportsTheDownloads()
+        XCTAssertEqual(Self.dbManager.itemMetadata(ocId: itemMetadata.ocId)?.downloaded, true, "A reconciliation before the system reports the download must not undo it.")
     }
 
     func testFetchAliasFileContentsDetectsAliasType() async throws {
@@ -262,5 +279,9 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
         XCTAssertEqual(
             try Data(contentsOf: itemChildDirBChildFileUrl), remoteDirectoryChildDirBChildFile.data
         )
+
+        await reconcileBeforeTheSystemReportsTheDownloads()
+        XCTAssertEqual(Self.dbManager.itemMetadata(ocId: directoryChildFileMetadata.ocId)?.downloaded, true, "A reconciliation before the system reports the download must not undo it.")
+        XCTAssertEqual(Self.dbManager.itemMetadata(ocId: directoryChildDirBChildFileMetadata.ocId)?.downloaded, true, "A reconciliation before the system reports the download must not undo it.")
     }
 }
