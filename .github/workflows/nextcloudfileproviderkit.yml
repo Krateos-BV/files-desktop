@@ -23,8 +23,25 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # XEN-305: pin SwiftFormat instead of using whatever the runner image ships.
+      # Runner image macos-26-arm64 20261026 moved from 0.63.1 to 0.64.3, whose new
+      # rules (repeatedGuard, nestedIf, ...) fail lint on unchanged code. Bump this
+      # together with a formatting pass over the package.
+      - name: Install SwiftFormat
+        env:
+          SWIFTFORMAT_VERSION: 0.63.1
+          SWIFTFORMAT_SHA256: 385ef1a263ba28685157b98c5536b9c9105e124518f28b7ef8a2bee4b167eaeb
+        run: |
+          curl -sSLf -o "$RUNNER_TEMP/swiftformat.zip" "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/swiftformat.zip"
+          echo "${SWIFTFORMAT_SHA256}  $RUNNER_TEMP/swiftformat.zip" | shasum -a 256 -c -
+          unzip -o -q "$RUNNER_TEMP/swiftformat.zip" -d "$RUNNER_TEMP/swiftformat"
+          chmod +x "$RUNNER_TEMP/swiftformat/swiftformat"
+          echo "$RUNNER_TEMP/swiftformat" >> "$GITHUB_PATH"
+
       - name: SwiftFormat
-        run: swiftformat --lint . --reporter github-actions-log
+        run: |
+          swiftformat --version
+          swiftformat --lint . --reporter github-actions-log
 
   Tests:
     if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
