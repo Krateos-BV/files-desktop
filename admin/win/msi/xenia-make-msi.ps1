@@ -101,6 +101,49 @@ try {
 
 $msi = @(Get-ChildItem $work -Filter '*.msi')
 if ($msi.Count -ne 1) { throw "Expected one MSI in $work, found $($msi.Count)" }
+# Read back what the MSI actually contains, so the CI log is evidence and a wrong
+# UpgradeCode, product name or missing executable fails here, not on a user's PC.
+function Get-MsiRows([string] $path, [string] $query) {
+    $installer = New-Object -ComObject WindowsInstaller.Installer
+    $db = $installer.GetType().InvokeMember('OpenDatabase', 'InvokeMethod', $null, $installer, @($path, 0))
+    $view = $db.GetType().InvokeMember('OpenView', 'InvokeMethod', $null, $db, @($query))
+    $view.GetType().InvokeMember('Execute', 'InvokeMethod', $null, $view, $null) | Out-Null
+    $rows = @()
+    while ($rec = $view.GetType().InvokeMember('Fetch', 'InvokeMethod', $null, $view, $null)) {
+        $n = $rec.GetType().InvokeMember('FieldCount', 'GetProperty', $null, $rec, $null)
+        $rows += , @(1..$n | ForEach-Object { [string] $rec.GetType().InvokeMember('StringData', 'GetProperty', $null, $rec, @($_)) })
+    }
+    $view.GetType().InvokeMember('Close', 'InvokeMethod', $null, $view, $null) | Out-Null
+    return , $rows
+}
+$props = @{}
+foreach ($r in (Get-MsiRows $msi[0].FullName "SELECT Property, Value FROM Property")) { $props[$r[0]] = $r[1] }
+Write-Host ':: MSI properties'
+foreach ($k in 'ProductName', 'Manufacturer', 'ProductVersion', 'ProductCode', 'UpgradeCode', 'ARPPRODUCTICON') {
+    Write-Host ("   {0,-15} {1}" -f $k, $props[$k])
+}
+$fileRows = Get-MsiRows $msi[0].FullName "SELECT FileName FROM File"
+$fileNames = @($fileRows | ForEach-Object { ($_[0] -split '\|')[-1] })
+Write-Host ":: MSI File table: $($fileNames.Count) files"
+$upgrade = Get-MsiRows $msi[0].FullName "SELECT UpgradeCode, Attributes FROM Upgrade"
+Write-Host ":: MSI Upgrade table: $(($upgrade | ForEach-Object { $_ -join ' ' }) -join '; ')"
+$classRows = Get-MsiRows $msi[0].FullName "SELECT CLSID FROM Class"
+$clsids = @($classRows | ForEach-Object { $_[0] })
+Write-Host ":: MSI Class table (shell extension CLSIDs): $($clsids -join ', ')"
+
+$cmake = Get-Content (Join-Path $PSScriptRoot '..\..\..\NEXTCLOUD.cmake') -Raw
+if ($cmake -notmatch 'WIN_MSI_UPGRADE_CODE\s+"([0-9A-Fa-f-]+)"') { throw 'WIN_MSI_UPGRADE_CODE not found in NEXTCLOUD.cmake' }
+$expectedUpgrade = "{$($Matches[1].ToUpper())}"
+$problems = @()
+if ($props['UpgradeCode'] -ne $expectedUpgrade) { $problems += "UpgradeCode $($props['UpgradeCode']) is not $expectedUpgrade" }
+if ($props['UpgradeCode'] -eq '{FD2FCCA9-BB8F-4485-8F70-A0621B84A7F4}') { $problems += 'UpgradeCode is upstream Nextcloud''s' }
+foreach ($f in @($appExe, 'NCContextMenu.dll', 'NCOverlays.dll', 'Qt6Core.dll')) {
+    if ($fileNames -notcontains $f) { $problems += "File table lacks $f" }
+}
+if ($clsids.Count -lt 6) { $problems += "Class table has $($clsids.Count) CLSIDs, expected 6" }
+if ($problems) { throw "MSI check failed: $($problems -join '; ')" }
+Write-Host ':: MSI check passed'
+
 New-Item -ItemType Directory -Path $OutDir -Force | Out-Null
 Copy-Item $msi[0].FullName $OutDir
 $out = Join-Path $OutDir $msi[0].Name
