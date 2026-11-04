@@ -10,6 +10,11 @@ name: Xenia Files CI (unsigned)
 
 on:
   workflow_dispatch:
+    inputs:
+      windows-only:
+        description: 'Build only Windows (zip and MSI); skip the Linux and macOS jobs'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -25,6 +30,7 @@ jobs:
   # time: it is defined exactly once, and follows every sync on its own.
   resolve-container:
     name: Resolve AppImage container tag
+    if: ${{ !inputs.windows-only }}
     runs-on: ubuntu-latest
     outputs:
       image: ${{ steps.pin.outputs.image }}
@@ -121,6 +127,24 @@ jobs:
         with:
           python-version: '3.12'
 
+      # XEN-304: needed before the compile, because with BUILD_WIN_MSI=ON the build
+      # links the NCMsiHelper custom-action DLL against the WiX SDK.
+      - name: Install WiX Toolset 3
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $wix = $env:WIX
+          if (-not $wix -or -not (Test-Path (Join-Path $wix 'bin\heat.exe'))) {
+            choco install wixtoolset --version 3.14.1 -y --no-progress
+            if ($LASTEXITCODE -ne 0) { throw "choco exited with $LASTEXITCODE" }
+            $wix = "${env:ProgramFiles(x86)}\WiX Toolset v3.14\"
+          }
+          foreach ($p in @('bin\heat.exe', 'bin\candle.exe', 'bin\light.exe', 'SDK\VS2017\inc\wcautil.h')) {
+            if (-not (Test-Path (Join-Path $wix $p))) { throw "WiX install at $wix lacks $p" }
+          }
+          Write-Host "WiX: $wix"
+          "WIX=$wix" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
       - name: Install Craft Master with Nextcloud Client Deps
         shell: pwsh
         run: |
@@ -154,7 +178,7 @@ jobs:
               if($LASTEXITCODE -ne 0) {exit $LASTEXITCODE}
           }
 
-          craft --src-dir ${{ github.workspace }} nextcloud-client
+          craft --options "nextcloud-client.args=-DBUILD_WIN_MSI=ON" --src-dir ${{ github.workspace }} nextcloud-client
 
       - name: Upload build output artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -163,11 +187,41 @@ jobs:
           path: ${{ github.workspace }}\${{ env.CRAFT_TARGET }}\build\nextcloud-client\work\build\bin
           if-no-files-found: error
 
+      # XEN-304: PortablePackager collects the client and its runtime dependencies
+      # into <buildRoot>\archive (and also writes a .7z that is not used).
+      # craftmaster.ini's default for this target is the NSIS packager.
+      - name: Collect the install tree
+        shell: pwsh
+        run: |
+          function craft() {
+              python "${{ env.CRAFT_MASTER_LOCATION }}\CraftMaster.py" --config "${{ env.CRAFT_MASTER_CONFIG }}" --target ${{ env.CRAFT_TARGET }} -c $args
+              if($LASTEXITCODE -ne 0) {exit $LASTEXITCODE}
+          }
+
+          craft --options "[Packager]PackageType=PortablePackager" --options "nextcloud-client.args=-DBUILD_WIN_MSI=ON" --package --src-dir ${{ github.workspace }} nextcloud-client
+
+      - name: Build the MSI (unsigned)
+        id: msi
+        shell: pwsh
+        run: |
+          & "${{ github.workspace }}\admin\win\msi\xenia-make-msi.ps1" `
+            -CraftRoot "${{ github.workspace }}\${{ env.CRAFT_TARGET }}" `
+            -OutDir "${{ runner.temp }}\msi-out"
+
+      - name: Upload MSI artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: xenia-files-windows-msi-unsigned-${{ steps.safe-ref.outputs.value }}-${{ github.sha }}
+          path: ${{ steps.msi.outputs.msi }}
+          if-no-files-found: error
+          retention-days: 7
+
   # Names-only report: tells us whether the Apple signing secrets are granted to
   # this repo, without ever printing a value. An org secret that is not scoped
   # to the repo resolves to an empty string, so emptiness == "not granted".
   secrets-report:
     name: Signing secrets visibility (names only)
+    if: ${{ !inputs.windows-only }}
     runs-on: ubuntu-latest
     env:
       APPLE_CERT_P12: ${{ secrets.APPLE_CERT_P12 }}
@@ -187,6 +241,7 @@ jobs:
 
   macos-build:
     name: macOS build (unsigned, with File Provider)
+    if: ${{ !inputs.windows-only }}
     runs-on: macos-26
     timeout-minutes: 120
     steps:
