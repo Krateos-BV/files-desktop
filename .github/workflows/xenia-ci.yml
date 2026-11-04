@@ -198,6 +198,17 @@ jobs:
               if($LASTEXITCODE -ne 0) {exit $LASTEXITCODE}
           }
 
+          # The stable-34.0 nextcloud-client blueprint's createPackage() uses os.path
+          # without importing os, so packaging dies with NameError. Patch the checked-out
+          # copy; this is a no-op once upstream adds the import.
+          $bp = "${{ github.workspace }}\${{ env.CRAFT_TARGET }}\etc\blueprints\locations\craft-blueprints-nextcloud\nextcloud-client\nextcloud-client.py"
+          if (-not (Test-Path $bp)) { throw "Blueprint not found at $bp" }
+          $src = Get-Content $bp -Raw
+          if ($src -notmatch '(?m)^import os\s*$') {
+            Set-Content -Path $bp -Value ("import os`n" + $src) -NoNewline
+            Write-Host "Patched: added 'import os' to $bp"
+          }
+
           craft --options "[Packager]PackageType=PortablePackager" --options "nextcloud-client.args=-DBUILD_WIN_MSI=ON" --package --src-dir ${{ github.workspace }} nextcloud-client
 
       - name: Build the MSI (unsigned)
