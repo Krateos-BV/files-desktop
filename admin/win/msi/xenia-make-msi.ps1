@@ -135,8 +135,10 @@ $upgrade = Get-MsiRows $msi[0].FullName "SELECT UpgradeCode, Attributes FROM Upg
 Write-Host ":: MSI Upgrade table: $(($upgrade | ForEach-Object { $_ -join ' ' }) -join '; ')"
 # WiX writes non-advertised <Class> elements as Registry rows (HKCR\CLSID\{...}),
 # not into the Class table.
-$regRows = Get-MsiRows $msi[0].FullName "SELECT Key FROM Registry"
-$clsids = @($regRows | ForEach-Object { if ($_[0] -match '^CLSID\\(\{[0-9A-Fa-f-]+\})$') { $Matches[1].ToUpper() } } | Sort-Object -Unique)
+# Key is a reserved word in MSI SQL, so the column names are quoted.
+$regRows = Get-MsiRows $msi[0].FullName 'SELECT `Root`, `Key` FROM `Registry`'
+Write-Host ":: MSI Registry table: $($regRows.Count) rows"
+$clsids = @($regRows | ForEach-Object { if ($_[1] -match '^CLSID\\(\{[0-9A-Fa-f-]+\})$') { $Matches[1].ToUpper() } } | Sort-Object -Unique)
 Write-Host ":: MSI registers CLSIDs: $($clsids -join ', ')"
 
 $cmake = Get-Content (Join-Path $PSScriptRoot '..\..\..\NEXTCLOUD.cmake') -Raw
