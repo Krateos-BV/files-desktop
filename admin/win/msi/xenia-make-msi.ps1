@@ -133,9 +133,11 @@ $fileNames = @($fileRows | ForEach-Object { ($_[0] -split '\|')[-1] })
 Write-Host ":: MSI File table: $($fileNames.Count) files"
 $upgrade = Get-MsiRows $msi[0].FullName "SELECT UpgradeCode, Attributes FROM Upgrade"
 Write-Host ":: MSI Upgrade table: $(($upgrade | ForEach-Object { $_ -join ' ' }) -join '; ')"
-$classRows = Get-MsiRows $msi[0].FullName "SELECT CLSID FROM Class"
-$clsids = @($classRows | ForEach-Object { $_[0] })
-Write-Host ":: MSI Class table (shell extension CLSIDs): $($clsids -join ', ')"
+# WiX writes non-advertised <Class> elements as Registry rows (HKCR\CLSID\{...}),
+# not into the Class table.
+$regRows = Get-MsiRows $msi[0].FullName "SELECT Key FROM Registry"
+$clsids = @($regRows | ForEach-Object { if ($_[0] -match '^CLSID\\(\{[0-9A-Fa-f-]+\})$') { $Matches[1].ToUpper() } } | Sort-Object -Unique)
+Write-Host ":: MSI registers CLSIDs: $($clsids -join ', ')"
 
 $cmake = Get-Content (Join-Path $PSScriptRoot '..\..\..\NEXTCLOUD.cmake') -Raw
 if ($cmake -notmatch 'WIN_MSI_UPGRADE_CODE\s+"([0-9A-Fa-f-]+)"') { throw 'WIN_MSI_UPGRADE_CODE not found in NEXTCLOUD.cmake' }
@@ -146,7 +148,16 @@ if ($props['UpgradeCode'] -eq '{FD2FCCA9-BB8F-4485-8F70-A0621B84A7F4}') { $probl
 foreach ($f in @($appExe, 'NCContextMenu.dll', 'NCOverlays.dll', 'Qt6Core.dll')) {
     if ($fileNames -notcontains $f) { $problems += "File table lacks $f" }
 }
-if ($clsids.Count -lt 6) { $problems += "Class table has $($clsids.Count) CLSIDs, expected 6" }
+$shellExtGuids = @([regex]::Matches($cmake, 'WIN_SHELLEXT_[A-Z_]+\s+"(\{[0-9A-Fa-f-]+\})"') | ForEach-Object { $_.Groups[1].Value.ToUpper() })
+if ($shellExtGuids.Count -ne 6) { $problems += "found $($shellExtGuids.Count) WIN_SHELLEXT_* GUIDs in NEXTCLOUD.cmake, expected 6" }
+foreach ($g in $shellExtGuids) {
+    if ($clsids -notcontains $g) { $problems += "MSI does not register $g" }
+}
+# Upstream Nextcloud's context-menu and overlay CLSIDs must not appear.
+foreach ($g in '{BC6988AB-ACE2-4B81-84DC-DC34F9B24401}', '{E0342B74-7593-4C70-9D61-22F294AAFE05}', '{E1094E94-BE93-4EA2-9639-8475C68F3886}',
+               '{E243AD85-F71B-496B-B17E-B8091CBE93D2}', '{E3D6DB20-1D83-4829-B5C9-941B31C0C35A}', '{E4977F33-F93A-4A0A-9D3C-83DEA0EE8483}') {
+    if ($clsids -contains $g) { $problems += "MSI registers upstream Nextcloud CLSID $g" }
+}
 if ($problems) { throw "MSI check failed: $($problems -join '; ')" }
 Write-Host ':: MSI check passed'
 
