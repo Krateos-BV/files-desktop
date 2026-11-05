@@ -111,7 +111,13 @@ function Get-MsiRows([string] $path, [string] $query) {
     $rows = @()
     while ($rec = $view.GetType().InvokeMember('Fetch', 'InvokeMethod', $null, $view, $null)) {
         $n = $rec.GetType().InvokeMember('FieldCount', 'GetProperty', $null, $rec, $null)
-        $rows += , @(1..$n | ForEach-Object { [string] $rec.GetType().InvokeMember('StringData', 'GetProperty', $null, $rec, @($_)) })
+        # A plain for loop: an index taken from the pipeline ($_) reaches COM wrapped,
+        # and StringData rejects it with DISP_E_TYPEMISMATCH.
+        $fields = @()
+        for ([int] $i = 1; $i -le $n; $i++) {
+            $fields += [string] $rec.GetType().InvokeMember('StringData', 'GetProperty', $null, $rec, [object[]] @($i))
+        }
+        $rows += , $fields
     }
     $view.GetType().InvokeMember('Close', 'InvokeMethod', $null, $view, $null) | Out-Null
     return , $rows
