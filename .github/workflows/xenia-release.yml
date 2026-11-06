@@ -14,6 +14,11 @@
 # pattern would cut a Xenia release from any upstream tag that reached the fork.
 # 'v2[6-9]' cannot match an upstream tag such as v34.* or v2.6.*.
 #
+# Manual dispatch on main (XEN-338) runs the same signed builds and uploads them as
+# workflow artifacts, but creates no release and needs no tag. It is the signed
+# build that gets the real login test before a tag is pushed. The CalVer check is
+# skipped on dispatch; the "commit is on main" check still applies.
+#
 # Signing is optional and decided per platform by the secrets-report job:
 #   macOS   - signed and notarised only if all five APPLE_* secrets resolve.
 #   Windows - the .zip is signed only if WINDOWS_CODESIGN_PFX and
@@ -31,6 +36,7 @@ on:
     tags:
       - 'v2[6-9].[0-9]+.[0-9]+'
       - 'v2[6-9].[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
 
 permissions: {}
 
@@ -54,6 +60,7 @@ jobs:
           fetch-depth: 0
 
       - name: Check the tag is a valid CalVer date
+        if: github.event_name == 'push'
         shell: bash
         run: |
           set -euo pipefail
@@ -195,7 +202,7 @@ jobs:
           APPNAME: "Xenia Files"
           APPICON_NAME: "Xenia Files"
           EXECUTABLE_NAME: xenia-files
-          VERSION_SUFFIX: ${{ github.ref_name }}
+          VERSION_SUFFIX: ${{ github.event_name == 'push' && github.ref_name || format('dispatch{0}', github.run_number) }}
         # BUILD_UPDATER=OFF: Xenia has no update channel of its own (XNT-113).
         run: |
           BUILDNR=${GITHUB_RUN_ID} BUILD_UPDATER=OFF DESKTOP_CLIENT_ROOT="$(pwd)" QT_BASE_DIR=/root/linux-gcc-x86_64 /bin/bash -c "./admin/linux/build-appimage.sh"
@@ -480,9 +487,11 @@ jobs:
         run: security delete-keychain "${RUNNER_TEMP}/signing.keychain-db" || true
 
   # The only job with write access. It creates a DRAFT release; publishing it is a
-  # human decision made in the GitHub UI.
+  # human decision made in the GitHub UI. Tag pushes only: a manual dispatch stops
+  # at the build artifacts.
   release:
     name: Create draft GitHub Release
+    if: github.event_name == 'push'
     needs:
       - verify-tag
       - secrets-report
