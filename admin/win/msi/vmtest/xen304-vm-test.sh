@@ -64,6 +64,8 @@ mkdir -p "$OUT"
 LOG="$OUT/run.log"
 log() { echo "[$(date +%H:%M:%S)] $*" | tee -a "$LOG"; }
 
+# Guest programs run -interactive (in the logged-in desktop session) so the
+# guest script can elevate with RunAs under UAC "never notify".
 # vmrun with guest credentials. The password is passed as an argument, which
 # local users of the Mac can see in ps while the call runs; nothing is logged.
 vg() { vm -gu "$GUSER" -gp "$GPASS" "$@"; }
@@ -75,7 +77,7 @@ FAILED=0
 guest_phase() { # tag phase [extra ps args...]
     local tag="$1" phase="$2"; shift 2
     log "phase $tag ($phase)"
-    vg runProgramInGuest "$VMX" "$PS" \
+    vg runProgramInGuest "$VMX" -activeWindow -interactive "$PS" \
         -NoProfile -ExecutionPolicy Bypass -File "$GW\\xen304-guest.ps1" \
         -Phase "$phase" -Tag "$tag" "$@" >>"$LOG" 2>&1
     vg copyFileFromGuestToHost "$VMX" "$GW\\result-$tag.json" "$OUT/result-$tag.json" >>"$LOG" 2>&1

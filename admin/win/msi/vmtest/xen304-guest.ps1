@@ -81,6 +81,7 @@ if (($Phase -in @('install', 'uninstall')) -and -not $isAdmin -and -not $Elevate
         exit $child.ExitCode
     } catch {
         # fall through: the check below records why
+        $runAsError = $_.Exception.Message
     }
 }
 
@@ -89,7 +90,7 @@ try {
     $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
         [Security.Principal.WindowsBuiltInRole]::Administrator)
     if (($Phase -in @('install', 'uninstall')) -and -not $admin) {
-        throw 'not elevated: vmrun is running as a filtered (UAC) token, see the plan, section Guest setup'
+        throw "not elevated: vmrun is running as a filtered (UAC) token, see the plan, section Guest setup. RunAs error: $runAsError"
     }
     switch ($Phase) {
         'install' {
