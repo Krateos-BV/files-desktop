@@ -122,7 +122,10 @@ try {
             foreach ($g in $XeniaClsids) { Check "CLSID $g registered" (Test-Clsid $g) }
             $cmd = Join-Path $InstallDir 'xenia-filescmd.exe'
             if (Test-Path $cmd) {
+                # stderr from a native exe is a terminating error under 'Stop' in PS 5.1
+                $prevEap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
                 $v = (& $cmd --version 2>&1 | Out-String).Trim()
+                $ErrorActionPreference = $prevEap
                 Check 'xenia-filescmd --version runs' ($LASTEXITCODE -eq 0) ($v -split "`n" | Select-Object -First 2 | Out-String).Trim()
             }
             $up = Get-Related $UpstreamUpgradeCode
