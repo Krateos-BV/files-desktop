@@ -14,7 +14,7 @@
 # Usage:
 #   xen304-vm-test.sh --vmx <path.vmx> --guest-user <user> \
 #       --msi-a <first.msi> --msi-b <second.msi> \
-#       [--snapshot xen304-clean] [--keep] \
+#       [--snapshot xen304-clean | --no-snapshot] [--keep] \
 #       [--sync-url https://... --xenia-user <user>]
 #
 # --msi-a and --msi-b must come from two different CI runs (each build has
@@ -36,6 +36,7 @@ while [ $# -gt 0 ]; do
         --msi-b) MSI_B="$2"; shift 2 ;;
         --snapshot) SNAPSHOT="$2"; shift 2 ;;
         --keep) KEEP=1; shift ;;
+        --no-snapshot) SNAPSHOT=""; KEEP=1; shift ;;
         --sync-url) SYNC_URL="$2"; shift 2 ;;
         --xenia-user) XUSER="$2"; shift 2 ;;
         *) echo "unknown argument: $1" >&2; exit 2 ;;
@@ -97,8 +98,14 @@ cleanup() {
 }
 trap cleanup EXIT
 
-log "reverting to snapshot $SNAPSHOT and starting the VM"
-vm revertToSnapshot "$VMX" "$SNAPSHOT" >>"$LOG" 2>&1 || { log "revert failed"; exit 1; }
+# --no-snapshot runs against the VM as it is (for example when vmrun cannot
+# change snapshots of an encrypted VM). The uninstall phase is the cleanup.
+if [ -n "$SNAPSHOT" ]; then
+    log "reverting to snapshot $SNAPSHOT and starting the VM"
+    vm revertToSnapshot "$VMX" "$SNAPSHOT" >>"$LOG" 2>&1 || { log "revert failed"; exit 1; }
+else
+    log "no snapshot: using the VM in its current state"
+fi
 vm start "$VMX" nogui >>"$LOG" 2>&1
 for i in $(seq 1 60); do
     vm checkToolsState "$VMX" 2>/dev/null | grep -q running && break
