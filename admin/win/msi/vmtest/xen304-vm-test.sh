@@ -8,6 +8,8 @@
 # Secrets come from the login Keychain at run time and are never printed:
 #   security add-generic-password -s xenia-msi-test-guest   -a <windows-user> -w
 #   security add-generic-password -s xenia-msi-test-account -a <xenia-user>   -w
+# If the VM is encrypted (Fusion needs that for a Windows 11 vTPM), also:
+#   security add-generic-password -s xenia-msi-test-vmx -a vm -w
 #
 # Usage:
 #   xen304-vm-test.sh --vmx <path.vmx> --guest-user <user> \
@@ -50,6 +52,12 @@ if [ -n "$SYNC_URL" ] && [ -z "$XUSER" ]; then echo "--sync-url needs --xenia-us
 GPASS="$(security find-generic-password -s xenia-msi-test-guest -a "$GUSER" -w 2>/dev/null)" \
     || { echo "Keychain item xenia-msi-test-guest for $GUSER not found" >&2; exit 2; }
 
+# Optional VM encryption password, passed to every vmrun call as -vp.
+VPASS="$(security find-generic-password -s xenia-msi-test-vmx -w 2>/dev/null || true)"
+VPARGS=()
+[ -n "$VPASS" ] && VPARGS=(-vp "$VPASS")
+vm() { "$VMRUN" -T fusion ${VPARGS[@]+"${VPARGS[@]}"} "$@"; }
+
 OUT="$HERE/out/$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$OUT"
 LOG="$OUT/run.log"
@@ -57,7 +65,7 @@ log() { echo "[$(date +%H:%M:%S)] $*" | tee -a "$LOG"; }
 
 # vmrun with guest credentials. The password is passed as an argument, which
 # local users of the Mac can see in ps while the call runs; nothing is logged.
-vg() { "$VMRUN" -T fusion -gu "$GUSER" -gp "$GPASS" "$@"; }
+vg() { vm -gu "$GUSER" -gp "$GPASS" "$@"; }
 
 GW='C:\xen304'
 PS='C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
@@ -83,20 +91,20 @@ cleanup() {
     done
     if [ "$KEEP" = 0 ]; then
         log "reverting to snapshot $SNAPSHOT"
-        "$VMRUN" -T fusion revertToSnapshot "$VMX" "$SNAPSHOT" >>"$LOG" 2>&1
+        vm revertToSnapshot "$VMX" "$SNAPSHOT" >>"$LOG" 2>&1
     fi
-    unset GPASS XPASS
+    unset GPASS XPASS VPASS VPARGS
 }
 trap cleanup EXIT
 
 log "reverting to snapshot $SNAPSHOT and starting the VM"
-"$VMRUN" -T fusion revertToSnapshot "$VMX" "$SNAPSHOT" >>"$LOG" 2>&1 || { log "revert failed"; exit 1; }
-"$VMRUN" -T fusion start "$VMX" nogui >>"$LOG" 2>&1
+vm revertToSnapshot "$VMX" "$SNAPSHOT" >>"$LOG" 2>&1 || { log "revert failed"; exit 1; }
+vm start "$VMX" nogui >>"$LOG" 2>&1
 for i in $(seq 1 60); do
-    "$VMRUN" -T fusion checkToolsState "$VMX" 2>/dev/null | grep -q running && break
+    vm checkToolsState "$VMX" 2>/dev/null | grep -q running && break
     sleep 5
 done
-"$VMRUN" -T fusion checkToolsState "$VMX" 2>/dev/null | grep -q running || { log "VMware Tools not running"; exit 1; }
+vm checkToolsState "$VMX" 2>/dev/null | grep -q running || { log "VMware Tools not running"; exit 1; }
 
 log "copying scripts and MSIs into the guest"
 vg createDirectoryInGuest "$VMX" "$GW" >>"$LOG" 2>&1
