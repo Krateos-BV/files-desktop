@@ -4,6 +4,7 @@
 @preconcurrency import FileProvider
 import Foundation
 import GRDB
+import os
 
 ///
 /// The file provider domain's metadata database.
@@ -65,8 +66,13 @@ public final class FilesDatabaseManager: Sendable {
         }
     }
 
+    /// Records which package members must stay deleted until the folder is published.
+    typealias ActiveDownload = (operation: DownloadOperation, etag: String, remotePath: String, wasDeleted: Bool)
+
     let logger: FileProviderLogger
     let account: Account
+    /// Share ownership and the starting ETag and path across managers accessing the same database.
+    static let downloadOperations = OSAllocatedUnfairLock(initialState: [String: [String: ActiveDownload]]())
 
     /// The open database: a pool on the domain's file, or an in-memory queue when no directory is available.
     let writer: any DatabaseWriter
@@ -238,16 +244,20 @@ public final class FilesDatabaseManager: Sendable {
     ///
     func write<T>(durability: WriteDurability, _ body: (Database) throws -> T) throws -> T {
         try writer.writeWithoutTransaction { db in
-            try db.execute(sql: durability.pragma)
-
-            var result: T?
-            try db.inTransaction {
-                result = try body(db)
-                return .commit
-            }
-
-            return result!
+            try writeTransaction(in: db, durability: durability, body)
         }
+    }
+
+    private func writeTransaction<T>(in db: Database, durability: WriteDurability, _ body: (Database) throws -> T) throws -> T {
+        try db.execute(sql: durability.pragma)
+
+        var result: T?
+        try db.inTransaction {
+            result = try body(db)
+            return .commit
+        }
+
+        return result!
     }
 
     /// Checkpoint the write-ahead log so the file is complete on disk before the process goes away.
@@ -258,6 +268,39 @@ public final class FilesDatabaseManager: Sendable {
             }
         } catch {
             logger.error("Could not checkpoint the metadata database.", [.error: error])
+        }
+    }
+
+    ///
+    /// Concurrent queue for synchronous database calls made from an `async` context, concurrent
+    /// because the pool already serialises writes and runs reads in parallel.
+    ///
+    private let blockingCallQueue: DispatchQueue = {
+        let queue = DispatchQueue(
+            label: "com.nextcloud.desktopclient.fileprovider.database", qos: .userInitiated, attributes: .concurrent
+        )
+        queue.setSpecific(key: blockingCallQueueKey, value: ())
+        return queue
+    }()
+
+    private static let blockingCallQueueKey = DispatchSpecificKey<Void>()
+
+    /// Whether the caller is running on ``blockingCallQueue``.
+    var isOnBlockingCallQueue: Bool {
+        DispatchQueue.getSpecific(key: Self.blockingCallQueueKey) != nil
+    }
+
+    ///
+    /// Run `work` on ``blockingCallQueue``, suspending the caller rather than blocking a thread of the
+    /// cooperative pool while SQLite waits for the writer or for a free reader.
+    ///
+    /// `work` calls the synchronous methods of this type, each of which enters the database on its own, so it must not run inside another database access.
+    ///
+    public func perform<T: Sendable>(
+        _ work: @escaping @Sendable (FilesDatabaseManager) -> T
+    ) async -> T {
+        await withCheckedContinuation { continuation in
+            blockingCallQueue.async { continuation.resume(returning: work(self)) }
         }
     }
 
@@ -551,7 +594,8 @@ public final class FilesDatabaseManager: Sendable {
         account: String,
         serverUrl: String,
         updatedMetadatas: [SendableItemMetadata],
-        keepExistingDownloadState: Bool
+        keepExistingDownloadState: Bool,
+        preserveDeletedTarget: Bool = false
     ) -> ChangeSet? {
         write("Could not update any item metadatas.", [.account: account, .url: serverUrl], durability: .relaxed) { db in
             // Find the metadatas that we previously knew to be on the server for this account
@@ -625,6 +669,8 @@ public final class FilesDatabaseManager: Sendable {
                 }
 
                 if let existing = try itemMetadata(ocId: readTargetMetadata.ocId, in: db) {
+                    // A folder fetch publishes a deleted directory only after its downloads succeed.
+                    let canUpdateTarget = !preserveDeletedTarget || !existing.deleted
                     if readTargetMetadata.etag == existing.etag {
                         readTargetMetadata.fileProviderContentVersion = existing.fileProviderContentVersion
                     }
@@ -632,11 +678,12 @@ public final class FilesDatabaseManager: Sendable {
                     // `visitedDirectory` is local-only, so it takes no part in the remote-state
                     // comparison and is recorded separately from `metadatasToUpdate`, which is also
                     // the change set handed to the framework.
-                    if readTargetMetadata.directory, !existing.visitedDirectory {
+                    if canUpdateTarget, readTargetMetadata.directory, !existing.visitedDirectory {
                         visitToRecord = readTargetMetadata.ocId
                     }
 
-                    if existing.status == Status.normal.rawValue,
+                    if canUpdateTarget,
+                       existing.status == Status.normal.rawValue,
                        !existing.isInSameDatabaseStoreableRemoteState(readTargetMetadata)
                     {
                         logger.info("Depth 1 read target changed: \(readTargetMetadata.ocId)")
@@ -713,6 +760,24 @@ public final class FilesDatabaseManager: Sendable {
         } ?? nil
     }
 
+    /// Update the current upload state without writing back metadata captured before the transfer.
+    func recordUploadFailure(ocId: String, errorDescription: String, staleLockToken: String?) {
+        write("Could not record upload failure.", [.item: ocId]) { db in
+            guard var record = try itemMetadata(ocId: ocId, in: db),
+                  !record.deleted,
+                  record.status == Status.uploading.rawValue
+            else { return }
+
+            try record.updateChanges(db) {
+                $0.status = Status.uploadError.rawValue
+                $0.sessionError = errorDescription
+                if let staleLockToken, $0.lockToken == staleLockToken {
+                    $0.lockToken = nil
+                }
+            }
+        }
+    }
+
     /// Persist `metadata`, evicting any other live row at its logical address first.
     ///
     /// - Parameter durability: ``WriteDurability/full`` unless the row only mirrors the server.
@@ -720,6 +785,22 @@ public final class FilesDatabaseManager: Sendable {
     public func addItemMetadata(_ metadata: SendableItemMetadata, durability: WriteDurability = .full) {
         write("Failed to add item metadata.", [.item: metadata.ocId, .name: metadata.fileName, .url: metadata.serverUrl], durability: durability) { db in
             try insertItemMetadata(metadata, in: db)
+        }
+    }
+
+    /// Save the item metadata returned by the server. Roll back the write if cancellation is detected before commit.
+    func addItemMetadataFromRemoteRead(
+        _ metadata: SendableItemMetadata,
+        isCancelled: @Sendable @escaping () -> Bool
+    ) async throws {
+        // GRDB's async writer handles Swift task cancellation while waiting for the writer.
+        try await writer.writeWithoutTransaction { db in
+            try self.writeTransaction(in: db, durability: .full) { db in
+                guard !isCancelled() else { throw CancellationError() }
+                try self.insertItemMetadata(metadata, in: db)
+                // Progress can be cancelled before its handler cancels the Swift task.
+                guard !isCancelled() else { throw CancellationError() }
+            }
         }
     }
 
@@ -805,11 +886,10 @@ public final class FilesDatabaseManager: Sendable {
     /// these fields back to their defaults, silently undoing user-visible
     /// state such as "Always keep downloaded" (#9923).
     ///
-    /// Returns the merged metadata that was persisted. Callers that report
-    /// items back to the file-provider framework MUST forward the returned
-    /// value rather than the input — otherwise the framework receives the
-    /// pre-merge defaults and renders the item as if the local-only state
-    /// (e.g. pinned-via-keep-downloaded) had been cleared.
+    /// Returns the metadata to report to File Provider, including the existing
+    /// row when the item has an unfinished upload. Callers must report this
+    /// value so File Provider sees local state such as ``keepDownloaded``.
+    /// Incoming server metadata uses defaults for these local-only fields.
     ///
     /// - Parameters:
     ///   - metadata: The freshly-built metadata to persist.
@@ -826,6 +906,13 @@ public final class FilesDatabaseManager: Sendable {
         // Server-derived rows written once per item during enumeration; the local flags they carry over were committed durably when they were set.
         write("Failed to add item metadata.", [.item: metadata.ocId, .name: metadata.fileName, .url: metadata.serverUrl], durability: .relaxed) { db in
             if let existing = try itemMetadata(ocId: metadata.ocId, in: db) {
+                let hasFailedUpload = !existing.uploaded && existing.status == Status.uploadError.rawValue
+                // A listing describes the server copy while the local edit is still pending.
+                if !existing.deleted, existing.isUpload || hasFailedUpload {
+                    toWrite = existing.metadata
+                    return
+                }
+
                 toWrite.downloaded = existing.downloaded
                 toWrite.keepDownloaded = existing.keepDownloaded
 
@@ -836,6 +923,19 @@ public final class FilesDatabaseManager: Sendable {
                 toWrite.lockToken = existing.lockToken
                 if toWrite.etag == existing.etag {
                     toWrite.fileProviderContentVersion = existing.fileProviderContentVersion
+                }
+
+                // An ocId lookup can find a moved or deleted row, so check location and deletion state.
+                // Compare visitedDirectory separately because it is local-only.
+                // Writing other non-normal rows resets their state.
+                if !existing.deleted,
+                   existing.status == Status.normal.rawValue,
+                   existing.hasSameLocation(as: toWrite),
+                   existing.isInSameDatabaseStoreableRemoteState(toWrite),
+                   existing.visitedDirectory == toWrite.visitedDirectory
+                {
+                    logger.debug("Skipping item metadata write; database already holds this remote state.", [.item: toWrite.ocId, .name: toWrite.fileName])
+                    return
                 }
             } else {
                 // The ocId lookup missed. Before falling back to defaults from the
@@ -967,8 +1067,11 @@ public final class FilesDatabaseManager: Sendable {
     public func parentItemIdentifierWithRemoteFallback(
         fromMetadata metadata: SendableItemMetadata,
         remoteInterface: RemoteInterface,
-        account: Account
+        account: Account,
+        taskHandler: @Sendable @escaping (URLSessionTask) -> Void = { _ in },
+        isCancelled: @Sendable @escaping () -> Bool = { Task.isCancelled }
     ) async -> NSFileProviderItemIdentifier? {
+        guard !isCancelled() else { return nil }
         if let parentItemIdentifier = parentItemIdentifierFromMetadata(metadata) {
             return parentItemIdentifier
         }
@@ -979,8 +1082,12 @@ public final class FilesDatabaseManager: Sendable {
             remoteInterface: remoteInterface,
             dbManager: self,
             depth: .target,
+            taskHandler: taskHandler,
+            isCancelled: isCancelled,
             log: logger.log
         )
+
+        guard !isCancelled() else { return nil }
 
         guard readResult.error == nil, let parentMetadata = readResult.metadatas?.first else {
             logger.error("Could not retrieve parent item identifier remotely.", [

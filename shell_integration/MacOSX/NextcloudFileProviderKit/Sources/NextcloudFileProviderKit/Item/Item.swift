@@ -58,12 +58,8 @@ public final class Item: NSObject, NSFileProviderItem, Sendable {
                 capabilities.insert(.allowsWriting)
             }
 
-            if permissions.contains("NV") { // Updateable, renameable, moveable
+            if permissions.contains("NV") { // Renameable, moveable
                 capabilities.formUnion([.allowsRenaming, .allowsReparenting])
-
-                if metadata.directory {
-                    capabilities.insert(.allowsAddingSubItems)
-                }
             }
 
             if permissions.contains("CK"), metadata.directory { // Folder not changeable but adding sub-files & -folders
@@ -131,13 +127,22 @@ public final class Item: NSObject, NSFileProviderItem, Sendable {
     }
 
     public var filename: String {
+        Self.filename(for: metadata)
+    }
+
+    static func filename(for metadata: SendableItemMetadata) -> String {
         metadata.isTrashed && !metadata.trashbinFileName.isEmpty ?
             metadata.trashbinFileName : !metadata.fileName.isEmpty ?
             metadata.fileName : "unnamed file"
     }
 
     public var contentType: UTType {
-        if itemIdentifier == .rootContainer || (metadata.contentType.isEmpty && metadata.directory) {
+        Self.contentType(for: metadata)
+    }
+
+    static func contentType(for metadata: SendableItemMetadata) -> UTType {
+        let filename = Self.filename(for: metadata)
+        if metadata.ocId == NSFileProviderItemIdentifier.rootContainer.rawValue || (metadata.contentType.isEmpty && metadata.directory) {
             return .folder
         } else if metadata.contentType == "httpd/unix-directory", metadata.directory {
             let filenameComponents = filename.components(separatedBy: ".")
@@ -375,6 +380,7 @@ public final class Item: NSObject, NSFileProviderItem, Sendable {
             ownerId: "", // Placeholder as not set in original code
             ownerDisplayName: "", // Placeholder as not set in original code
             path: "", // Placeholder as not set in original code
+            permissions: "RGDNVCK",
             serverUrl: account.davFilesUrl,
             size: 0, // Default as not set in original code
             uploaded: true,
@@ -430,6 +436,7 @@ public final class Item: NSObject, NSFileProviderItem, Sendable {
             ownerId: "", // Placeholder as not set in original code
             ownerDisplayName: "", // Placeholder as not set in original code
             path: "", // Placeholder as not set in original code
+            permissions: "RGDNVCK",
             serverUrl: account.trashUrl,
             size: 0, // Default as not set in original code
             uploaded: true,
@@ -478,10 +485,20 @@ public final class Item: NSObject, NSFileProviderItem, Sendable {
         super.init()
     }
 
-    public static func storedItem(identifier: NSFileProviderItemIdentifier, account: Account, remoteInterface: RemoteInterface, dbManager: FilesDatabaseManager, log: any FileProviderLogging) async -> Item? {
+    public static func storedItem(
+        identifier: NSFileProviderItemIdentifier,
+        account: Account,
+        remoteInterface: RemoteInterface,
+        dbManager: FilesDatabaseManager,
+        taskHandler: @Sendable @escaping (URLSessionTask) -> Void = { _ in },
+        isCancelled: @Sendable @escaping () -> Bool = { Task.isCancelled },
+        log: any FileProviderLogging
+    ) async -> Item? {
         // resolve the given identifier to a record in the model
 
+        guard !isCancelled() else { return nil }
         let remoteSupportsTrash = await remoteInterface.supportsTrash(account: account)
+        guard !isCancelled() else { return nil }
 
         guard identifier != .rootContainer else {
             return Item.rootContainer(
@@ -512,17 +529,21 @@ public final class Item: NSObject, NSFileProviderItem, Sendable {
             await dbManager.parentItemIdentifierWithRemoteFallback(
                 fromMetadata: metadata,
                 remoteInterface: remoteInterface,
-                account: account
+                account: account,
+                taskHandler: taskHandler,
+                isCancelled: isCancelled
             )
         }
 
-        guard let parentItemIdentifier else {
+        guard !isCancelled(), let parentItemIdentifier else {
             return nil
         }
 
         // Display File Actions
 
         let displayFileActions = await Item.typeHasApplicableContextMenuItems(account: account, remoteInterface: remoteInterface, candidate: metadata.contentType)
+
+        guard !isCancelled() else { return nil }
 
         return Item(
             metadata: metadata,

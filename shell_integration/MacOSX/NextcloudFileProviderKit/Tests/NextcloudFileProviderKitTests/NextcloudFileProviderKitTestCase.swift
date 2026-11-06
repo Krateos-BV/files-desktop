@@ -9,6 +9,10 @@ import XCTest
 /// Common base class for all tests in this target.
 ///
 class NextcloudFileProviderKitTestCase: XCTestCase {
+    func setUpDatabase(_ dbManager: FilesDatabaseManager) {
+        try! dbManager.removeAllRowsForTesting()
+    }
+
     ///
     /// Whether this test expects its production code to log `.error` or `.fault` messages.
     ///
@@ -50,6 +54,8 @@ class NextcloudFileProviderKitTestCase: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         await InsufficientQuotaReporter.resetSummaryDedupForTesting()
+        // Tests reuse accounts while advertising different server capabilities.
+        await RetrievedCapabilitiesActor.shared.reset()
     }
 
     override func setUp() {
