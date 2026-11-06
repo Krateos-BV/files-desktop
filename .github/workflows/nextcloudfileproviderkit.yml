@@ -24,13 +24,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # XEN-305: pin SwiftFormat instead of using whatever the runner image ships.
-      # Runner image macos-26-arm64 20261026 moved from 0.63.1 to 0.64.3, whose new
-      # rules (repeatedGuard, nestedIf, ...) fail lint on unchanged code. Bump this
-      # together with a formatting pass over the package.
+      # XEN-324: 0.64.3, the version upstream formats against since 3527955. Upstream's
+      # .swiftformat now says `--disable repeatedGuard`, which 0.63.1 rejects as an
+      # unknown rule (exit 70). Bump this together with a formatting pass over the package.
       - name: Install SwiftFormat
         env:
-          SWIFTFORMAT_VERSION: 0.63.1
-          SWIFTFORMAT_SHA256: 385ef1a263ba28685157b98c5536b9c9105e124518f28b7ef8a2bee4b167eaeb
+          SWIFTFORMAT_VERSION: 0.64.3
+          SWIFTFORMAT_SHA256: 5caff00f02c440cc50d1dad588e949402c7cb271f5f8ae248a788164d21bf41a
         run: |
           curl -sSLf -o "$RUNNER_TEMP/swiftformat.zip" "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/swiftformat.zip"
           echo "${SWIFTFORMAT_SHA256}  $RUNNER_TEMP/swiftformat.zip" | shasum -a 256 -c -
