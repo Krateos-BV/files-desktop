@@ -8,7 +8,7 @@
 # %USERPROFILE%\.netrc, which the host copies in and this script deletes.
 
 param(
-    [Parameter(Mandatory)][ValidateSet('install','verify','uninstall','verify-removed','sync')]
+    [Parameter(Mandatory)][ValidateSet('install','verify','uninstall','verify-removed','sync','comload')]
     [string]$Phase,
     [string]$Msi,
     [string]$Tag = $Phase,
@@ -131,6 +131,19 @@ try {
             $up = Get-Related $UpstreamUpgradeCode
             Check 'Nextcloud install (if any) still present' $true "upstream products: $($up -join ', ')"
             $pc | Set-Content (Join-Path $Work "productcode-$Tag.txt")
+        }
+        'comload' {
+            # x64 hosts only: instantiate each shell extension COM object, which
+            # loads NCContextMenu.dll / NCOverlays.dll in this (x64) process.
+            foreach ($g in $XeniaClsids) {
+                try {
+                    $obj = [Activator]::CreateInstance([Type]::GetTypeFromCLSID([Guid]$g, $true))
+                    Check "COM object $g loads" ($null -ne $obj)
+                    [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($obj)
+                } catch {
+                    Check "COM object $g loads" $false $_.Exception.Message
+                }
+            }
         }
         'uninstall' {
             $related = Get-Related $UpgradeCode
