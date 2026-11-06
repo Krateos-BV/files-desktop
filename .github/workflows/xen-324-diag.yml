@@ -1,0 +1,70 @@
+# SPDX-FileCopyrightText: 2026 Krateos B.V.
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#
+# XEN-324: temporary diagnostic for the Swift Testing hang on #55. Runs each Swift Testing
+# suite on its own with a 5 minute bound, and prints a compact list of XCTest failures.
+# Remove before merge.
+
+name: XEN-324 test diagnostics
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    types: [opened, reopened, synchronize, ready_for_review]
+
+jobs:
+  Diagnose:
+    runs-on: macos-26
+    timeout-minutes: 90
+
+    defaults:
+      run:
+        working-directory: shell_integration/MacOSX/NextcloudFileProviderKit
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+    - uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+      with:
+        xcode-version: latest-stable
+
+    - name: Build for testing
+      run: xcodebuild build-for-testing -scheme NextcloudFileProviderKit-Package -destination "platform=macOS,name=My Mac" -derivedDataPath "$RUNNER_TEMP/dd" > "$RUNNER_TEMP/build.log" 2>&1 || { tail -50 "$RUNNER_TEMP/build.log"; exit 1; }
+
+    - name: Run each Swift Testing suite alone
+      run: |
+        set +e
+        for suite in AccountSessionTests AncestorRefreshCoalescerTests AsyncTestSupportTests AwaitAccountTests \
+            BlockSyncTests DatabaseTestSuites DirtyUserDataObserverTests EnumeratorPageResponseTests \
+            EnumeratorPersistenceTests FileProviderExtensionLoggingTests IgnoredFilesMatcherTests ItemMetadataTests \
+            KeychainLoginKeychainTests KeychainQueryTests LocalFilesTests NetworkOperationCancellationTests \
+            RealmStoreImporterTests RemoteInterfaceExtensionTests RetrievedCapabilitiesActorTests \
+            SafeFilenameUrlTests StoreReplacementAnchorTests StoreVersionGuardTests SyncAnchorTests ThumbnailFetchingTests; do
+          log="$RUNNER_TEMP/suite-$suite.log"
+          start=$(date +%s)
+          perl -e 'alarm shift; exec @ARGV' 300 xcodebuild test-without-building -scheme NextcloudFileProviderKit-Package \
+            -destination "platform=macOS,name=My Mac" -derivedDataPath "$RUNNER_TEMP/dd" \
+            -only-testing:"NextcloudFileProviderKitTests/$suite" > "$log" 2>&1
+          status=$?
+          pkill -9 xctest; pkill -9 xcodebuild
+          elapsed=$(( $(date +%s) - start ))
+          case $status in
+            0) verdict=PASS ;;
+            142) verdict=HANG ;;
+            *) verdict="FAIL($status)" ;;
+          esac
+          echo "RESULT $suite $verdict ${elapsed}s"
+          if [ "$verdict" != PASS ]; then
+            grep -E "✘|started\.|passed after|failed after|error:" "$log" | tail -40
+          fi
+        done
+
+    - name: List XCTest failures of the full run
+      if: always()
+      run: |
+        set +e
+        perl -e 'alarm shift; exec @ARGV' 900 xcodebuild test-without-building -scheme NextcloudFileProviderKit-Package \
+          -destination "platform=macOS,name=My Mac" -derivedDataPath "$RUNNER_TEMP/dd" > "$RUNNER_TEMP/full.log" 2>&1
+        echo "exit $?"
+        grep -oE "error: -\[NextcloudFileProviderKitTests\.[A-Za-z]+ [A-Za-z_0-9]+\] : .{0,90}" "$RUNNER_TEMP/full.log" | sort -u
+        grep -E "Executed [0-9]+ tests" "$RUNNER_TEMP/full.log" | tail -1
