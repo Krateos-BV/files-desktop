@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Nextcloud GmbH and Nextcloud contributors
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
 # XEN-304 guest-side checks for the Xenia Files MSI.
 # Runs inside the Windows VM, started by xen304-vm-test.sh through vmrun.
 # Each phase writes C:\xen304\result-<Phase>.json with pass/fail per check.

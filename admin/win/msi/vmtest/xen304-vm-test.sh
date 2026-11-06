@@ -1,4 +1,7 @@
 #!/bin/bash
+# SPDX-FileCopyrightText: 2026 Nextcloud GmbH and Nextcloud contributors
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
 # XEN-304: automated install / upgrade / uninstall test of the Xenia Files MSI
 # in a VMware Fusion Windows VM on the Mac Mini. Drives the guest with vmrun.
 #

@@ -1,3 +1,7 @@
+<!--
+  - SPDX-FileCopyrightText: 2026 Nextcloud GmbH and Nextcloud contributors
+  - SPDX-License-Identifier: GPL-2.0-or-later
+-->
 # MSI VM test (Xenia)
 
 Automated install, upgrade and uninstall test of the Xenia Files MSI in a
