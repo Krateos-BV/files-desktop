@@ -461,6 +461,7 @@ final class ItemDeleteTests: NextcloudFileProviderKitTestCase {
     }
 
     func testDeleteIsRefusedWhenTheExclusionLookupFails() async throws {
+        expectLoggedErrors()
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, rootTrashItem: rootTrashItem)
         let remoteFile = MockRemoteItem(
             identifier: "lookup-failure-id",

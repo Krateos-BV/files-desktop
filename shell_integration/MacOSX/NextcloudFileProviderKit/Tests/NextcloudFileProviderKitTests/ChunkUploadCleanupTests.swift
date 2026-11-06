@@ -92,6 +92,7 @@ final class ChunkUploadCleanupTests: NextcloudFileProviderKitTestCase {
     }
 
     func testStartupCleanupIsSkippedWhenTheDecisionCannotBeRead() throws {
+        expectLoggedErrors()
         let seeded = try seedChunkUpload(
             itemIdentifier: "undecidable-item",
             metadataStatus: .normal
@@ -266,6 +267,7 @@ final class ChunkUploadCleanupTests: NextcloudFileProviderKitTestCase {
     }
 
     func testDiscardChunkUploadsWithUnreadableChunkRowsDiscardsOnlyTheBoundUpload() throws {
+        expectLoggedErrors()
         let boundUpload = try seedChunkUpload(uploadIdentifier: chunkUploadIdentifierPrefix(forItemWithIdentifier: "a") + "bound", itemIdentifier: "a", metadataStatus: .normal)
         let staleUpload = try seedChunkUpload(uploadIdentifier: chunkUploadIdentifierPrefix(forItemWithIdentifier: "a") + "stale", itemIdentifier: "a", metadataStatus: nil)
         try dbManager.breakTableForTesting(RemoteFileChunkRecord.databaseTableName)

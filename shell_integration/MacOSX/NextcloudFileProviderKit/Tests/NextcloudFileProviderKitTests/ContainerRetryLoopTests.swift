@@ -233,6 +233,7 @@ final class ContainerRetryLoopTests: NextcloudFileProviderKitTestCase {
     /// download.
     ///
     func testConfirmationInAnotherDomainDoesNotReleaseThisDomainsDownload() async throws {
+        expectLoggedErrors()
         let otherDbManager = try FilesDatabaseManager(
             account: Self.account,
             databaseDirectory: makeDatabaseDirectory(),

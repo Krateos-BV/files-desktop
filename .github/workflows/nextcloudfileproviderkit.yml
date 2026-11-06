@@ -46,6 +46,9 @@ jobs:
   Tests:
     if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
     runs-on: macos-26
+    # XEN-324: same limit as upstream. A hung test otherwise holds the runner until the
+    # 6 h job limit (seen on #55 in AccountSessionTests).
+    timeout-minutes: 60
 
     defaults:
       run:

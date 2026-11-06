@@ -2254,6 +2254,7 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     }
 
     func testWorkingSetContinuationFinishesWithAnErrorWhenStoredChangesCannotBeRead() async throws {
+        expectLoggedErrors()
         // After an intermediate batch was acknowledged, the next batch is read from the stored session. If
         // that read fails, the enumeration must end with an error and keep the session, not finish on an
         // empty batch and acknowledge the changes which were never delivered.
@@ -2273,6 +2274,7 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     }
 
     func testWorkingSetContinuationFinishesWithAnErrorWhenTheStoredSessionCannotBeRead() async throws {
+        expectLoggedErrors()
         // A continuation anchor whose session cannot be read must not pass for an unknown anchor: the
         // enumeration would then expire the anchor or derive the changes anew and drop the stored remainder.
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
@@ -2291,6 +2293,7 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     }
 
     func testWorkingSetChangesFinishWithAnErrorWhenTheStoredSessionCannotBeRead() async throws {
+        expectLoggedErrors()
         // A failed read of the stored session must not pass for "no session": the enumeration would then
         // derive the changes anew and finish on the current anchor without ever delivering them.
         let anchor = Enumerator.syncAnchor(at: Date().addingTimeInterval(-300), storeIdentity: Self.dbManager.storeIdentity)

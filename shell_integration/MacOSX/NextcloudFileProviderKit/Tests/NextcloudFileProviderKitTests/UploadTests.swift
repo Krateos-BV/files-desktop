@@ -146,6 +146,7 @@ final class UploadTests: NextcloudFileProviderKitTestCase {
     }
 
     func testChunkedUploadIsNotStartedWhenTheRecordedChunksCannotBeRead() async throws {
+        expectLoggedErrors()
         let fileUrl = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try Data(repeating: 1, count: 8).write(to: fileUrl)
         defer { try? FileManager.default.removeItem(at: fileUrl) }
