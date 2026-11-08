@@ -35,6 +35,9 @@
 
 #include "config.h"
 #include "settings/migration.h"
+#if defined(XENIA_UPDATE_CHECK)
+#include "xenia/xeniaupdatecheck.h" // XEN-341
+#endif
 
 #if defined(Q_OS_WIN)
 #include <windows.h>
@@ -511,6 +514,13 @@ Application::Application(int &argc, char **argv)
         _gui.data(), &ownCloudGui::slotShowTrayUpdateMessage);
     connect(updaterScheduler, &UpdaterScheduler::requestRestart,
         _folderManager.data(), &FolderMan::slotScheduleAppRestart);
+#endif
+
+#if defined(XENIA_UPDATE_CHECK)
+    // XEN-341: Xenia's GitHub release check (see xenia/xeniaupdatecheck.h)
+    connect(Xenia::UpdateCheck::instance(), &Xenia::UpdateCheck::updateAnnouncement,
+        _gui.data(), &ownCloudGui::slotShowTrayUpdateMessage);
+    Xenia::UpdateCheck::instance()->start();
 #endif
 
     // Cleanup at Quit.

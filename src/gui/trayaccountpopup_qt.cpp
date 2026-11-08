@@ -13,6 +13,10 @@
 #include "tray/trayaccountmenupolicy.h"
 #include "tray/trayimageutils.h"
 #include "tray/usermodel.h"
+#include "config.h"
+#if defined(XENIA_UPDATE_CHECK)
+#include "xenia/xeniaupdatecheck.h" // XEN-341
+#endif
 
 #include <QAbstractItemModel>
 #include <QAction>
@@ -870,6 +874,10 @@ void populateTrayMenu(QMenu *menu, Systray *systray)
         }
         menu->addSeparator();
     }
+
+#if defined(XENIA_UPDATE_CHECK)
+    Xenia::UpdateCheck::instance()->addMenuAction(menu); // XEN-341
+#endif
 
     if (systray->enableAddAccount()) {
         const auto addAccountAction = addMenuAction(menu,

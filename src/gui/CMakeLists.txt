@@ -277,6 +277,16 @@ if (NOT DISABLE_ACCOUNT_MIGRATION)
     )
 endif()
 
+# XEN-341: Xenia update check, fork-only files
+if(XENIA_UPDATE_CHECK)
+    list(APPEND client_SRCS
+        xenia/xeniaupdatelogic.h
+        xenia/xeniaupdatelogic.cpp
+        xenia/xeniaupdatecheck.h
+        xenia/xeniaupdatecheck.cpp
+    )
+endif()
+
 IF(BUILD_UPDATER)
     set(updater_SRCS
         updater/ocupdater.h

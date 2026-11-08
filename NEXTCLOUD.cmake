@@ -119,6 +119,24 @@ set( MAC_INSTALLER_BACKGROUND_FILE "${CMAKE_SOURCE_DIR}/admin/osx/installer-back
 # channel.
 option( BUILD_UPDATER "Build updater" OFF )
 
+# XEN-341: Xenia's own update check (src/gui/xenia/), the same path as Xenia Talk:
+# read the public GitHub release list, offer a newer stable release in the tray
+# menu, open its installer in the browser. Independent of BUILD_UPDATER above.
+# It only runs in builds that know their release tag: the release workflow writes
+# the tag (without "v") to xenia-release-version.txt before building. Without the
+# file, as in every dev and CI build, the check stays off.
+option( XENIA_UPDATE_CHECK "Check GitHub releases for a newer Xenia Files" ON )
+set( XENIA_UPDATE_REPOSITORY "Krateos-BV/files-desktop" CACHE STRING "GitHub repository whose releases the update check reads" )
+unset( XENIA_RELEASE_VERSION )
+if( EXISTS "${CMAKE_CURRENT_LIST_DIR}/xenia-release-version.txt" )
+    file( STRINGS "${CMAKE_CURRENT_LIST_DIR}/xenia-release-version.txt" XENIA_RELEASE_VERSION LIMIT_COUNT 1 )
+    string( STRIP "${XENIA_RELEASE_VERSION}" XENIA_RELEASE_VERSION )
+    if( NOT XENIA_RELEASE_VERSION MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+(\\.[0-9]+)?$" )
+        message( FATAL_ERROR "xenia-release-version.txt must hold a CalVer version such as 26.11.6, found '${XENIA_RELEASE_VERSION}'" )
+    endif()
+    message( STATUS "Xenia release version: ${XENIA_RELEASE_VERSION}" )
+endif()
+
 option( WITH_PROVIDERS "Build with providers list" ON )
 
 option( ENFORCE_VIRTUAL_FILES_SYNC_FOLDER "Enforce use of virtual files sync folder when available" OFF )
