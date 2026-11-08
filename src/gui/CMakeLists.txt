@@ -878,11 +878,19 @@ if(BUILD_OWNCLOUD_OSX_BUNDLE AND NOT BUILD_LIBRARIES_ONLY)
     add_custom_command(TARGET nextcloud POST_BUILD
         COMMAND "${MACDEPLOYQT_EXECUTABLE}"
         "$<TARGET_FILE_DIR:nextcloud>/../.."
-        -qmldir=${CMAKE_SOURCE_DIR}/src/gui
+        "-qmldir=${CMAKE_SOURCE_DIR}/src/gui"
         -always-overwrite
-        -executable="$<TARGET_FILE_DIR:nextcloud>/${cmd_NAME}"
-        -libpath=${MACDEPLOYQT_LIB_DIR}
-        -libpath=${BIN_OUTPUT_DIRECTORY}
+        # Quote each whole option=value argument. With quotes only around the value,
+        # CMake keeps them as literal characters and escapes the space in a bundle
+        # name such as "Xenia Files.app" as "Xenia\ Files.app", so macdeployqt
+        # receives a path that does not exist and skips the cmd binary (it logs
+        # errors but the build carries on).
+        # The cmd binary is the one whose build-tree RPATH lets macdeployqt resolve
+        # @rpath/lib<executable>sync.0.dylib and copy the sync libraries into
+        # Contents/Frameworks. Without it the app fails to launch (XEN-343).
+        "-executable=$<TARGET_FILE_DIR:nextcloud>/${cmd_NAME}"
+        "-libpath=${MACDEPLOYQT_LIB_DIR}"
+        "-libpath=${BIN_OUTPUT_DIRECTORY}"
         ${NO_STRIP}
         COMMAND "${CMAKE_COMMAND}"
         -E rm -rf "${BIN_OUTPUT_DIRECTORY}/${OWNCLOUD_OSX_BUNDLE}/Contents/PlugIns/bearer"

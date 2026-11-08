@@ -14,6 +14,11 @@
 # pattern would cut a Xenia release from any upstream tag that reached the fork.
 # 'v2[6-9]' cannot match an upstream tag such as v34.* or v2.6.*.
 #
+# Manual dispatch on main (XEN-338) runs the same signed builds and uploads them as
+# workflow artifacts, but creates no release and needs no tag. It is the signed
+# build that gets the real login test before a tag is pushed. The CalVer check is
+# skipped on dispatch; the "commit is on main" check still applies.
+#
 # Signing is optional and decided per platform by the secrets-report job:
 #   macOS   - signed and notarised only if all five APPLE_* secrets resolve.
 #   Windows - the .zip is signed only if WINDOWS_CODESIGN_PFX and
@@ -31,6 +36,7 @@ on:
     tags:
       - 'v2[6-9].[0-9]+.[0-9]+'
       - 'v2[6-9].[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
 
 permissions: {}
 
@@ -54,6 +60,7 @@ jobs:
           fetch-depth: 0
 
       - name: Check the tag is a valid CalVer date
+        if: github.event_name == 'push'
         shell: bash
         run: |
           set -euo pipefail
@@ -195,7 +202,7 @@ jobs:
           APPNAME: "Xenia Files"
           APPICON_NAME: "Xenia Files"
           EXECUTABLE_NAME: xenia-files
-          VERSION_SUFFIX: ${{ github.ref_name }}
+          VERSION_SUFFIX: ${{ github.event_name == 'push' && github.ref_name || format('dispatch{0}', github.run_number) }}
         # BUILD_UPDATER=OFF: Xenia has no update channel of its own (XNT-113).
         run: |
           BUILDNR=${GITHUB_RUN_ID} BUILD_UPDATER=OFF DESKTOP_CLIENT_ROOT="$(pwd)" QT_BASE_DIR=/root/linux-gcc-x86_64 /bin/bash -c "./admin/linux/build-appimage.sh"
@@ -438,6 +445,11 @@ jobs:
             --product-path "${RUNNER_TEMP}/mc-product" \
             ${SIGN_ARGS[@]+"${SIGN_ARGS[@]}"}
 
+      # A bundle whose libraries do not resolve inside it signs, notarises and
+      # staples fine, then aborts at launch in dyld (XEN-343). Fail here instead.
+      - name: Check every library resolves inside the bundle
+        run: bash admin/osx/xenia-check-bundle-linkage.sh "${RUNNER_TEMP}/mc-product/Xenia Files.app"
+
       - name: Notarise and staple
         if: env.SIGN == 'true'
         env:
@@ -460,18 +472,68 @@ jobs:
           xcrun stapler staple "Xenia Files.app"
           rm -f "${RUNNER_TEMP}/notarise.zip"
 
-      - name: Zip the app bundle
+      # The macOS deliverable is a drag-to-Applications DMG. The app inside it is
+      # already notarised and stapled; the DMG is signed, notarised and stapled in
+      # its own right so Gatekeeper accepts it straight from the download.
+      - name: Build the DMG
+        id: dmg
+        env:
+          CODESIGN_IDENTITY: ${{ steps.keychain.outputs.identity }}
         run: |
           set -euo pipefail
           if [ "${SIGN}" = "true" ]; then SUFFIX=signed; else SUFFIX=unsigned; fi
-          cd "${RUNNER_TEMP}/mc-product"
-          ditto -c -k --keepParent "Xenia Files.app" "${RUNNER_TEMP}/xenia-files-macos-arm64-${SUFFIX}.zip"
+          DMG="${RUNNER_TEMP}/xenia-files-macos-arm64-${SUFFIX}.dmg"
+          STAGE="${RUNNER_TEMP}/dmg-stage"
+          rm -rf "${STAGE}" "${DMG}"
+          mkdir -p "${STAGE}"
+          ditto "${RUNNER_TEMP}/mc-product/Xenia Files.app" "${STAGE}/Xenia Files.app"
+          ln -s /Applications "${STAGE}/Applications"
+          hdiutil create -volname "Xenia Files" -srcfolder "${STAGE}" -fs HFS+ -format UDZO -ov "${DMG}"
+          rm -rf "${STAGE}"
+          if [ "${SIGN}" = "true" ]; then
+            codesign --force --timestamp --sign "${CODESIGN_IDENTITY}" "${DMG}"
+            codesign --verify --verbose=2 "${DMG}"
+          fi
+          echo "path=${DMG}" >> "${GITHUB_OUTPUT}"
 
-      - name: Upload macOS archive
+      - name: Notarise and staple the DMG
+        if: env.SIGN == 'true'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          DMG: ${{ steps.dmg.outputs.path }}
+        run: |
+          set -euo pipefail
+          RESULT=$(xcrun notarytool submit "${DMG}" \
+            --apple-id "${APPLE_ID}" --password "${APPLE_ID_PASSWORD}" --team-id "${APPLE_TEAM_ID}" \
+            --wait --output-format json)
+          echo "${RESULT}"
+          STATUS=$(printf '%s' "${RESULT}" | jq -r .status)
+          if [ "${STATUS}" != "Accepted" ]; then
+            echo "::error::DMG notarisation status: ${STATUS}"
+            exit 1
+          fi
+          xcrun stapler staple "${DMG}"
+          xcrun stapler validate "${DMG}"
+          spctl -a -t open --context context:primary-signature -vv "${DMG}"
+
+      # Zipped wrapper for the release job (download-artifact unpacks it to the bare DMG).
+      - name: Upload macOS DMG for the release job
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-macos
-          path: ${{ runner.temp }}/xenia-files-macos-arm64-*.zip
+          path: ${{ steps.dmg.outputs.path }}
+          if-no-files-found: error
+          retention-days: 7
+
+      # Unarchived copy, so a manual dispatch run offers the .dmg itself for the
+      # login test rather than a zip around it.
+      - name: Upload macOS DMG for download
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          path: ${{ steps.dmg.outputs.path }}
+          archive: false
           if-no-files-found: error
           retention-days: 7
 
@@ -480,9 +542,11 @@ jobs:
         run: security delete-keychain "${RUNNER_TEMP}/signing.keychain-db" || true
 
   # The only job with write access. It creates a DRAFT release; publishing it is a
-  # human decision made in the GitHub UI.
+  # human decision made in the GitHub UI. Tag pushes only: a manual dispatch stops
+  # at the build artifacts.
   release:
     name: Create draft GitHub Release
+    if: github.event_name == 'push'
     needs:
       - verify-tag
       - secrets-report
@@ -511,7 +575,7 @@ jobs:
             exit 1
           fi
           cp -v "${appimages[0]}" "dist/Xenia-Files-${TAG}-linux-x86_64-unsigned.AppImage"
-          for f in artifacts/release-windows/*.zip artifacts/release-windows/*.msi artifacts/release-macos/*.zip; do
+          for f in artifacts/release-windows/*.zip artifacts/release-windows/*.msi artifacts/release-macos/*.dmg; do
             cp -v "${f}" "dist/Xenia-Files-${TAG}-$(basename "${f}" | sed 's/^xenia-files-//')"
           done
           ls -l dist
@@ -534,7 +598,7 @@ jobs:
             echo
             echo "| Platform | Asset | Signing |"
             echo "|---|---|---|"
-            echo "| macOS (arm64) | .app in .zip | $(state "${MACOS_SIGN}" 'signed and notarised (Developer ID)') |"
+            echo "| macOS (arm64) | .dmg (drag to Applications) | $(state "${MACOS_SIGN}" 'signed and notarised (Developer ID)') |"
             echo "| Windows (x64) | MSI installer | **UNSIGNED** |"
             echo "| Windows (x64) | build output .zip (fallback, not an installer) | $(state "${WINDOWS_SIGN}" 'signed (Authenticode)') |"
             echo "| Linux (x86_64) | AppImage | **UNSIGNED** (AppImages are not signed) |"
