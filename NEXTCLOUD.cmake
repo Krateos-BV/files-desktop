@@ -139,19 +139,32 @@ option( APPLICATION_WIZARD_USE_CUSTOM_LOGO "Use the logo from ':/client/theme/co
 #
 ## Windows Shell Extensions & MSI - IMPORTANT: Generate new GUIDs for custom builds with "guidgen" or "uuidgen"
 #
+# Xenia Files values, generated for XEN-304 on 4 Nov 2026. They replace upstream
+# Nextcloud's, so a Xenia Files MSI never upgrades or removes an installed
+# Nextcloud client (and the other way round), and the shell extensions do not
+# collide with Nextcloud's in the registry.
+# WIN_MSI_UPGRADE_CODE must NEVER change once a Xenia Files MSI has shipped:
+# Windows Installer uses it to find the installed copy to upgrade.
+#
 if(WIN32)
     # Context Menu
-    set( WIN_SHELLEXT_CONTEXT_MENU_GUID      "{BC6988AB-ACE2-4B81-84DC-DC34F9B24401}" )
+    set( WIN_SHELLEXT_CONTEXT_MENU_GUID      "{F6819FB9-0257-4A7F-995E-CD831E29F5B7}" )
 
     # Overlays
-    set( WIN_SHELLEXT_OVERLAY_GUID_ERROR     "{E0342B74-7593-4C70-9D61-22F294AAFE05}" )
-    set( WIN_SHELLEXT_OVERLAY_GUID_OK        "{E1094E94-BE93-4EA2-9639-8475C68F3886}" )
-    set( WIN_SHELLEXT_OVERLAY_GUID_OK_SHARED "{E243AD85-F71B-496B-B17E-B8091CBE93D2}" )
-    set( WIN_SHELLEXT_OVERLAY_GUID_SYNC      "{E3D6DB20-1D83-4829-B5C9-941B31C0C35A}" )
-    set( WIN_SHELLEXT_OVERLAY_GUID_WARNING   "{E4977F33-F93A-4A0A-9D3C-83DEA0EE8483}" )
+    set( WIN_SHELLEXT_OVERLAY_GUID_ERROR     "{BF3D2A2E-BB57-4E8C-8F13-E4E9D56DC8AA}" )
+    set( WIN_SHELLEXT_OVERLAY_GUID_OK        "{BBBA93E8-9907-49F8-B5E2-0609961446D5}" )
+    set( WIN_SHELLEXT_OVERLAY_GUID_OK_SHARED "{B1619828-D52A-482E-846C-4E93A21303BB}" )
+    set( WIN_SHELLEXT_OVERLAY_GUID_SYNC      "{F9A623EE-F1AD-4893-A731-87C0C4B4370F}" )
+    set( WIN_SHELLEXT_OVERLAY_GUID_WARNING   "{87AEDBBB-8884-4FB5-B854-D1D621797C09}" )
+
+    # Virtual files (CfApi) shell extension COM IDs. CMakeLists.txt applies these
+    # over upstream's values, which it sets after this file is included.
+    set( XENIA_CFAPI_SHELLEXT_APPID                      "1D8C5B3A-1397-4E3E-BD63-550CBBDE9DE2" )
+    set( XENIA_CFAPI_SHELLEXT_CUSTOM_STATE_HANDLER_CLSID "0E2116A2-70EB-4E3E-89D4-8224CE124F3F" )
+    set( XENIA_CFAPI_SHELLEXT_THUMBNAIL_HANDLER_CLSID    "000BBDF5-FBB4-45F7-ACDE-EFE5884384D9" )
 
     # MSI Upgrade Code (without brackets)
-    set( WIN_MSI_UPGRADE_CODE                "FD2FCCA9-BB8F-4485-8F70-A0621B84A7F4" )
+    set( WIN_MSI_UPGRADE_CODE                "DC291C60-54AB-4039-ADB3-9947ACCEF79A" )
 
     # Windows build options
     option( BUILD_WIN_MSI "Build MSI scripts and helper DLL" OFF )
