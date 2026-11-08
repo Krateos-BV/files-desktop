@@ -445,6 +445,11 @@ jobs:
             --product-path "${RUNNER_TEMP}/mc-product" \
             ${SIGN_ARGS[@]+"${SIGN_ARGS[@]}"}
 
+      # A bundle whose libraries do not resolve inside it signs, notarises and
+      # staples fine, then aborts at launch in dyld (XEN-343). Fail here instead.
+      - name: Check every library resolves inside the bundle
+        run: bash admin/osx/xenia-check-bundle-linkage.sh "${RUNNER_TEMP}/mc-product/Xenia Files.app"
+
       - name: Notarise and staple
         if: env.SIGN == 'true'
         env:
