@@ -37,6 +37,14 @@ on:
       - 'v2[6-9].[0-9]+.[0-9]+'
       - 'v2[6-9].[0-9]+.[0-9]+.[0-9]+'
   workflow_dispatch:
+    inputs:
+      test_release_version:
+        description: >-
+          Optional, for testing the update check (XEN-341): a CalVer version such as
+          26.1.1 that the build will claim to be, so it offers the newest published
+          release. Leave empty for a normal signed test build (the check stays off).
+        required: false
+        default: ''
 
 permissions: {}
 
@@ -54,6 +62,7 @@ jobs:
       contents: read
     outputs:
       client-version: ${{ steps.version.outputs.client-version }}
+      release-version: ${{ steps.release-version.outputs.release-version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -100,6 +109,28 @@ jobs:
           CLIENT_VERSION="${MAJOR}.${MINOR}.${PATCH}"
           echo "Client version: ${CLIENT_VERSION}"
           echo "client-version=${CLIENT_VERSION}" >> "${GITHUB_OUTPUT}"
+
+      # XEN-341: the version the in-app update check compares the GitHub releases
+      # against. A tag push uses the tag; a manual dispatch uses the optional test
+      # input, and without it the build has no release version and never checks.
+      - name: Decide the release version for the update check
+        id: release-version
+        shell: bash
+        env:
+          TEST_RELEASE_VERSION: ${{ github.event.inputs.test_release_version }}
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="${TEST_RELEASE_VERSION:-}"
+          fi
+          if [ -n "${VERSION}" ] && [[ ! "${VERSION}" =~ ^2[6-9]\.([1-9]|1[0-2])\.([1-9]|[12][0-9]|3[01])(\.[0-9]+)?$ ]]; then
+            echo "::error::Release version '${VERSION}' is not CalVer YY.M.D[.N]."
+            exit 1
+          fi
+          echo "Release version for the update check: ${VERSION:-none (check off)}"
+          echo "release-version=${VERSION}" >> "${GITHUB_OUTPUT}"
 
   # Names-only report, as in xenia-ci.yml: never reads out or prints a value. It
   # turns secret presence into two booleans the build jobs gate on, because
@@ -186,7 +217,7 @@ jobs:
 
   linux-appimage:
     name: Linux AppImage (unsigned)
-    needs: resolve-container
+    needs: [verify-tag, resolve-container]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -195,6 +226,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
+
+      # XEN-341: CMake reads this file (NEXTCLOUD.cmake) and only then turns the
+      # in-app update check on. Skipped when there is no release version.
+      - name: Write the release version for the update check
+        if: needs.verify-tag.outputs.release-version != ''
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ needs.verify-tag.outputs.release-version }}
+        run: printf '%s\n' "${RELEASE_VERSION}" > xenia-release-version.txt
 
       - name: Configure, compile and package
         id: build-appimage
@@ -218,7 +258,7 @@ jobs:
 
   windows-build:
     name: Windows build
-    needs: secrets-report
+    needs: [verify-tag, secrets-report]
     runs-on: windows-2022
     permissions:
       contents: read
@@ -231,6 +271,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+
+      # XEN-341: CMake reads this file (NEXTCLOUD.cmake) and only then turns the
+      # in-app update check on. Skipped when there is no release version.
+      - name: Write the release version for the update check
+        if: needs.verify-tag.outputs.release-version != ''
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ needs.verify-tag.outputs.release-version }}
+        run: printf '%s\n' "${RELEASE_VERSION}" > xenia-release-version.txt
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -367,7 +416,7 @@ jobs:
 
   macos-build:
     name: macOS build (with File Provider)
-    needs: secrets-report
+    needs: [verify-tag, secrets-report]
     runs-on: macos-26
     timeout-minutes: 150
     permissions:
@@ -378,6 +427,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
+
+      # XEN-341: CMake reads this file (NEXTCLOUD.cmake) and only then turns the
+      # in-app update check on. Skipped when there is no release version.
+      - name: Write the release version for the update check
+        if: needs.verify-tag.outputs.release-version != ''
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ needs.verify-tag.outputs.release-version }}
+        run: printf '%s\n' "${RELEASE_VERSION}" > xenia-release-version.txt
 
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
@@ -582,6 +640,26 @@ jobs:
           [ "$(find dist -type f | wc -l)" -eq 4 ] || { echo "::error::Expected four release assets."; exit 1; }
           (cd dist && sha256sum -- * > SHA256SUMS)
 
+      # XEN-341: installed clients pick their download by these names
+      # (src/gui/xenia/xeniaupdatelogic.cpp, matchAsset). A rename that breaks the
+      # match would silently send every client to the release page instead.
+      - name: Verify asset names match what the update check expects
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          fail=0
+          for pattern in "-macos-arm64-*.dmg" "-windows-x64-*.msi" "-linux-x86_64-*.AppImage"; do
+            matches=(dist/Xenia-Files-${TAG}${pattern})
+            if [ "${#matches[@]}" -ne 1 ] || [ ! -f "${matches[0]}" ]; then
+              echo "::error::Expected exactly one asset matching Xenia-Files-${TAG}${pattern}, found ${#matches[@]}."
+              fail=1
+            else
+              echo "OK: ${matches[0]#dist/}"
+            fi
+          done
+          exit "${fail}"
+
       - name: Write release notes
         shell: bash
         env:
@@ -619,7 +697,11 @@ jobs:
         run: |
           set -euo pipefail
           FLAGS=(--draft)
-          if [ "${MACOS_SIGN}" != "true" ] || [ "${WINDOWS_SIGN}" != "true" ]; then
+          # XEN-341 (Vasilis, 4 Nov 2026): prerelease only when macOS is unsigned.
+          # The update check offers stable releases only, and Windows stays unsigned
+          # for now, so tying this to Windows would hide every release from it.
+          # Marking a release as prerelease is how a release is held back.
+          if [ "${MACOS_SIGN}" != "true" ]; then
             FLAGS+=(--prerelease)
           fi
           gh release create "${GITHUB_REF_NAME}" dist/* \

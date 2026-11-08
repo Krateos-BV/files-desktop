@@ -21,6 +21,9 @@
 #include "tray/trayimageprovider.h"
 #include "tray/usermodel.h"
 #include "wheelhandler.h"
+#if defined(XENIA_UPDATE_CHECK)
+#include "xenia/xeniaupdatecheck.h" // XEN-341
+#endif
 
 #ifdef Q_OS_MACOS
 #include "foregroundbackground_interface.h"
@@ -578,6 +581,9 @@ void Systray::setupContextMenu()
 
     auto pauseAction = _contextMenu->addAction(tr("Pause sync"), this, &Systray::slotPauseAllFolders);
     auto resumeAction = _contextMenu->addAction(tr("Resume sync"), this, &Systray::slotUnpauseAllFolders);
+#if defined(XENIA_UPDATE_CHECK)
+    Xenia::UpdateCheck::instance()->addMenuAction(_contextMenu); // XEN-341
+#endif
     _contextMenu->addAction(tr("Settings"), this, &Systray::openSettings);
     _contextMenu->addAction(tr("Help"), this, &Systray::openHelp);
     _contextMenu->addAction(tr("Exit %1").arg(Theme::instance()->appNameGUI()), this, &Systray::shutdown);

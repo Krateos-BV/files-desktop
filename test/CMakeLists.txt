@@ -35,6 +35,11 @@ if(Qt${QT_VERSION_MAJOR}HttpServer_FOUND)
     target_link_libraries(NextcloudPropagatorTest PRIVATE Qt::HttpServer)
 endif()
 
+# XEN-341
+if(XENIA_UPDATE_CHECK)
+    nextcloud_add_test(XeniaUpdateCheck)
+endif()
+
 IF(BUILD_UPDATER)
     nextcloud_add_test(Updater)
 

@@ -202,3 +202,6 @@ theme.qrc
 # Nix
 result
 flake.lock
+
+# XEN-341: written by the release workflow before a build, never committed
+xenia-release-version.txt
