@@ -654,7 +654,8 @@ QUrl Theme::signupUrlForBranding(const QString &configuredUrl)
         && (url.scheme() == u"http"_s || url.scheme() == u"https"_s)) {
         return url;
     }
-    return QUrl(u"https://nextcloud.com/sign-up/?flow=V3"_s);
+    // XEN-345: Xenia builds never fall back to nextcloud.com.
+    return QUrl(u"https://auth.xeniacloud.eu/if/flow/xenia-enrollment/"_s);
 }
 
 QString Theme::gitSHA1() const
