@@ -60,12 +60,21 @@ private Q_SLOTS:
         QCOMPARE(theme->wizardSignupUrl(), OCC::Theme::signupUrlForBranding(configured));
     }
 
+    void testXeniaLoginWindowBranding()
+    {
+        // XEN-345: the login window must never send users to nextcloud.com, and
+        // Xenia builds do not offer the Self-host button.
+        const auto theme = OCC::Theme::instance();
+        QCOMPARE(theme->wizardSignupUrl(), QUrl(u"https://auth.xeniacloud.eu/if/flow/xenia-enrollment/"_s));
+        QVERIFY(theme->wizardHideSelfHostButton());
+    }
+
     void testSignupUrlForBranding_data()
     {
         QTest::addColumn<QString>("configured");
         QTest::addColumn<QUrl>("expected");
 
-        const auto defaultUrl = QUrl(u"https://nextcloud.com/sign-up/?flow=V3"_s);
+        const auto defaultUrl = QUrl(u"https://auth.xeniacloud.eu/if/flow/xenia-enrollment/"_s);
         const auto custom = u"https://signup.example.com/register?plan=business&source=desktop"_s;
         const auto http = u"http://signup.example.com:8080/register"_s;
         const auto encoded = u"https://signup.example.com/register?next=%2Ffiles&offer=$monthly#plans"_s;

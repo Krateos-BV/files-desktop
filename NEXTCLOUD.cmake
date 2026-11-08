@@ -87,6 +87,12 @@ set( APPLICATION_ICON_SET   "SVG" )
 set( APPLICATION_SERVER_URL "https://portal.xeniacloud.eu" CACHE STRING "URL for the server to use. If entered, the UI field will be pre-filled with it" )
 set( APPLICATION_SERVER_URL_ENFORCE ON ) # If set and APPLICATION_SERVER_URL is defined, the server can only connect to the pre-defined URL
 set( APPLICATION_REV_DOMAIN "eu.xeniacloud.desktopclient" )
+# XEN-345: login window. Sign up opens the Xenia enrollment flow in Authentik instead of
+# nextcloud.com, and the Self-host button (docs.nextcloud.com install guide) is not shown.
+# Plain variables, not CACHE entries, so a reused build directory with upstream's cached
+# defaults cannot bring the nextcloud.com links back.
+set( APPLICATION_SIGNUP_URL "https://auth.xeniacloud.eu/if/flow/xenia-enrollment/" )
+set( WIZARD_HIDE_SELF_HOST_BUTTON ON )
 set( APPLICATION_REV_DOMAIN_DBUS "desktopclient.xeniacloud.eu" )
 # XEN-143: Krateos B.V.'s Apple team, the one that holds the Developer ID certificate.
 # Upstream's NKUJUXUJ3B is Nextcloud GmbH's team; the release workflow refuses to sign
