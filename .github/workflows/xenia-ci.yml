@@ -322,6 +322,9 @@ jobs:
             --build-path ${{ runner.temp }}/mc-build \
             --product-path ${{ runner.temp }}/mc-product
 
+      - name: Check every library resolves inside the bundle
+        run: bash admin/osx/xenia-check-bundle-linkage.sh "${{ runner.temp }}/mc-product/Xenia Files.app"
+
       - name: Zip the app bundle
         run: |
           cd "${{ runner.temp }}/mc-product"
