@@ -509,6 +509,19 @@ jobs:
           echo "identity=${IDENTITY}" >> "${GITHUB_OUTPUT}"
           echo "keychain=${KEYCHAIN}" >> "${GITHUB_OUTPUT}"
 
+      # The Mac Mini runner VMs (XEN-328) start the runner from a non-login
+      # shell, so Homebrew is installed at /opt/homebrew but not on PATH and
+      # mac-crafter fails with "brew: command not found" (seen in xenia-ci.yml,
+      # fixed there by #63). Hosted macOS runners already have it on PATH;
+      # adding it again there changes nothing.
+      - name: Put Homebrew on PATH
+        shell: bash
+        run: |
+          if [ -x /opt/homebrew/bin/brew ]; then
+            echo /opt/homebrew/bin >> "$GITHUB_PATH"
+            echo /opt/homebrew/sbin >> "$GITHUB_PATH"
+          fi
+
       - name: Build Xenia Files.app with mac-crafter
         working-directory: admin/osx/mac-crafter
         env:
