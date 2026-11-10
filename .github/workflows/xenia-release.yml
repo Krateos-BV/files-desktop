@@ -417,7 +417,15 @@ jobs:
   macos-build:
     name: macOS build (with File Provider)
     needs: [verify-tag, secrets-report]
-    runs-on: macos-26
+    # XEN-328: a dispatch on main may run on the Mac Mini, in a throwaway Tart VM.
+    # The repo variable XENIA_MACOS_SIGNING_RUNNER holds the label list as JSON,
+    # ["self-hosted","xenia-mac-mini","xenia-host-mm"]. The host label pins signed
+    # jobs to the Mac Mini, so the other runner host never receives the signing
+    # secrets. It is a separate variable from XENIA_MACOS_RUNNER (unsigned CI), so
+    # deleting it moves only signed builds back to hosted. Tag pushes and
+    # dispatches on other refs stay hosted: the runner group only accepts this
+    # workflow at refs/heads/main.
+    runs-on: ${{ (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && vars.XENIA_MACOS_SIGNING_RUNNER != '') && fromJSON(vars.XENIA_MACOS_SIGNING_RUNNER) || 'macos-26' }}
     timeout-minutes: 150
     permissions:
       contents: read
@@ -427,6 +435,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
+
+      # Evidence for the run: which machine and which macOS built this. No secrets.
+      - name: Runner facts
+        run: |
+          echo "Runner: ${RUNNER_NAME} (${RUNNER_ENVIRONMENT})"
+          sw_vers
+          df -h / "${RUNNER_TEMP}"
 
       # XEN-341: CMake reads this file (NEXTCLOUD.cmake) and only then turns the
       # in-app update check on. Skipped when there is no release version.
@@ -459,16 +474,28 @@ jobs:
             exit 1
           fi
 
-          KEYCHAIN="${RUNNER_TEMP}/signing.keychain-db"
+          # On a self-hosted VM the VM disk lives on an unencrypted host volume, and
+          # deleted blocks are not wiped. Keep the decoded certificate and the
+          # keychain on a RAM disk there, so the key never reaches that disk (XEN-328).
+          # Hosted runners keep using RUNNER_TEMP, as before.
+          SECRETS_DIR="${RUNNER_TEMP}"
+          if [ "${RUNNER_ENVIRONMENT}" = "self-hosted" ]; then
+            RAMDEV=$(hdiutil attach -nomount ram://262144 | awk '{print $1}')
+            diskutil erasevolume HFS+ xenia-signing "${RAMDEV}" >/dev/null
+            SECRETS_DIR="/Volumes/xenia-signing"
+            echo "ramdev=${RAMDEV}" >> "${GITHUB_OUTPUT}"
+          fi
+
+          KEYCHAIN="${SECRETS_DIR}/signing.keychain-db"
           KEYCHAIN_PASSWORD="$(uuidgen)"
           security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN}"
           security set-keychain-settings -lut 21600 "${KEYCHAIN}"
           security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN}"
 
-          printf '%s' "${APPLE_CERT_P12}" | base64 --decode > "${RUNNER_TEMP}/cert.p12"
-          security import "${RUNNER_TEMP}/cert.p12" -k "${KEYCHAIN}" -P "${APPLE_CERT_PASSWORD}" \
+          printf '%s' "${APPLE_CERT_P12}" | base64 --decode > "${SECRETS_DIR}/cert.p12"
+          security import "${SECRETS_DIR}/cert.p12" -k "${KEYCHAIN}" -P "${APPLE_CERT_PASSWORD}" \
             -T /usr/bin/codesign -T /usr/bin/security
-          rm -f "${RUNNER_TEMP}/cert.p12"
+          rm -f "${SECRETS_DIR}/cert.p12"
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${KEYCHAIN_PASSWORD}" "${KEYCHAIN}" >/dev/null
           # Prepend, don't replace: dropping the login keychain breaks unrelated tooling.
           read -r -a EXISTING <<< "$(security list-keychains -d user | tr -d '"' | tr '\n' ' ')"
@@ -480,6 +507,7 @@ jobs:
             exit 1
           fi
           echo "identity=${IDENTITY}" >> "${GITHUB_OUTPUT}"
+          echo "keychain=${KEYCHAIN}" >> "${GITHUB_OUTPUT}"
 
       - name: Build Xenia Files.app with mac-crafter
         working-directory: admin/osx/mac-crafter
@@ -597,7 +625,12 @@ jobs:
 
       - name: Remove signing keychain
         if: always() && env.SIGN == 'true'
-        run: security delete-keychain "${RUNNER_TEMP}/signing.keychain-db" || true
+        env:
+          KEYCHAIN: ${{ steps.keychain.outputs.keychain }}
+          RAMDEV: ${{ steps.keychain.outputs.ramdev }}
+        run: |
+          security delete-keychain "${KEYCHAIN:-${RUNNER_TEMP}/signing.keychain-db}" || true
+          if [ -n "${RAMDEV}" ]; then hdiutil detach -force "${RAMDEV}" || true; fi
 
   # The only job with write access. It creates a DRAFT release; publishing it is a
   # human decision made in the GitHub UI. Tag pushes only: a manual dispatch stops
