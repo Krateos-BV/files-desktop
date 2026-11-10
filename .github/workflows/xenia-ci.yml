@@ -289,7 +289,15 @@ jobs:
   macos-build:
     name: macOS build (unsigned, with File Provider)
     if: ${{ !inputs.windows-only }}
-    runs-on: macos-26
+    # XEN-325 / XEN-327: a dispatch on main may run on the Mac Mini runners.
+    # The repo variable XENIA_MACOS_RUNNER holds the label list as JSON, e.g.
+    # ["self-hosted","xenia-mac-mini"]. Unset or empty means GitHub-hosted, so
+    # deleting the variable is the rollback, no code change needed. A dispatch
+    # on any other branch stays hosted: the xenia-mac-mini runner group only
+    # accepts this workflow at refs/heads/main, so such a job would otherwise
+    # queue forever. This job is unsigned; signed builds are xenia-release.yml
+    # and stay hosted until XEN-328.
+    runs-on: ${{ (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && vars.XENIA_MACOS_RUNNER != '') && fromJSON(vars.XENIA_MACOS_RUNNER) || 'macos-26' }}
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
