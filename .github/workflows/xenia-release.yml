@@ -21,9 +21,9 @@
 #
 # Signing is optional and decided per platform by the secrets-report job:
 #   macOS   - signed and notarised only if all five APPLE_* secrets resolve.
-#   Windows - the .zip is signed only if WINDOWS_CODESIGN_PFX and
-#             WINDOWS_CODESIGN_PASSWORD resolve. The MSI installer (XEN-304) is
-#             built from craft's install tree and is always unsigned.
+#   Windows - the MSI installer (XEN-304) is built from craft's install tree and
+#             is always unsigned. The build/bin .zip fallback is no longer built or
+#             published: it is over GitHub's 2 GiB per-asset limit (v26.11.11).
 #   Linux   - the AppImage is never signed.
 # Anything not signed is published with "unsigned" in its file name and is listed
 # as unsigned in the release notes. An org secret that exists but is not scoped to
@@ -363,13 +363,6 @@ jobs:
             Remove-Item $pfx -Force -ErrorAction SilentlyContinue
           }
 
-      - name: Archive build output
-        shell: pwsh
-        run: |
-          $suffix = if ($env:SIGN -eq 'true') { 'signed' } else { 'unsigned' }
-          $bin = "${{ github.workspace }}\${{ env.CRAFT_TARGET }}\build\nextcloud-client\work\build\bin"
-          Compress-Archive -Path "$bin\*" -DestinationPath "${{ runner.temp }}\xenia-files-windows-x64-$suffix.zip"
-
       # XEN-304: the MSI is built from craft's packaged install tree, not from the
       # build/bin that "Sign binaries" signs, so it is always unsigned and named so.
       - name: Collect the install tree
@@ -404,12 +397,13 @@ jobs:
           if ($msi.Count -ne 1) { throw "Expected one MSI, found $($msi.Count)" }
           Copy-Item $msi[0].FullName "${{ runner.temp }}\xenia-files-windows-x64-unsigned.msi"
 
-      - name: Upload Windows archive
+      # The build/bin .zip fallback was dropped: it exceeded GitHub's 2 GiB
+      # per-asset limit and broke the v26.11.11 release. The MSI is the installer.
+      - name: Upload Windows MSI
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-windows
           path: |
-            ${{ runner.temp }}\xenia-files-windows-x64-*.zip
             ${{ runner.temp }}\xenia-files-windows-x64-unsigned.msi
           if-no-files-found: error
           retention-days: 7
@@ -679,11 +673,11 @@ jobs:
             exit 1
           fi
           cp -v "${appimages[0]}" "dist/Xenia-Files-${TAG}-linux-x86_64-unsigned.AppImage"
-          for f in artifacts/release-windows/*.zip artifacts/release-windows/*.msi artifacts/release-macos/*.dmg; do
+          for f in artifacts/release-windows/*.msi artifacts/release-macos/*.dmg; do
             cp -v "${f}" "dist/Xenia-Files-${TAG}-$(basename "${f}" | sed 's/^xenia-files-//')"
           done
           ls -l dist
-          [ "$(find dist -type f | wc -l)" -eq 4 ] || { echo "::error::Expected four release assets."; exit 1; }
+          [ "$(find dist -type f | wc -l)" -eq 3 ] || { echo "::error::Expected three release assets."; exit 1; }
           (cd dist && sha256sum -- * > SHA256SUMS)
 
       # XEN-341: installed clients pick their download by these names
@@ -724,7 +718,6 @@ jobs:
             echo "|---|---|---|"
             echo "| macOS (arm64) | .dmg (drag to Applications) | $(state "${MACOS_SIGN}" 'signed and notarised (Developer ID)') |"
             echo "| Windows (x64) | MSI installer | **UNSIGNED** |"
-            echo "| Windows (x64) | build output .zip (fallback, not an installer) | $(state "${WINDOWS_SIGN}" 'signed (Authenticode)') |"
             echo "| Linux (x86_64) | AppImage | **UNSIGNED** (AppImages are not signed) |"
             echo
             # The Windows MSI is always unsigned (XEN-304), so this note always applies.
