@@ -164,11 +164,22 @@ void UpdateCheck::addMenuAction(QMenu *menu)
     };
     refresh();
     connect(this, &UpdateCheck::offerChanged, action, refresh);
-    connect(action, &QAction::triggered, this, [this] {
-        if (_offer.isValid()) {
-            QDesktopServices::openUrl(_offer.openUrl());
-        }
-    });
+    connect(action, &QAction::triggered, this, &UpdateCheck::openOffer);
+}
+
+QString UpdateCheck::menuText() const
+{
+    if (!_offer.isValid()) {
+        return {};
+    }
+    return tr("Update to %1 %2").arg(Theme::instance()->appNameGUI(), _offer.version);
+}
+
+void UpdateCheck::openOffer() const
+{
+    if (_offer.isValid()) {
+        QDesktopServices::openUrl(_offer.openUrl());
+    }
 }
 
 } // namespace OCC::Xenia

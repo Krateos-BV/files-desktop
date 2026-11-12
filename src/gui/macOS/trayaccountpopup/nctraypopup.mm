@@ -13,8 +13,12 @@
 #import "trayaccountpopupmetrics.h"
 #import "trayaccountpopupviewutils.h"
 
+#include "config.h"
 #include "systray.h"
 #include "tray/trayactivationpolicy.h"
+#if defined(XENIA_UPDATE_CHECK)
+#include "xenia/xeniaupdatecheck.h" // XEN-341
+#endif
 #include "tray/usermodel.h"
 
 #include <QCoreApplication>
@@ -274,6 +278,23 @@ using namespace OCC::Mac::TrayPopupViewUtils;
     case OCC::Systray::SyncControlState::Unavailable:
         break;
     }
+
+#if defined(XENIA_UPDATE_CHECK)
+    // XEN-341: macOS has no Qt tray menu, so the update entry lives in this popup.
+    // The popup is rebuilt each time it opens, so the row follows the latest check.
+    if (const auto updateTitle = OCC::Xenia::UpdateCheck::instance()->menuText(); !updateTitle.isEmpty()) {
+        addOwnedArrangedSubview(_stack, [[NCActionRow alloc] initWithTitle:updateTitle.toNSString()
+                                                                     width:kPopupWidth
+                                                                   enabled:YES
+                                                                    action:^{
+            [weakSelf orderOut:nil];
+            OCC::Systray::instance()->setIsOpen(false);
+            OCC::Xenia::UpdateCheck::instance()->openOffer();
+        } hoverAction:^(NSView *) {
+            [weakSelf closeAccountActionsPopup];
+        }]);
+    }
+#endif
 
     addOwnedArrangedSubview(_stack, [[NCActionRow alloc] initWithTitle:OCC::Systray::tr("Settings").toNSString()
                                                                  width:kPopupWidth
