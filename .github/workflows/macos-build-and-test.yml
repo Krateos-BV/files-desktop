@@ -26,7 +26,10 @@ jobs:
   build:
     name: Build nextcloud-client
     timeout-minutes: 60
-    runs-on: macos-26
+    # Mac Mini runners (all macOS CI on the Minis, 12 Nov 2026). XENIA_MACOS_RUNNER
+    # holds the label list as JSON, e.g. ["self-hosted","xenia-mac-mini"]; deleting it
+    # sends this job back to GitHub-hosted. Pull requests from forks stay hosted.
+    runs-on: ${{ (vars.XENIA_MACOS_RUNNER != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) && fromJSON(vars.XENIA_MACOS_RUNNER) || 'macos-26' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -45,6 +48,14 @@ jobs:
         with:
           python-version: ${{ inputs.PYTHON_VERSION }}
 
+      - name: Put Homebrew on PATH
+        shell: bash
+        run: |
+          if [ -x /opt/homebrew/bin/brew ]; then
+            echo /opt/homebrew/bin >> "$GITHUB_PATH"
+            echo /opt/homebrew/sbin >> "$GITHUB_PATH"
+          fi
+
       - name: Install Homebrew dependencies
         run: |
           brew install homebrew/cask/inkscape
@@ -56,7 +67,7 @@ jobs:
             ${{ inputs.CRAFT_MASTER_LOCATION }}
             ${{ github.workspace }}/craft-clone
             ${{ github.workspace }}/${{ inputs.CRAFT_TARGET }}
-          key: ${{ runner.os }}-craft-${{ hashFiles(inputs.CRAFT_MASTER_CONFIG) }}
+          key: ${{ runner.os }}-${{ runner.environment }}-craft-${{ hashFiles(inputs.CRAFT_MASTER_CONFIG) }}
 
       - name: Build nextcloud-client
         run: |
@@ -69,14 +80,17 @@ jobs:
             ${{ inputs.CRAFT_MASTER_LOCATION }}
             ${{ github.workspace }}/craft-clone
             ${{ github.workspace }}/${{ inputs.CRAFT_TARGET }}
-          key: ${{ runner.os }}-craft-build-${{ github.sha }}-${{ inputs.buildFileProviderModule }}
+          key: ${{ runner.os }}-${{ runner.environment }}-craft-build-${{ github.sha }}-${{ inputs.buildFileProviderModule }}
 
 
   test:
     name: Run tests
     needs: build
     timeout-minutes: 60
-    runs-on: macos-26
+    # Mac Mini runners (all macOS CI on the Minis, 12 Nov 2026). XENIA_MACOS_RUNNER
+    # holds the label list as JSON, e.g. ["self-hosted","xenia-mac-mini"]; deleting it
+    # sends this job back to GitHub-hosted. Pull requests from forks stay hosted.
+    runs-on: ${{ (vars.XENIA_MACOS_RUNNER != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) && fromJSON(vars.XENIA_MACOS_RUNNER) || 'macos-26' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -89,7 +103,7 @@ jobs:
             ${{ inputs.CRAFT_MASTER_LOCATION }}
             ${{ github.workspace }}/craft-clone
             ${{ github.workspace }}/${{ inputs.CRAFT_TARGET }}
-          key: ${{ runner.os }}-craft-build-${{ github.sha }}-${{ inputs.buildFileProviderModule }}
+          key: ${{ runner.os }}-${{ runner.environment }}-craft-build-${{ github.sha }}-${{ inputs.buildFileProviderModule }}
 
       - name: Run tests
         run: |

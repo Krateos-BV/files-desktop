@@ -10,12 +10,19 @@ on:
     branches: ["master", "main"]
     types: [opened, reopened, synchronize, ready_for_review]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   tests:
     if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
     name: Test mac-crafter
     timeout-minutes: 15
-    runs-on: macos-26
+    # Mac Mini runners (all macOS CI on the Minis, 12 Nov 2026). XENIA_MACOS_RUNNER
+    # holds the label list as JSON, e.g. ["self-hosted","xenia-mac-mini"]; deleting it
+    # sends this job back to GitHub-hosted. Pull requests from forks stay hosted.
+    runs-on: ${{ (vars.XENIA_MACOS_RUNNER != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) && fromJSON(vars.XENIA_MACOS_RUNNER) || 'macos-26' }}
     defaults:
       run:
         working-directory: admin/osx/mac-crafter

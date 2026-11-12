@@ -7,12 +7,19 @@ on:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   setup_craft:
     if: ${{ !github.event.pull_request.draft }}
     name: Set up Craft and install dependencies
     timeout-minutes: 60
-    runs-on: macos-15
+    # Mac Mini runners (all macOS CI on the Minis, 12 Nov 2026). XENIA_MACOS_RUNNER
+    # holds the label list as JSON, e.g. ["self-hosted","xenia-mac-mini"]; deleting it
+    # sends this job back to GitHub-hosted. Pull requests from forks stay hosted.
+    runs-on: ${{ (vars.XENIA_MACOS_RUNNER != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) && fromJSON(vars.XENIA_MACOS_RUNNER) || 'macos-15' }}
     env:
       CRAFT_TARGET: macos-clang-arm64
       CRAFT_MASTER_LOCATION: ${{ github.workspace }}/CraftMaster
@@ -37,15 +44,17 @@ jobs:
             ${{ env.CRAFT_MASTER_LOCATION }}
             ${{ github.workspace }}/craft-clone
             ${{ github.workspace }}/${{ env.CRAFT_TARGET }}
-          key: ${{ runner.os }}-craft-${{ hashFiles(env.CRAFT_MASTER_CONFIG) }}
+          key: ${{ runner.os }}-${{ runner.environment }}-craft-${{ hashFiles(env.CRAFT_MASTER_CONFIG) }}
           lookup-only: true
 
       - name: List Xcode installations
         if: steps.cache-craft-restore.outputs.cache-hit != 'true'
         run: sudo ls -1 /Applications | grep "Xcode"
 
+      # Hosted macos-15 pins Xcode 16.3. The Mac Mini image has one Xcode (the latest,
+      # per Vasilis 11 Nov), which is already selected, so this step is hosted only.
       - name: Select Xcode 16.3
-        if: steps.cache-craft-restore.outputs.cache-hit != 'true'
+        if: steps.cache-craft-restore.outputs.cache-hit != 'true' && runner.environment == 'github-hosted'
         run: sudo xcode-select -s /Applications/Xcode_16.3.app/Contents/Developer
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
@@ -53,6 +62,15 @@ jobs:
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Put Homebrew on PATH
+        if: steps.cache-craft-restore.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          if [ -x /opt/homebrew/bin/brew ]; then
+            echo /opt/homebrew/bin >> "$GITHUB_PATH"
+            echo /opt/homebrew/sbin >> "$GITHUB_PATH"
+          fi
 
       - name: Install Homebrew dependencies
         if: steps.cache-craft-restore.outputs.cache-hit != 'true'
@@ -88,7 +106,7 @@ jobs:
             ${{ env.CRAFT_MASTER_LOCATION }}
             ${{ github.workspace }}/craft-clone
             ${{ github.workspace }}/${{ env.CRAFT_TARGET }}
-          key: ${{ runner.os }}-craft-${{ hashFiles(env.CRAFT_MASTER_CONFIG) }}
+          key: ${{ runner.os }}-${{ runner.environment }}-craft-${{ hashFiles(env.CRAFT_MASTER_CONFIG) }}
 
 
   build:
