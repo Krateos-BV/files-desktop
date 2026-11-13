@@ -327,6 +327,23 @@ void ownCloudGui::slotNeedToAcceptTermsOfService(const OCC::AccountPtr &account,
 
 void ownCloudGui::slotComputeOverallSyncStatus()
 {
+    // Only touch the tray when something actually changed. This slot runs on every
+    // folder and File Provider sync state message, and Qt re-assigns the native
+    // status item tooltip and image on each call without an equality check. On
+    // macOS that keeps re-showing the status item tooltip ("macOS VFS for ...:
+    // Last sync was successful.") while syncing in the background (XEN-378).
+    // Theme caches tray icons, so an unchanged icon keeps the same cache key.
+    const auto setTrayIcon = [this](const QIcon &icon) {
+        if (_tray->icon().cacheKey() != icon.cacheKey()) {
+            _tray->setIcon(icon);
+        }
+    };
+    const auto setTrayToolTip = [this](const QString &toolTip) {
+        if (_tray->toolTip() != toolTip) {
+            _tray->setToolTip(toolTip);
+        }
+    };
+
     bool allSignedOut = true;
     bool allPaused = true;
     QVector<AccountStatePtr> problemAccounts;
@@ -411,14 +428,14 @@ void ownCloudGui::slotComputeOverallSyncStatus()
 #endif
 
     if (!problemAccounts.empty()) {
-        _tray->setIcon(Theme::instance()->folderOfflineIcon(true));
+        setTrayIcon(Theme::instance()->folderOfflineIcon(true));
 #ifdef Q_OS_WIN
         // Windows has a 128-char tray tooltip length limit.
         QStringList accountNames;
         for (const AccountStatePtr &a : problemAccounts) {
             accountNames.append(a->account()->displayName());
         }
-        _tray->setToolTip(tr("Disconnected from %1").arg(accountNames.join(QLatin1String(", "))));
+        setTrayToolTip(tr("Disconnected from %1").arg(accountNames.join(QLatin1String(", "))));
 #else
         QStringList messages;
         messages.append(tr("Disconnected from accounts:"));
@@ -431,18 +448,18 @@ void ownCloudGui::slotComputeOverallSyncStatus()
             }
             messages.append(message);
         }
-        _tray->setToolTip(messages.join(QLatin1String("\n\n")));
+        setTrayToolTip(messages.join(QLatin1String("\n\n")));
 #endif
         return;
     }
 
     if (allSignedOut) {
-        _tray->setIcon(Theme::instance()->folderOfflineIcon(true));
-        _tray->setToolTip(tr("Please sign in"));
+        setTrayIcon(Theme::instance()->folderOfflineIcon(true));
+        setTrayToolTip(tr("Please sign in"));
         return;
     } else if (allPaused) {
-        _tray->setIcon(Theme::instance()->syncStateIcon(SyncResult::Paused, true));
-        _tray->setToolTip(tr("Account synchronization is disabled"));
+        setTrayIcon(Theme::instance()->syncStateIcon(SyncResult::Paused, true));
+        setTrayToolTip(tr("Account synchronization is disabled"));
         return;
     }
 
@@ -489,7 +506,7 @@ void ownCloudGui::slotComputeOverallSyncStatus()
     }
 
     QIcon statusIcon = Theme::instance()->syncStateIcon(iconStatus, true);
-    _tray->setIcon(statusIcon);
+    setTrayIcon(statusIcon);
 
     // create the tray blob message, check if we have an defined state
 #ifdef BUILD_FILE_PROVIDER_MODULE
@@ -527,9 +544,9 @@ void ownCloudGui::slotComputeOverallSyncStatus()
 #endif
         trayMessage = allStatusStrings.join(QLatin1String("\n"));
 #endif
-        _tray->setToolTip(trayMessage);
+        setTrayToolTip(trayMessage);
     } else {
-        _tray->setToolTip(tr("There are no sync folders configured."));
+        setTrayToolTip(tr("There are no sync folders configured."));
     }
 }
 
