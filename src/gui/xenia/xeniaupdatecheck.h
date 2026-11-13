@@ -52,6 +52,12 @@ public:
     /// offer and follows later offers on its own, so menus built once still update.
     void addMenuAction(QMenu *menu);
 
+    /// For trays that are rebuilt each time they open (the native macOS popup):
+    /// the entry's text, and the action behind it. menuText() is empty while there
+    /// is no offer, so the caller adds no row.
+    [[nodiscard]] QString menuText() const;
+    void openOffer() const;
+
 Q_SIGNALS:
     /// Emitted once per new version, for the tray notification.
     void updateAnnouncement(const QString &title, const QString &message, const QUrl &url);
