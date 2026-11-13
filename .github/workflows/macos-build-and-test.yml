@@ -35,6 +35,17 @@ jobs:
         with:
           fetch-depth: 1
 
+      # Before any cache step: actions/cache picks zstd only when zstd is on PATH, and the
+      # compression is part of the cache version. In the Mac Mini VMs zstd comes from
+      # Homebrew, so a restore without this step looks for a gzip entry and misses.
+      - name: Put Homebrew on PATH
+        shell: bash
+        run: |
+          if [ -x /opt/homebrew/bin/brew ]; then
+            echo /opt/homebrew/bin >> "$GITHUB_PATH"
+            echo /opt/homebrew/sbin >> "$GITHUB_PATH"
+          fi
+
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
         with:
@@ -47,14 +58,6 @@ jobs:
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ inputs.PYTHON_VERSION }}
-
-      - name: Put Homebrew on PATH
-        shell: bash
-        run: |
-          if [ -x /opt/homebrew/bin/brew ]; then
-            echo /opt/homebrew/bin >> "$GITHUB_PATH"
-            echo /opt/homebrew/sbin >> "$GITHUB_PATH"
-          fi
 
       - name: Install Homebrew dependencies
         run: |
@@ -95,6 +98,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
+
+      # Before any cache step: actions/cache picks zstd only when zstd is on PATH, and the
+      # compression is part of the cache version. In the Mac Mini VMs zstd comes from
+      # Homebrew, so a restore without this step looks for a gzip entry and misses.
+      - name: Put Homebrew on PATH
+        shell: bash
+        run: |
+          if [ -x /opt/homebrew/bin/brew ]; then
+            echo /opt/homebrew/bin >> "$GITHUB_PATH"
+            echo /opt/homebrew/sbin >> "$GITHUB_PATH"
+          fi
 
       - name: Restore cached Craft directories containing the built client
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
