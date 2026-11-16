@@ -2,15 +2,29 @@
 //  SPDX-License-Identifier: LGPL-3.0-or-later
 
 @testable import NextcloudFileProviderKit
+<<<<<<< HEAD
 import NextcloudFileProviderKitMocks
 import RealmSwift
+=======
+>>>>>>> upstream/master
 import XCTest
 
 ///
 /// Common base class for all tests in this target.
 ///
 class NextcloudFileProviderKitTestCase: XCTestCase {
+    override func setUp() async throws {
+        try await super.setUp()
+        // Tests reuse accounts while advertising different server capabilities.
+        await RetrievedCapabilitiesActor.shared.reset()
+    }
+
+    func setUpDatabase(_ dbManager: FilesDatabaseManager) {
+        try! dbManager.removeAllRowsForTesting()
+    }
+
     ///
+<<<<<<< HEAD
     /// Whether this test expects its production code to log `.error` or `.fault` messages.
     ///
     /// Left `false`, ``tearDown()`` fails the test when anything was logged at those levels. Several
@@ -125,6 +139,9 @@ class NextcloudFileProviderKitTestCase: XCTestCase {
 
     ///
     /// Create a unique and temporary directory for Realm database testing purposes.
+=======
+    /// Create a unique and temporary directory for database testing purposes.
+>>>>>>> upstream/master
     ///
     /// - Returns: A URL pointing to a temporary directory which also contains a UUID to distinguish it clearly from any other calls.
     ///

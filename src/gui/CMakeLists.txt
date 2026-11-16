@@ -434,6 +434,7 @@ IF( APPLE )
             macOS/fileprovidersettingscontroller.h
             macOS/fileprovidersettingscontroller_mac.mm
             macOS/fileproviderutils.h
+            macOS/fileproviderutils_mac.h
             macOS/fileproviderutils_mac.mm
             macOS/fileproviderxpc.h
             macOS/fileproviderxpcconnection.h
@@ -880,6 +881,7 @@ if(BUILD_OWNCLOUD_OSX_BUNDLE AND NOT BUILD_LIBRARIES_ONLY)
         "$<TARGET_FILE_DIR:nextcloud>/../.."
         "-qmldir=${CMAKE_SOURCE_DIR}/src/gui"
         -always-overwrite
+<<<<<<< HEAD
         # Quote each whole option=value argument. With quotes only around the value,
         # CMake keeps them as literal characters and escapes the space in a bundle
         # name such as "Xenia Files.app" as "Xenia\ Files.app", so macdeployqt
@@ -888,6 +890,8 @@ if(BUILD_OWNCLOUD_OSX_BUNDLE AND NOT BUILD_LIBRARIES_ONLY)
         # The cmd binary is the one whose build-tree RPATH lets macdeployqt resolve
         # @rpath/lib<executable>sync.0.dylib and copy the sync libraries into
         # Contents/Frameworks. Without it the app fails to launch (XEN-343).
+=======
+>>>>>>> upstream/master
         "-executable=$<TARGET_FILE_DIR:nextcloud>/${cmd_NAME}"
         "-libpath=${MACDEPLOYQT_LIB_DIR}"
         "-libpath=${BIN_OUTPUT_DIRECTORY}"
@@ -895,6 +899,7 @@ if(BUILD_OWNCLOUD_OSX_BUNDLE AND NOT BUILD_LIBRARIES_ONLY)
         COMMAND "${CMAKE_COMMAND}"
         -E rm -rf "${BIN_OUTPUT_DIRECTORY}/${OWNCLOUD_OSX_BUNDLE}/Contents/PlugIns/bearer"
         COMMENT "Running macdeployqt..."
+        VERBATIM
     )
 endif()
 

@@ -5,7 +5,6 @@
 @testable import NextcloudFileProviderKit
 import NextcloudFileProviderKitMocks
 import NextcloudKit
-import RealmSwift
 @testable import TestInterface
 import XCTest
 
@@ -25,7 +24,7 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     var remoteTrashItemB: MockRemoteItem!
     var remoteTrashItemC: MockRemoteItem!
 
-    static let dbManager = FilesDatabaseManager(account: account, databaseDirectory: makeDatabaseDirectory(), fileProviderDomainIdentifier: NSFileProviderDomainIdentifier("test"), log: FileProviderLogMock())
+    static let dbManager = try! FilesDatabaseManager(account: account, databaseDirectory: makeDatabaseDirectory(), fileProviderDomainIdentifier: NSFileProviderDomainIdentifier("test"), log: FileProviderLogMock())
     static let acknowledgementTimeout: TimeInterval = 5
 
     override var testDatabaseManager: FilesDatabaseManager? {
@@ -34,6 +33,10 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
 
     override func setUp() {
         super.setUp()
+<<<<<<< HEAD
+=======
+        try! Self.dbManager.removeAllRowsForTesting()
+>>>>>>> upstream/master
 
         rootItem = MockRemoteItem.rootItem(account: Self.account)
 
@@ -489,7 +492,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     ///
     func testHandlePagedReadResultsPreservesKeepDownloadedOnPageZeroChildren() {
         let dbManager = Self.dbManager
-        debugPrint(dbManager.ncDatabase())
 
         // Seed two of the upcoming page-0 children as already pinned. The
         // third stays unseeded so we can also assert the flag does not leak
@@ -546,7 +548,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     ///
     func testHandlePagedReadResultsPreservesKeepDownloadedOnFollowUpPage() {
         let dbManager = Self.dbManager
-        debugPrint(dbManager.ncDatabase())
 
         var seeded = SendableItemMetadata(ocId: "pagedChild5", fileName: "pagedChild5.txt", account: Self.account)
         seeded.keepDownloaded = true
@@ -588,7 +589,6 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     ///
     func testHandlePagedReadResultsTargetDirectoryRecordsVisitAndKeepsKeepDownloaded() {
         let dbManager = Self.dbManager
-        debugPrint(dbManager.ncDatabase())
 
         var seeded = remoteFolder.toItemMetadata(account: Self.account)
         seeded.keepDownloaded = true
@@ -612,6 +612,59 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
         )
     }
 
+    /// A mount point read page by page keeps the permissions its parent listed, while a subfolder on the same page still takes the listed value.
+    func testHandlePagedReadResultsTargetDirectoryKeepsPermissionsListedByParent() {
+        let dbManager = Self.dbManager
+        let subfolder = MockRemoteItem(
+            identifier: "subfolder",
+            name: "subfolder",
+            remotePath: Self.account.davFilesUrl + "/folder/subfolder",
+            directory: true,
+            account: Self.account.ncKitAccount,
+            username: Self.account.username,
+            userId: Self.account.id,
+            serverUrl: Self.account.serverUrl
+        )
+        subfolder.parent = remoteFolder
+
+        var listedFolder = remoteFolder.toItemMetadata(account: Self.account)
+        listedFolder.permissions = "RMGCK"
+        dbManager.addItemMetadata(listedFolder)
+        var staleSubfolder = subfolder.toItemMetadata(account: Self.account)
+        staleSubfolder.permissions = "RMGDNVCK"
+        dbManager.addItemMetadata(staleSubfolder)
+
+        var ownRead = remoteFolder.toNKFile()
+        ownRead.permissions = "RMGDNVCK"
+        var listedChild = subfolder.toNKFile()
+        listedChild.permissions = "RMGCK"
+
+        let (_, error) = Enumerator.handlePagedReadResults(
+            files: [ownRead, listedChild], pageIndex: 0, dbManager: dbManager, log: FileProviderLogMock()
+        )
+
+        XCTAssertNil(error)
+        XCTAssertEqual(dbManager.itemMetadata(ocId: remoteFolder.identifier)?.permissions, "RMGCK", "The folder's own read must keep the permissions its parent listed.")
+        XCTAssertEqual(dbManager.itemMetadata(ocId: subfolder.identifier)?.permissions, "RMGCK", "A listed subfolder must take the permissions from the listing.")
+
+        let firstWrite = dbManager.itemMetadata(ocId: remoteFolder.identifier)?.syncTime
+        _ = Enumerator.handlePagedReadResults(files: [ownRead, listedChild], pageIndex: 0, dbManager: dbManager, log: FileProviderLogMock())
+        XCTAssertEqual(dbManager.itemMetadata(ocId: remoteFolder.identifier)?.syncTime, firstWrite, "Re-reading an unchanged mount point must not rewrite its row.")
+    }
+
+    /// The root container has no parent listing, so a paged read of it must still store its own permissions.
+    func testHandlePagedReadResultsRootTakesPermissionsFromItsOwnRead() {
+        let dbManager = Self.dbManager
+        var rootRead = MockRemoteItem.rootItem(account: Self.account).toNKFile()
+
+        rootRead.permissions = "RGDNVCK"
+        _ = Enumerator.handlePagedReadResults(files: [rootRead], pageIndex: 0, dbManager: dbManager, log: FileProviderLogMock())
+        rootRead.permissions = "RGCK"
+        _ = Enumerator.handlePagedReadResults(files: [rootRead], pageIndex: 0, dbManager: dbManager, log: FileProviderLogMock())
+
+        XCTAssertEqual(dbManager.itemMetadata(ocId: NSFileProviderItemIdentifier.rootContainer.rawValue)?.permissions, "RGCK")
+    }
+
     func testWorkingSetEnumerateChanges() async throws {
         // This test verifies that `enumerateChanges` for the working set correctly
         // queries the local database for changes since the provided sync anchor date.
@@ -623,7 +676,7 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
         // Build a version-tagged sync anchor at the chosen date. The same helper is used by the
         // production code, so the anchor round-trips cleanly through `enumerateChanges` without
         // tripping the syncAnchorExpired branch added for nextcloud/desktop#10065.
-        let anchor = Enumerator.syncAnchor(at: anchorDate)
+        let anchor = Enumerator.syncAnchor(at: anchorDate, storeIdentity: Self.dbManager.storeIdentity)
 
         // Setup remote interface with the items we're testing
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
@@ -744,7 +797,7 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
         // Create a sync anchor from before now using the production helper so it carries the
         // version prefix expected by the syncAnchorExpired check (nextcloud/desktop#10065).
         let anchorDate = Date().addingTimeInterval(-300) // 5 minutes ago
-        let anchor = Enumerator.syncAnchor(at: anchorDate)
+        let anchor = Enumerator.syncAnchor(at: anchorDate, storeIdentity: Self.dbManager.storeIdentity)
 
         // Update sync times to be after the anchor (so they would be checked)
         let now = Date()
@@ -1130,7 +1183,9 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
             log: FileProviderLogMock()
         )
         print(storedRootItem.metadata.serverUrl)
-        XCTAssertEqual(storedRootItem.childItemCount?.intValue, 4) // All items
+        // Direct children of the root only: the folder and the item just moved out of it, not
+        // `itemB` inside the folder and not the root's own row.
+        XCTAssertEqual(storedRootItem.childItemCount?.intValue, 2)
 
         let storedFolderMaybe = await Item.storedItem(
             identifier: .init(remoteFolder.identifier),
@@ -1500,7 +1555,10 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     /// Tests situation where we are enumerating files and we can no longer find the parent item
     /// in the database. So we need to simulate a situation where this takes place.
     func testCorrectEnumerateFileWithMissingParentInDb() async throws {
+<<<<<<< HEAD
         expectLoggedErrors()
+=======
+>>>>>>> upstream/master
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
 
         var itemAMetadata = remoteItemA.toItemMetadata(account: Self.account)
@@ -2119,6 +2177,52 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
         )
     }
 
+    func testNewFileInheritsItsParentsPinDuringTargetDepthRead() async {
+        let remoteFolder = MockRemoteItem(
+            identifier: "pinnedFolder",
+            name: "pinnedFolder",
+            remotePath: Self.account.davFilesUrl + "/pinnedFolder",
+            directory: true,
+            account: Self.account.ncKitAccount,
+            username: Self.account.username,
+            userId: Self.account.id,
+            serverUrl: Self.account.serverUrl
+        )
+        let remoteFile = MockRemoteItem(
+            identifier: "newFileInPinnedFolder",
+            name: "new.txt",
+            remotePath: remoteFolder.remotePath + "/new.txt",
+            account: Self.account.ncKitAccount,
+            username: Self.account.username,
+            userId: Self.account.id,
+            serverUrl: Self.account.serverUrl
+        )
+
+        rootItem.children = [remoteFolder]
+        remoteFolder.parent = rootItem
+        remoteFolder.children = [remoteFile]
+        remoteFile.parent = remoteFolder
+
+        var folderMetadata = remoteFolder.toItemMetadata(account: Self.account)
+        folderMetadata.keepDownloaded = true
+        Self.dbManager.addItemMetadata(folderMetadata)
+
+        let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
+        let readResult = await Enumerator.readServerUrl(
+            remoteFile.remotePath,
+            account: Self.account,
+            remoteInterface: remoteInterface,
+            dbManager: Self.dbManager,
+            depth: .target,
+            log: FileProviderLogMock()
+        )
+
+        XCTAssertNil(readResult.error)
+        XCTAssertEqual(readResult.changes?.created.map(\.ocId), ["newFileInPinnedFolder"])
+        XCTAssertEqual(readResult.changes?.updated.isEmpty, true)
+        XCTAssertEqual(Self.dbManager.itemMetadata(ocId: "newFileInPinnedFolder")?.keepDownloaded, true, "A new file read on its own must inherit its parent's pin.")
+    }
+
     // MARK: - Batched enumeration (nextcloud/desktop #10266: >20000 items in one batch crash)
 
     /// Seed `count` materialised files directly under the root, present unchanged on the server, all
@@ -2155,7 +2259,7 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
         // destructive scan on the framework's moreComing re-invocations.
 
         let anchorDate = Date().addingTimeInterval(-300)
-        let anchor = Enumerator.syncAnchor(at: anchorDate)
+        let anchor = Enumerator.syncAnchor(at: anchorDate, storeIdentity: Self.dbManager.storeIdentity)
         let itemCount = 10
         let batchSize = 3
 
@@ -2210,11 +2314,114 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
         )
     }
 
+    /// Run one working-set change request on a fresh enumerator from `anchor` and wait until it finished or failed.
+    private func enumerateWorkingSetChanges(from anchor: NSFileProviderSyncAnchor, remoteInterface: MockRemoteInterface, batchSize: Int = 2) async throws -> MockChangeObserver {
+        let enumerator = try Enumerator(
+            enumeratedItemIdentifier: .workingSet,
+            account: Self.account,
+            remoteInterface: remoteInterface,
+            dbManager: Self.dbManager,
+            log: FileProviderLogMock()
+        )
+        let observer = MockChangeObserver(enumerator: enumerator)
+        observer.suggestedBatchSize = batchSize
+        enumerator.enumerateChanges(for: observer, from: anchor)
+
+        for _ in 0 ..< 5000 {
+            if !observer.finishes.isEmpty || observer.error != nil {
+                break
+            }
+            try await Task.sleep(nanoseconds: 1_000_000)
+        }
+
+        return observer
+    }
+
+    /// Deliver the first of three working-set batches and wait for its acknowledgement, so the stored session waits at the returned continuation anchor.
+    private func deliverFirstWorkingSetBatch(remoteInterface: MockRemoteInterface) async throws -> (anchor: NSFileProviderSyncAnchor, key: String) {
+        let anchor = Enumerator.syncAnchor(at: Date().addingTimeInterval(-300), storeIdentity: Self.dbManager.storeIdentity)
+        _ = seedMaterialisedWorkingSetFiles(count: 6, syncTime: Date())
+
+        let firstObserver = try await enumerateWorkingSetChanges(from: anchor, remoteInterface: remoteInterface)
+
+        XCTAssertNil(firstObserver.error)
+        let firstFinish = try XCTUnwrap(firstObserver.finishes.first)
+        XCTAssertTrue(firstFinish.moreComing)
+
+        // The acknowledgement runs after the finish; wait until the session points at the continuation.
+        let continuationKey = try XCTUnwrap(String(data: firstFinish.anchor.rawValue, encoding: .utf8))
+        for _ in 0 ..< 5000 {
+            if try Self.dbManager.changeDeliverySession(forContinuationKey: continuationKey, containerKey: NSFileProviderItemIdentifier.workingSet.rawValue)?.currentAnchorKey == continuationKey {
+                break
+            }
+            try await Task.sleep(nanoseconds: 1_000_000)
+        }
+        let session = try XCTUnwrap(try Self.dbManager.changeDeliverySession(forContinuationKey: continuationKey, containerKey: NSFileProviderItemIdentifier.workingSet.rawValue))
+        XCTAssertEqual(session.nextSequence, 2)
+
+        return (firstFinish.anchor, continuationKey)
+    }
+
+    func testWorkingSetContinuationFinishesWithAnErrorWhenStoredChangesCannotBeRead() async throws {
+        // After an intermediate batch was acknowledged, the next batch is read from the stored session. If
+        // that read fails, the enumeration must end with an error and keep the session, not finish on an
+        // empty batch and acknowledge the changes which were never delivered.
+        let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
+        let continuation = try await deliverFirstWorkingSetBatch(remoteInterface: remoteInterface)
+
+        try Self.dbManager.breakTableForTesting(ChangeDeliveryItemRecord.databaseTableName)
+        defer { Self.dbManager.recreateTablesForTesting() }
+
+        let nextObserver = try await enumerateWorkingSetChanges(from: continuation.anchor, remoteInterface: remoteInterface)
+
+        XCTAssertEqual((nextObserver.error as? NSError)?.code, NSFileProviderError.cannotSynchronize.rawValue)
+        XCTAssertTrue(nextObserver.finishes.isEmpty, "An unreadable batch must not be reported as finished.")
+        XCTAssertTrue(nextObserver.changedItems.isEmpty)
+        let keptSession = try XCTUnwrap(try Self.dbManager.changeDeliverySession(forContinuationKey: continuation.key, containerKey: NSFileProviderItemIdentifier.workingSet.rawValue))
+        XCTAssertEqual(keptSession.nextSequence, 2, "The session still waits at the undelivered changes.")
+    }
+
+    func testWorkingSetContinuationFinishesWithAnErrorWhenTheStoredSessionCannotBeRead() async throws {
+        // A continuation anchor whose session cannot be read must not pass for an unknown anchor: the
+        // enumeration would then expire the anchor or derive the changes anew and drop the stored remainder.
+        let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
+        let continuation = try await deliverFirstWorkingSetBatch(remoteInterface: remoteInterface)
+        let readsBefore = remoteInterface.readOperationCount
+
+        try Self.dbManager.breakTableForTesting(ChangeDeliverySessionRecord.databaseTableName)
+        defer { Self.dbManager.recreateTablesForTesting() }
+
+        let nextObserver = try await enumerateWorkingSetChanges(from: continuation.anchor, remoteInterface: remoteInterface)
+
+        XCTAssertEqual((nextObserver.error as? NSError)?.code, NSFileProviderError.cannotSynchronize.rawValue)
+        XCTAssertTrue(nextObserver.finishes.isEmpty)
+        XCTAssertTrue(nextObserver.changedItems.isEmpty)
+        XCTAssertEqual(remoteInterface.readOperationCount, readsBefore, "Nothing is derived while the stored session cannot be read.")
+    }
+
+    func testWorkingSetChangesFinishWithAnErrorWhenTheStoredSessionCannotBeRead() async throws {
+        // A failed read of the stored session must not pass for "no session": the enumeration would then
+        // derive the changes anew and finish on the current anchor without ever delivering them.
+        let anchor = Enumerator.syncAnchor(at: Date().addingTimeInterval(-300), storeIdentity: Self.dbManager.storeIdentity)
+        _ = seedMaterialisedWorkingSetFiles(count: 6, syncTime: Date())
+        let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
+
+        try Self.dbManager.breakTableForTesting(ChangeDeliverySessionRecord.databaseTableName)
+        defer { Self.dbManager.recreateTablesForTesting() }
+
+        let observer = try await enumerateWorkingSetChanges(from: anchor, remoteInterface: remoteInterface)
+
+        XCTAssertEqual((observer.error as? NSError)?.code, NSFileProviderError.cannotSynchronize.rawValue)
+        XCTAssertTrue(observer.finishes.isEmpty, "Finishing on the current anchor would lose the changes.")
+        XCTAssertTrue(observer.changedItems.isEmpty)
+        XCTAssertEqual(remoteInterface.readOperationCount, 0, "Nothing is derived while the stored session cannot be read.")
+    }
+
     func testWorkingSetChangesResumeAcrossNewEnumeratorInstances() async throws {
         // fileproviderd may invalidate the enumerator after an intermediate batch. The continuation must
         // therefore resume from durable state when the next request is handled by a new Enumerator.
 
-        let anchor = Enumerator.syncAnchor(at: Date().addingTimeInterval(-300))
+        let anchor = Enumerator.syncAnchor(at: Date().addingTimeInterval(-300), storeIdentity: Self.dbManager.storeIdentity)
         let itemCount = 10
         let batchSize = 3
         let expectedOcIds = seedMaterialisedWorkingSetFiles(count: itemCount, syncTime: Date())
@@ -2277,7 +2484,7 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
         // exactly one batch — preserving the pre-existing single-batch behaviour and the final anchor.
 
         let anchorDate = Date().addingTimeInterval(-300)
-        let anchor = Enumerator.syncAnchor(at: anchorDate)
+        let anchor = Enumerator.syncAnchor(at: anchorDate, storeIdentity: Self.dbManager.storeIdentity)
         let expectedOcIds = seedMaterialisedWorkingSetFiles(count: 3, syncTime: Date())
 
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
@@ -2301,7 +2508,7 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
     func testWorkingSetChangesEmptyReportsSingleFinalBatch() async throws {
         // No materialised items, no changes: exactly one finish, moreComing == false, advancing the anchor.
 
-        let anchor = Enumerator.syncAnchor(at: Date().addingTimeInterval(-300))
+        let anchor = Enumerator.syncAnchor(at: Date().addingTimeInterval(-300), storeIdentity: Self.dbManager.storeIdentity)
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
         let enumerator = try Enumerator(
             enumeratedItemIdentifier: .workingSet,
@@ -2411,7 +2618,7 @@ final class EnumeratorTests: NextcloudFileProviderKitTestCase {
         // delivered deletions across batch boundaries.
 
         let anchorDate = Date().addingTimeInterval(-300)
-        let anchor = Enumerator.syncAnchor(at: anchorDate)
+        let anchor = Enumerator.syncAnchor(at: anchorDate, storeIdentity: Self.dbManager.storeIdentity)
         let now = Date()
         let batchSize = 3
 

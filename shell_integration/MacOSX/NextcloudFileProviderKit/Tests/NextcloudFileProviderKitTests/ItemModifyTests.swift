@@ -1,12 +1,12 @@
 //  SPDX-FileCopyrightText: 2024 Nextcloud GmbH and Nextcloud contributors
 //  SPDX-License-Identifier: LGPL-3.0-or-later
 
+import Alamofire
 @preconcurrency import FileProvider
 @testable import NextcloudFileProviderKit
 import NextcloudFileProviderKitMocks
 import NextcloudFileProviderXPC
 import NextcloudKit
-import RealmSwift
 import TestInterface
 import UniformTypeIdentifiers
 import XCTest
@@ -31,16 +31,69 @@ private final class ExclusionMarkerRecorder: @unchecked Sendable {
 final class ItemModifyTests: NextcloudFileProviderKitTestCase {
     private func assertFailedContentModificationRemainsUnuploaded(
         errorCode: Int,
-        chunkSize: Int?
+        chunkSize: Int?,
+        cancelDuringChunkPreparation: Bool = false,
+        cancelDuringUpload: Bool = false,
+        keepDownloadedDuringChunkPreparation: Bool? = nil
     ) async throws {
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
-        let uploadError = NKError(errorCode: errorCode, errorDescription: "Upload did not complete")
-        remoteInterface.uploadError = uploadError
+        let expectCancellation = cancelDuringChunkPreparation || cancelDuringUpload
+        let uploadError: NKError = if cancelDuringUpload, chunkSize == nil {
+            NKError(error: URLError(.cancelled))
+        } else if expectCancellation {
+            .cancelled
+        } else {
+            NKError(errorCode: errorCode, errorDescription: "Upload did not complete")
+        }
+        let progress = Progress()
+        let session = cancelDuringUpload && chunkSize == nil ? Session(startRequestsImmediately: false) : nil
+        let request = session?.upload(Data(), to: "https://example.invalid/resource")
+        let urlSession = cancelDuringUpload ? URLSession(configuration: .ephemeral) : nil
+        defer { urlSession?.invalidateAndCancel() }
+        let observedTask = try urlSession.map { session in
+            try observedNetworkTask(in: session, url: XCTUnwrap(URL(string: "https://example.invalid/resource")))
+        }
+        let chunkDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: chunkDirectory) }
+        if cancelDuringChunkPreparation {
+            let itemIdentifier = remoteItem.identifier
+            remoteInterface.chunkPreparationHandler = {
+                if let keepDownloadedDuringChunkPreparation {
+                    do {
+                        let current = try XCTUnwrap(Self.dbManager.itemMetadata(ocId: itemIdentifier))
+                        XCTAssertEqual(current.status, Status.uploading.rawValue)
+                        XCTAssertEqual(current.keepDownloaded, !keepDownloadedDuringChunkPreparation)
+                        let updated = try XCTUnwrap(Self.dbManager.set(keepDownloaded: keepDownloadedDuringChunkPreparation, for: current))
+                        XCTAssertEqual(updated.keepDownloaded, keepDownloadedDuringChunkPreparation)
+                    } catch {
+                        XCTFail("Could not update pin during chunk preparation: \(error)")
+                    }
+                }
+                progress.cancel()
+                let cancelled = await waitForCancellation()
+                XCTAssertTrue(cancelled, "Chunk preparation must receive cancellation")
+            }
+        } else if cancelDuringUpload {
+            remoteInterface.uploadRequest = request
+            remoteInterface.uploadTask = observedTask?.task
+            remoteInterface.chunkUploadDirectory = chunkDirectory
+            remoteInterface.chunkUploadCompletedChunkCount = 1
+            remoteInterface.uploadHandler = {
+                progress.cancel()
+                let cancelled = await waitForCancellation()
+                XCTAssertTrue(cancelled, "Cancellation must reach the modify operation")
+            }
+        } else {
+            remoteInterface.uploadError = uploadError
+        }
         let originalRemoteData = remoteItem.data
 
         var itemMetadata = remoteItem.toItemMetadata(account: Self.account)
         itemMetadata.uploaded = true
         itemMetadata.downloaded = true
+        if let keepDownloadedDuringChunkPreparation {
+            itemMetadata.keepDownloaded = !keepDownloadedDuringChunkPreparation
+        }
         Self.dbManager.addItemMetadata(itemMetadata)
 
         let newContents = Data("Updated content".utf8)
@@ -71,17 +124,44 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
             changedFields: [.contents],
             contents: newContentsUrl,
             forcedChunkSize: chunkSize,
+            progress: progress,
             dbManager: Self.dbManager
         )
 
         XCTAssertNil(modifiedItem)
         XCTAssertNotNil(error)
+        if expectCancellation {
+            XCTAssertEqual((error as? CocoaError)?.code, .userCancelled)
+            XCTAssertTrue(progress.isCancelled)
+            XCTAssertEqual(remoteInterface.uploadOperationCount, cancelDuringUpload ? 1 : 0)
+        }
+        if cancelDuringUpload {
+            let completion = try XCTUnwrap(observedTask?.completion)
+            let cancellationCode = try await nextTestValue(from: completion)
+            XCTAssertEqual(cancellationCode, NSURLErrorCancelled)
+            if chunkSize == nil {
+                XCTAssertTrue(try XCTUnwrap(request).isCancelled)
+            }
+            let uploadIds = try XCTUnwrap(Self.dbManager.remoteChunkStoreFolderNames())
+                .filter { $0.hasPrefix(chunkUploadIdentifierPrefix(forItemWithIdentifier: itemMetadata.ocId)) }
+            let remainingChunks = try Set(uploadIds).flatMap { uploadId in
+                try XCTUnwrap(Self.dbManager.remoteFileChunks(uploadId: uploadId))
+            }
+            let expectedRemainingCount = chunkSize.map { max(0, Int(ceil(Double(newContents.count) / Double($0))) - 1) } ?? 0
+            XCTAssertEqual(remainingChunks.count, expectedRemainingCount)
+            for chunk in remainingChunks {
+                XCTAssertTrue(FileManager.default.fileExists(atPath: chunkDirectory.appendingPathComponent(chunk.fileName).path))
+            }
+        }
         let storedMetadata = try XCTUnwrap(Self.dbManager.itemMetadata(ocId: itemMetadata.ocId))
         XCTAssertFalse(storedMetadata.uploaded)
         XCTAssertTrue(storedMetadata.downloaded)
         XCTAssertEqual(storedMetadata.status, Status.uploadError.rawValue)
         XCTAssertEqual(storedMetadata.sessionError, uploadError.errorDescription)
         XCTAssertEqual(storedMetadata.etag, itemMetadata.etag)
+        if let keepDownloadedDuringChunkPreparation {
+            XCTAssertEqual(storedMetadata.keepDownloaded, keepDownloadedDuringChunkPreparation)
+        }
         XCTAssertEqual(remoteItem.data, originalRemoteData)
     }
 
@@ -98,7 +178,7 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
     var remoteTrashFolder: MockRemoteItem!
     var remoteTrashFolderChildItem: MockRemoteItem!
 
-    static let dbManager = FilesDatabaseManager(account: account, databaseDirectory: makeDatabaseDirectory(), fileProviderDomainIdentifier: NSFileProviderDomainIdentifier("test"), log: FileProviderLogMock())
+    static let dbManager = try! FilesDatabaseManager(account: account, databaseDirectory: makeDatabaseDirectory(), fileProviderDomainIdentifier: NSFileProviderDomainIdentifier("test"), log: FileProviderLogMock())
 
     override var testDatabaseManager: FilesDatabaseManager? {
         Self.dbManager
@@ -106,6 +186,10 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
 
     override func setUp() {
         super.setUp()
+<<<<<<< HEAD
+=======
+        setUpDatabase(Self.dbManager)
+>>>>>>> upstream/master
 
         remoteItem = MockRemoteItem(
             identifier: "item",
@@ -183,6 +267,153 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
         expectLoggedErrors()
         try await assertFailedContentModificationRemainsUnuploaded(errorCode: NSURLErrorCancelled, chunkSize: nil)
         try await assertFailedContentModificationRemainsUnuploaded(errorCode: NSURLErrorCancelled, chunkSize: 2)
+    }
+
+    func testCancellationDuringChunkPreparationRemainsUnuploaded() async throws {
+        try await assertFailedContentModificationRemainsUnuploaded(errorCode: NSURLErrorCancelled, chunkSize: 2, cancelDuringChunkPreparation: true)
+    }
+
+    func testCancellationDuringChunkPreparationPreservesConcurrentPinChanges() async throws {
+        for keepDownloaded in [true, false] {
+            try await assertFailedContentModificationRemainsUnuploaded(
+                errorCode: NSURLErrorCancelled,
+                chunkSize: 2,
+                cancelDuringChunkPreparation: true,
+                keepDownloadedDuringChunkPreparation: keepDownloaded
+            )
+        }
+    }
+
+    func testCancelledUploadRemainsUnuploadedAfterPaginatedListing() async throws {
+        let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
+        let listingInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, pagination: true)
+        let progress = Progress()
+        let log = FileProviderLogMock()
+        let dbManager = Self.dbManager
+        var metadata = remoteItem.toItemMetadata(account: Self.account)
+        metadata.downloaded = true
+        dbManager.addItemMetadata(metadata)
+        let ocId = metadata.ocId
+        let localETag = metadata.etag
+        let localSize = metadata.size
+        let remoteETag = "concurrent-server-version"
+        let remoteContents = Data("Newer contents from another device".utf8)
+
+        let contents = Data("Updated content".utf8)
+        let contentsURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try contents.write(to: contentsURL)
+        defer { try? FileManager.default.removeItem(at: contentsURL) }
+        var targetMetadata = metadata
+        targetMetadata.size = Int64(contents.count)
+        let item = Item(metadata: metadata, parentItemIdentifier: .rootContainer, account: Self.account, remoteInterface: remoteInterface, dbManager: dbManager)
+        let target = Item(metadata: targetMetadata, parentItemIdentifier: .rootContainer, account: Self.account, remoteInterface: remoteInterface, dbManager: dbManager)
+
+        @Sendable func assertPageReportsPendingUpload() async {
+            let page = await Enumerator.readServerUrl(
+                Self.account.davFilesUrl,
+                pageSettings: (nil, 0, 100),
+                account: Self.account,
+                remoteInterface: listingInterface,
+                dbManager: dbManager,
+                log: log
+            )
+            XCTAssertNil(page.error)
+            let listed = page.metadatas?.first { $0.ocId == ocId }
+            XCTAssertEqual(listed?.uploaded, false)
+            XCTAssertEqual(listed?.etag, localETag)
+            XCTAssertEqual(listed?.size, localSize)
+        }
+
+        remoteInterface.uploadHandler = {
+            // Another device changes the server copy while the PUT is paused.
+            let remoteCopy = listingInterface.rootItem?.children.first { $0.identifier == ocId }
+            remoteCopy?.versionIdentifier = remoteETag
+            remoteCopy?.data = remoteContents
+            await assertPageReportsPendingUpload()
+            progress.cancel()
+            let cancelled = await waitForCancellation()
+            XCTAssertTrue(cancelled, "Cancellation must reach the upload")
+        }
+
+        let (modifiedItem, error) = await item.modify(
+            itemTarget: target,
+            changedFields: [.contents],
+            contents: contentsURL,
+            forcedChunkSize: contents.count,
+            progress: progress,
+            dbManager: dbManager
+        )
+
+        XCTAssertNil(modifiedItem)
+        XCTAssertEqual((error as? CocoaError)?.code, .userCancelled)
+        await assertPageReportsPendingUpload()
+        let stored = try XCTUnwrap(dbManager.itemMetadata(ocId: ocId))
+        XCTAssertFalse(stored.uploaded)
+        XCTAssertEqual(stored.status, Status.uploadError.rawValue)
+        XCTAssertEqual(stored.etag, localETag)
+        XCTAssertEqual(stored.size, localSize)
+        XCTAssertEqual(remoteItem.data, remoteContents)
+    }
+
+    func testCancellationDuringUploadRemainsUnuploaded() async throws {
+        try await assertFailedContentModificationRemainsUnuploaded(errorCode: NSURLErrorCancelled, chunkSize: nil, cancelDuringUpload: true)
+        try await assertFailedContentModificationRemainsUnuploaded(errorCode: NSURLErrorCancelled, chunkSize: 2, cancelDuringUpload: true)
+    }
+
+    func testCancellationDuringSuccessfulChunkAssemblyPersistsModifiedItem() async throws {
+        let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
+        let progress = Progress()
+        let chunksDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        remoteInterface.chunkUploadDirectory = chunksDirectory
+        defer { try? FileManager.default.removeItem(at: chunksDirectory) }
+        remoteInterface.chunkAssemblyHandler = {
+            progress.cancel()
+            let cancelled = await waitForCancellation()
+            XCTAssertTrue(cancelled, "Assembly must receive cancellation")
+        }
+        var metadata = remoteItem.toItemMetadata(account: Self.account)
+        metadata.uploaded = true
+        metadata.downloaded = true
+        Self.dbManager.addItemMetadata(metadata)
+        let originalETag = metadata.etag
+        let uploadedItemIdentifier = metadata.ocId
+        remoteInterface.uploadHandler = {
+            remoteInterface.rootItem?.children.first { $0.identifier == uploadedItemIdentifier }?.versionIdentifier = "assembled-etag"
+        }
+        let contents = Data("Updated content".utf8)
+        let contentsURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try contents.write(to: contentsURL)
+        defer { try? FileManager.default.removeItem(at: contentsURL) }
+        var targetMetadata = metadata
+        targetMetadata.size = Int64(contents.count)
+        let item = Item(metadata: metadata, parentItemIdentifier: .rootContainer, account: Self.account, remoteInterface: remoteInterface, dbManager: Self.dbManager)
+        let target = Item(metadata: targetMetadata, parentItemIdentifier: .rootContainer, account: Self.account, remoteInterface: remoteInterface, dbManager: Self.dbManager)
+
+        let (modifiedItem, error) = await item.modify(
+            itemTarget: target,
+            changedFields: [.contents],
+            contents: contentsURL,
+            forcedChunkSize: 3,
+            progress: progress,
+            dbManager: Self.dbManager
+        )
+
+        XCTAssertTrue(progress.isCancelled)
+        XCTAssertNil(error)
+        let modified = try XCTUnwrap(modifiedItem)
+        let stored = try XCTUnwrap(Self.dbManager.itemMetadata(ocId: metadata.ocId))
+        XCTAssertEqual(modified.itemIdentifier.rawValue, metadata.ocId)
+        XCTAssertEqual(stored.etag, remoteItem.versionIdentifier)
+        XCTAssertNotEqual(stored.etag, originalETag)
+        XCTAssertEqual(stored.size, Int64(contents.count))
+        XCTAssertTrue(stored.uploaded)
+        XCTAssertTrue(stored.downloaded)
+        XCTAssertEqual(stored.status, Status.normal.rawValue)
+        XCTAssertEqual(stored.sessionError, "")
+        XCTAssertEqual(remoteItem.data, contents)
+        XCTAssertEqual(remoteInterface.uploadOperationCount, 1)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: chunksDirectory.path))
+        XCTAssertTrue(try XCTUnwrap(Self.dbManager.remoteChunkStoreFolderNames()).isEmpty)
     }
 
     func testModifyFile() async throws {
@@ -325,7 +556,7 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
         let itemMetadata = remoteItem.toItemMetadata(account: Self.account)
         Self.dbManager.addItemMetadata(itemMetadata)
 
-        let newContents = "Hello, much bigger New World!".data(using: .utf8)!
+        let newContents = try XCTUnwrap("Hello, much bigger New World!".data(using: .utf8))
         let newContentsUrl = FileManager.default.temporaryDirectory
             .appendingPathComponent("quota-report-modify")
         try newContents.write(to: newContentsUrl)
@@ -333,8 +564,9 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
         var targetItemMetadata = SendableItemMetadata(value: itemMetadata)
         targetItemMetadata.size = Int64(newContents.count)
 
+        let domainIdentifier = NSFileProviderDomainIdentifier(UUID().uuidString)
         let domain = NSFileProviderDomain(
-            identifier: NSFileProviderDomainIdentifier("test-domain-modify"),
+            identifier: domainIdentifier,
             displayName: "test"
         )
         let proxy = QuotaCapturingAppProxy()
@@ -368,7 +600,7 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
         XCTAssertEqual(proxy.capturedItems.count, 1)
         XCTAssertEqual(proxy.capturedItems.first?.fileName, "item.txt")
         XCTAssertEqual(proxy.capturedItems.first?.fileBytes, Int64(newContents.count))
-        XCTAssertEqual(proxy.capturedSummaryDomains, ["test-domain-modify"])
+        XCTAssertEqual(proxy.capturedSummaryDomains, [domainIdentifier.rawValue])
     }
 
     /// Pre-flight quota gate on the modify path: when the parent's `quotaAvailableBytes`
@@ -384,7 +616,7 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
         Self.dbManager.addItemMetadata(itemMetadata)
 
         let originalRemoteData = remoteItem.data
-        let newContents = "Hello, much bigger New World!".data(using: .utf8)!
+        let newContents = try XCTUnwrap("Hello, much bigger New World!".data(using: .utf8))
         let newContentsUrl = FileManager.default.temporaryDirectory
             .appendingPathComponent("quota-blocked-modify")
         try newContents.write(to: newContentsUrl)
@@ -931,6 +1163,149 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
         XCTAssertFalse(Self.dbManager.isItemExcludedFromSync(ocId: bundleMetadata.ocId))
     }
 
+    /// A package on the ignore list is still excluded from sync on modification, but without the bundle warning in the activity view.
+    func testModifyIgnoredBundleIsExcludedWithoutBundleReport() async {
+        let proxy = ExclusionCapturingAppProxy()
+        let (bundleMetadata, modifiedItem, error) = await modifyBundleWithIgnoreList(named: "Talk.key", appProxy: proxy)
+
+        XCTAssertNotNil(modifiedItem)
+        XCTAssertEqual((error as? NSFileProviderError)?.code, .excludedFromSync)
+        XCTAssertTrue(Self.dbManager.isItemExcludedFromSync(ocId: bundleMetadata.ocId))
+        XCTAssertTrue(proxy.captured.isEmpty)
+    }
+
+    /// A package that is not on the ignore list still produces the bundle warning on modification.
+    func testModifyBundleNotOnIgnoreListReportsExclusion() async {
+        let proxy = ExclusionCapturingAppProxy()
+        let filename = "Presentation.pages"
+        let (bundleMetadata, modifiedItem, error) = await modifyBundleWithIgnoreList(named: filename, appProxy: proxy)
+
+        XCTAssertNotNil(modifiedItem)
+        XCTAssertEqual((error as? NSFileProviderError)?.code, .excludedFromSync)
+        XCTAssertTrue(Self.dbManager.isItemExcludedFromSync(ocId: bundleMetadata.ocId))
+        XCTAssertEqual(proxy.captured.map(\.fileName), [filename])
+        XCTAssertEqual(proxy.captured.first?.reason, ItemExclusionReporter.reasonText(for: .bundle))
+    }
+
+    /// A package renamed off the ignore list still produces the bundle warning, because it is refused without being on the list.
+    func testModifyRenamedIgnoredBundleReportsExclusion() async {
+        let proxy = ExclusionCapturingAppProxy()
+        let (bundleMetadata, modifiedItem, error) = await modifyBundleWithIgnoreList(named: "Talk.key", renamingTo: "Talk.pages", appProxy: proxy)
+
+        XCTAssertEqual(modifiedItem?.filename, "Talk.pages")
+        XCTAssertEqual((error as? NSFileProviderError)?.code, .excludedFromSync)
+        XCTAssertTrue(Self.dbManager.isItemExcludedFromSync(ocId: bundleMetadata.ocId))
+        XCTAssertEqual(proxy.captured.count, 1)
+        XCTAssertEqual(proxy.captured.first?.reason, ItemExclusionReporter.reasonText(for: .bundle))
+    }
+
+    /// A package moved out of an ignored folder still produces the bundle warning, because it is refused without being on the list.
+    func testModifyMovedIgnoredBundleReportsExclusion() async {
+        let proxy = ExclusionCapturingAppProxy()
+        let (bundleMetadata, modifiedItem, error) = await modifyBundleWithIgnoreList(
+            named: "Talk.key",
+            ignoreList: ["Downloads/*"],
+            in: "Downloads",
+            movingTo: "Documents",
+            appProxy: proxy
+        )
+
+        XCTAssertEqual(modifiedItem?.parentItemIdentifier, NSFileProviderItemIdentifier("Documents-id"))
+        XCTAssertEqual((error as? NSFileProviderError)?.code, .excludedFromSync)
+        XCTAssertTrue(Self.dbManager.isItemExcludedFromSync(ocId: bundleMetadata.ocId))
+        XCTAssertEqual(proxy.captured.count, 1)
+        XCTAssertEqual(proxy.captured.first?.reason, ItemExclusionReporter.reasonText(for: .bundle))
+    }
+
+    /// Modifies a bundle folder that is on the server and in the database, optionally renaming it or moving it into another folder below the root.
+    private func modifyBundleWithIgnoreList(
+        named filename: String,
+        ignoreList: [String] = ["*.key"],
+        in folderName: String? = nil,
+        renamingTo newFilename: String? = nil,
+        movingTo newFolderName: String? = nil,
+        appProxy: ExclusionCapturingAppProxy
+    ) async -> (SendableItemMetadata, Item?, Error?) {
+        let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, rootTrashItem: rootTrashItem)
+
+        let addRemoteDirectory = { (name: String, parent: MockRemoteItem) -> MockRemoteItem in
+            let directory = MockRemoteItem(
+                identifier: "\(name)-id",
+                name: name,
+                remotePath: parent.remotePath + "/" + name,
+                directory: true,
+                account: Self.account.ncKitAccount,
+                username: Self.account.username,
+                userId: Self.account.id,
+                serverUrl: Self.account.serverUrl
+            )
+            directory.parent = parent
+            parent.children.append(directory)
+            return directory
+        }
+
+        let parentIdentifier = { (folder: MockRemoteItem?) -> NSFileProviderItemIdentifier in
+            folder.map { NSFileProviderItemIdentifier($0.identifier) } ?? .rootContainer
+        }
+
+        let folder = folderName.map { addRemoteDirectory($0, self.rootItem) }
+        let newFolder = newFolderName.map { addRemoteDirectory($0, self.rootItem) }
+
+        for directory in [folder, newFolder].compactMap(\.self) {
+            Self.dbManager.addItemMetadata(directory.toItemMetadata(account: Self.account))
+        }
+
+        let remoteBundle = addRemoteDirectory(filename, folder ?? rootItem)
+        var bundleMetadata = remoteBundle.toItemMetadata(account: Self.account)
+        bundleMetadata.contentType = UTType.bundle.identifier
+        Self.dbManager.addItemMetadata(bundleMetadata)
+
+        let bundleItem = Item(
+            metadata: bundleMetadata,
+            parentItemIdentifier: parentIdentifier(folder),
+            account: Self.account,
+            remoteInterface: remoteInterface,
+            dbManager: Self.dbManager
+        )
+
+        var changedFields: NSFileProviderItemFields = []
+        var targetMetadata = bundleMetadata
+
+        if let newFilename {
+            changedFields.insert(.filename)
+            targetMetadata.fileName = newFilename
+            targetMetadata.fileNameView = newFilename
+        }
+
+        if newFolder != nil {
+            changedFields.insert(.parentItemIdentifier)
+        }
+
+        if changedFields.isEmpty {
+            changedFields = [.contents]
+        }
+
+        let targetItem = Item(
+            metadata: targetMetadata,
+            parentItemIdentifier: parentIdentifier(newFolder ?? folder),
+            account: Self.account,
+            remoteInterface: remoteInterface,
+            dbManager: Self.dbManager
+        )
+
+        let (modifiedItem, error) = await bundleItem.modify(
+            itemTarget: targetItem,
+            changedFields: changedFields,
+            contents: nil,
+            ignoredFiles: IgnoredFilesMatcher(ignoreList: ignoreList, log: FileProviderLogMock()),
+            domain: NSFileProviderDomain(identifier: NSFileProviderDomainIdentifier("test-domain-package"), displayName: "test"),
+            dbManager: Self.dbManager,
+            appProxy: appProxy
+        )
+
+        return (bundleMetadata, modifiedItem, error)
+    }
+
     func testModifyIntoIgnoredDestinationKeepsExclusionMarkerAfterRemoteDelete() async {
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, rootTrashItem: rootTrashItem)
         let ignoredMatcher = IgnoredFilesMatcher(ignoreList: ["*.blend1"], log: FileProviderLogMock())
@@ -1122,14 +1497,13 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
         remoteInterface.chunkUploadDirectories[chunkUploadId] = chunksDirectory
         defer { try? FileManager.default.removeItem(at: chunksDirectory) }
 
-        let db = Self.dbManager.ncDatabase()
-        try db.write {
-            db.add(RemoteFileChunk(
+        Self.dbManager.addRemoteFileChunks([
+            RemoteFileChunk(
                 fileName: "2",
                 size: 3,
                 remoteChunkStoreFolderName: chunkUploadId
-            ))
-        }
+            )
+        ])
 
         var targetMetadata = SendableItemMetadata(value: folderMetadata)
         targetMetadata.apply(fileName: "renamed-folder")
@@ -1165,9 +1539,7 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
         XCTAssertTrue(rootTrashItem.children.contains { $0.identifier == folderMetadata.ocId + trashedItemIdSuffix })
         XCTAssertFalse(FileManager.default.fileExists(atPath: chunksDirectory.path))
         XCTAssertEqual(
-            db.objects(RemoteFileChunk.self)
-                .where { $0.remoteChunkStoreFolderName == chunkUploadId }
-                .count,
+            Self.dbManager.remoteFileChunks(uploadId: chunkUploadId)?.count,
             0
         )
     }
@@ -1810,7 +2182,7 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
         let folderMetadata = remoteFolder.toItemMetadata(account: Self.account)
         Self.dbManager.addItemMetadata(folderMetadata)
 
-        let newContents = "I've changed!".data(using: .utf8)!
+        let newContents = try XCTUnwrap("I've changed!".data(using: .utf8))
         let newContentsUrl = FileManager.default.temporaryDirectory.appendingPathComponent("test")
         try newContents.write(to: newContentsUrl)
 
@@ -2205,21 +2577,18 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
         )
         remoteInterface.currentChunks = [chunkUploadId: [preexistingChunk]]
 
-        let db = Self.dbManager.ncDatabase()
-        try db.write {
-            db.add([
-                RemoteFileChunk(
-                    fileName: String(previousUploadedChunkNum + 1),
-                    size: Int64(chunkSize),
-                    remoteChunkStoreFolderName: chunkUploadId
-                ),
-                RemoteFileChunk(
-                    fileName: String(previousUploadedChunkNum + 2),
-                    size: Int64(chunkSize),
-                    remoteChunkStoreFolderName: chunkUploadId
-                )
-            ])
-        }
+        Self.dbManager.addRemoteFileChunks([
+            RemoteFileChunk(
+                fileName: String(previousUploadedChunkNum + 1),
+                size: Int64(chunkSize),
+                remoteChunkStoreFolderName: chunkUploadId
+            ),
+            RemoteFileChunk(
+                fileName: String(previousUploadedChunkNum + 2),
+                size: Int64(chunkSize),
+                remoteChunkStoreFolderName: chunkUploadId
+            )
+        ])
 
         var targetItemMetadata = SendableItemMetadata(value: itemMetadata)
         targetItemMetadata.date = modificationDate

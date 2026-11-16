@@ -294,6 +294,7 @@ private:
     void fetchRootFolderSize();
     AccountState *applyAccountChanges();
     void clearOneShotOverrides();
+    [[nodiscard]] QString applicableOverrideLocalDir() const;
     void initialiseLocalSyncFolder();
     void setLocalSyncFolder(const QString &localSyncFolder, bool selectedByUser = false, const QByteArray &bookmarkData = {});
     void promptForInitialLocalSyncFolderIfNeeded();
@@ -307,6 +308,7 @@ private:
     [[nodiscard]] bool createSyncFolder(AccountState *accountState);
     [[nodiscard]] FolderDefinition syncFolderDefinition() const;
     void openLocalSyncFolderDialog(bool initialSelection);
+    void loadClientCertificateFile(const QUrl &fileUrl);
     [[nodiscard]] QUrl localFolderServerUrl() const;
     [[nodiscard]] QString sanitizedRemoteFolderEntityPath() const;
     void setCurrentStep(Step step);
@@ -392,6 +394,7 @@ private:
     QByteArray _clientCertBundle;
     QByteArray _clientCertPassword;
     QString _clientCertificatePath;
+    QByteArray _clientCertificateData;
     QString _clientCertificatePassword;
     QString _clientCertificateError;
     QSslKey _clientSslKey;
