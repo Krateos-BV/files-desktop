@@ -5,7 +5,6 @@
 @testable import NextcloudFileProviderKit
 import NextcloudFileProviderKitMocks
 import NextcloudKit
-import RealmSwift
 @testable import TestInterface
 import XCTest
 
@@ -16,26 +15,26 @@ final class LockTokenInvalidationTests: NextcloudFileProviderKitTestCase {
         user: "testUser", id: "testUserId", serverUrl: "https://mock.nc.com", password: "abcd"
     )
 
-    static let dbManager = FilesDatabaseManager(
+    static let dbManager = try! FilesDatabaseManager(
         account: account,
         databaseDirectory: makeDatabaseDirectory(),
         fileProviderDomainIdentifier: NSFileProviderDomainIdentifier("test"),
         log: FileProviderLogMock()
     )
 
-    override var testDatabaseManager: FilesDatabaseManager? {
-        Self.dbManager
+    override func setUp() {
+        super.setUp()
+        try! Self.dbManager.removeAllRowsForTesting()
     }
 
     func testRenameItemMetadataClearsLockToken() throws {
-        let metadata = RealmItemMetadata()
-        metadata.ocId = "lock-1"
+        var metadata = SendableItemMetadata.rawRow(ocId: "lock-1")
         metadata.account = "TestAccount"
-        metadata.updateLocation(serverUrl: "https://cloud.example.com/files/old", fileName: "doc.txt")
+        metadata.serverUrl = "https://cloud.example.com/files/old"
+        metadata.fileName = "doc.txt"
         metadata.lockToken = "opaquelocktoken:abc123"
 
-        let realm = Self.dbManager.ncDatabase()
-        try realm.write { realm.add(metadata) }
+        try Self.dbManager.insertForTesting(metadata)
 
         Self.dbManager.renameItemMetadata(
             ocId: "lock-1",
@@ -49,23 +48,20 @@ final class LockTokenInvalidationTests: NextcloudFileProviderKitTestCase {
     }
 
     func testRenameDirectoryClearsLockTokenOnChildren() throws {
-        let dir = RealmItemMetadata()
-        dir.ocId = "lock-dir"
+        var dir = SendableItemMetadata.rawRow(ocId: "lock-dir")
         dir.account = "TestAccount"
-        dir.updateLocation(serverUrl: "https://cloud.example.com/files", fileName: "folder")
+        dir.serverUrl = "https://cloud.example.com/files"
+        dir.fileName = "folder"
         dir.directory = true
 
-        let child = RealmItemMetadata()
-        child.ocId = "lock-child"
+        var child = SendableItemMetadata.rawRow(ocId: "lock-child")
         child.account = "TestAccount"
-        child.updateLocation(serverUrl: "https://cloud.example.com/files/folder", fileName: "important.docx")
+        child.serverUrl = "https://cloud.example.com/files/folder"
+        child.fileName = "important.docx"
         child.lockToken = "opaquelocktoken:xyz789"
 
-        let realm = Self.dbManager.ncDatabase()
-        try realm.write {
-            realm.add(dir)
-            realm.add(child)
-        }
+        try Self.dbManager.insertForTesting(dir)
+        try Self.dbManager.insertForTesting(child)
 
         _ = Self.dbManager.renameDirectoryAndPropagateToChildren(
             ocId: "lock-dir",
@@ -182,6 +178,29 @@ final class LockTokenInvalidationTests: NextcloudFileProviderKitTestCase {
 // MARK: - NKError extensions (Fix 3)
 
 final class NKErrorExtensionsTests: XCTestCase {
+    func testCancellationErrorMapping() {
+        let cancellationError = NKError(errorCode: NSURLErrorCancelled, errorDescription: "Cancelled")
+        XCTAssertTrue(cancellationError.isCancelledError)
+        let cancellation = cancellationError.fileProviderError(handlingNoSuchItemErrorUsingItemIdentifier: .init("file"))
+        XCTAssertEqual((cancellation as? CocoaError)?.code, .userCancelled)
+        for error in [NKError.success, NKError(errorCode: -4, errorDescription: "Write failed"), .errorChunkMoveFile, NKError(errorCode: 507, errorDescription: "Insufficient quota")] {
+            XCTAssertFalse(error.isCancelledError)
+            let mappedError = error.fileProviderError(handlingNoSuchItemErrorUsingItemIdentifier: .init("file"))
+            XCTAssertNotEqual((mappedError as? CocoaError)?.code, .userCancelled)
+            XCTAssertEqual((mappedError as? NSFileProviderError)?.code, error.fileProviderError?.code)
+        }
+    }
+
+    func testChunkPreparationErrorsAreNotCancellationWithoutContext() {
+        for description in ["Files empty.", "Chunking was cancelled."] {
+            let error = NKError(errorCode: -5, errorDescription: description)
+            XCTAssertFalse(error.isCancelledError)
+            let mappedError = error.fileProviderError(handlingNoSuchItemErrorUsingItemIdentifier: .init("file"))
+            XCTAssertEqual((mappedError as? NSFileProviderError)?.code, .cannotSynchronize)
+            XCTAssertNotEqual((mappedError as? CocoaError)?.code, .userCancelled)
+        }
+    }
+
     func testPreconditionFailedError() {
         let error = NKError(errorCode: 412, errorDescription: "Precondition Failed")
         XCTAssertTrue(error.isPreconditionFailedError)

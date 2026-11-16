@@ -9,7 +9,7 @@ import NextcloudKit
 /// An enum that can represent any JSON value and is `Encodable`.
 ///
 /// > To Do: Add custom encodings for:
-/// > - `RealmItemMetadata`
+/// > - `ItemMetadataRecord`
 ///
 public enum FileProviderLogDetail: Encodable {
     ///
@@ -93,6 +93,8 @@ public enum FileProviderLogDetail: Encodable {
         if let someValue = anyOptional {
             if someValue.self is String {
                 self = .string(someValue as! String)
+            } else if let number = someValue as? Int {
+                self = .int(number)
             } else if let date = someValue as? Date {
                 self = .date(date)
             } else if let url = someValue as? URL {
