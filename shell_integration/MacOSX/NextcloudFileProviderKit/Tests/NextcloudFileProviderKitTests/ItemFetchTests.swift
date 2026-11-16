@@ -306,6 +306,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testCancelledDownloadAllowsLaterServerChanges() async throws {
+        expectLoggedErrors()
         for directory in [false, true] {
             for cancelProgress in [false, true] {
                 let (item, remoteInterface, remoteItem) = makeFetchItem(directory: directory)
@@ -358,6 +359,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testCancellingDownloadCancelsNetworkHandlesAndAllowsRetry() async throws {
+        expectLoggedErrors()
         let (item, remoteInterface, remoteItem) = makeFetchItem()
         let progress = Progress()
         let session = Session(startRequestsImmediately: false)
@@ -406,6 +408,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testParentCancellationReachesDownload() async throws {
+        expectLoggedErrors()
         let (item, remoteInterface, _) = makeFetchItem()
         let dbManager = Self.dbManager
         let (started, continuation) = AsyncStream<Void>.makeStream()
@@ -431,6 +434,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testCancelledSuccessfulResponseDoesNotMarkContentsDownloaded() async throws {
+        expectLoggedErrors()
         let (item, remoteInterface, _) = makeFetchItem()
         let progress = Progress()
         defer { removeDownloadedContents(remoteInterface: remoteInterface) }
@@ -452,6 +456,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testSupersededFetchPreservesNewerReturnedContents() async throws {
+        expectLoggedErrors()
         let (firstItem, firstRemoteInterface, secondItem, secondRemoteInterface, remoteItem) = try makeOverlappingFetchItems()
         let dbManager = Self.dbManager
         let secondDBManager = secondItem.dbManager
@@ -498,6 +503,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testSupersededFetchPreservesNewerDownloadInProgress() async throws {
+        expectLoggedErrors()
         let (firstItem, firstRemoteInterface, secondItem, secondRemoteInterface, remoteItem) = try makeOverlappingFetchItems()
         let dbManager = Self.dbManager
         let secondDBManager = secondItem.dbManager
@@ -548,6 +554,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testSupersededFetchPreservesNewerDownloadError() async throws {
+        expectLoggedErrors()
         let (firstItem, firstRemoteInterface, secondItem, secondRemoteInterface, remoteItem) = try makeOverlappingFetchItems()
         let dbManager = Self.dbManager
         let secondDBManager = secondItem.dbManager
@@ -588,6 +595,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testCancellingFetchDoesNotRestoreRemovedMetadata() async throws {
+        expectLoggedErrors()
         let (item, remoteInterface, remoteItem) = makeFetchItem()
         let dbManager = Self.dbManager
         defer { removeDownloadedContents(remoteInterface: remoteInterface) }
@@ -607,6 +615,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testNewerFetchCancelsSupersededTransferBeforeCompletion() async throws {
+        expectLoggedErrors()
         let (firstItem, firstRemote, secondItem, secondRemote, remoteItem) = try makeOverlappingFetchItems()
         let session = Session(startRequestsImmediately: false)
         let firstRequest = session.download("https://example.invalid/first")
@@ -727,6 +736,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testExplicitCancellationBeforeSupersessionRemainsCancelled() async throws {
+        expectLoggedErrors()
         let (firstItem, firstRemote, secondItem, secondRemote, _) = try makeOverlappingFetchItems()
         let progress = Progress()
         let (started, startedContinuation) = AsyncStream<Void>.makeStream()
@@ -772,6 +782,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testRejectedFetchDoesNotCancelActiveTransfer() async throws {
+        expectLoggedErrors()
         for removeRow in [false, true] {
             let (firstItem, firstRemote, secondItem, secondRemote, remoteItem) = try makeOverlappingFetchItems()
             let session = Session(startRequestsImmediately: false)
@@ -808,6 +819,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testSupersededTransferPreservesNewerCompletedFetch() async throws {
+        expectLoggedErrors()
         let errorCodes: [Int?] = [nil, 503, NSURLErrorCancelled]
         for errorCode in errorCodes {
             let (firstItem, firstRemoteInterface, secondItem, secondRemoteInterface, remoteItem) = try makeOverlappingFetchItems()
@@ -866,6 +878,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testSupersededTransferPreservesNewerDownloadInProgress() async throws {
+        expectLoggedErrors()
         let (firstItem, firstRemoteInterface, secondItem, secondRemoteInterface, remoteItem) = try makeOverlappingFetchItems()
         let dbManager = Self.dbManager
         let (firstTask, releaseFirst) = try await startSuspendedFetch(item: firstItem, remoteInterface: firstRemoteInterface)
@@ -902,6 +915,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testFolderRetryDoesNotReturnDeletedContentsFromPreviousAttempt() async throws {
+        expectLoggedErrors()
         for cancelProgress in [false, true] {
             let (item, remoteInterface, directory) = makeFetchItem(directory: true)
             let progress = Progress()
@@ -950,6 +964,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testFolderFetchAttemptsPreservePreviouslyReturnedContents() async throws {
+        expectLoggedErrors()
         let (item, remoteInterface, directory) = makeFetchItem(directory: true)
         let firstChild = directory.children[0]
         let originalData = firstChild.data
@@ -992,6 +1007,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testDirectoryFetchPreservesDeletedChild() async throws {
+        expectLoggedErrors()
         for downloadFails in [false, true] {
             let (item, remoteInterface, directory) = makeFetchItem(directory: true)
             XCTAssertFalse(item.isBundleOrPackage)
@@ -1136,6 +1152,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testPackageFetchRestoresDeletedChildAndPreservesLocalState() async throws {
+        expectLoggedErrors()
         let errorCodes: [Int?] = [nil, 503, NSURLErrorCancelled]
         for contentType in [UTType.bundle, .package] {
             for errorCode in errorCodes {
@@ -1389,6 +1406,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testPackageRenameDuringFetchKeepsDeletedMemberDeleted() async throws {
+        expectLoggedErrors()
         for renameDuringListing in [true, false] {
             let (item, remoteInterface, directory) = makeFetchItem(directory: true, directorySuffix: ".app")
             let child = try XCTUnwrap(directory.children.first)
@@ -1437,6 +1455,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testDirectoryAndPackageFetchRetryRenamedMemberUsingServerListing() async throws {
+        expectLoggedErrors()
         for (package, versionChanged) in [(false, false), (false, true), (true, false), (true, true)] {
             let (item, remoteInterface, directory) = package ? makePackageFetchItem() : makeFetchItem(directory: true)
             XCTAssertEqual(item.isBundleOrPackage, package)
@@ -1547,6 +1566,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testDirectoryFetchFinishesNestedDirectoryState() async throws {
+        expectLoggedErrors()
         let errorCodes: [Int?] = [nil, 503, NSURLErrorCancelled]
         for errorCode in errorCodes {
             let (item, remoteInterface, directory) = makeFetchItem(directory: true)
@@ -1607,6 +1627,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testDirectoryFetchPreservesNestedDirectoryDeletedDuringFetch() async throws {
+        expectLoggedErrors()
         for deleteDuringEnumeration in [false, true] {
             let (item, remoteInterface, directory) = makeFetchItem(directory: true)
             let nestedDirectory = makeDirectoryChild(of: directory)
@@ -1656,6 +1677,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testDirectoryFetchRejectsChildRemovedAfterEnumeration() async throws {
+        expectLoggedErrors()
         for childIsDirectory in [false, true] {
             for removeRow in [false, true] {
                 let (item, remoteInterface, directory) = makeFetchItem(directory: true)
@@ -1699,6 +1721,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testDirectoryFetchRejectsChildDeletedByConcurrentEnumeration() async throws {
+        expectLoggedErrors()
         for childIsDirectory in [false, true] {
             let (item, remoteInterface, directory) = makeFetchItem(directory: true)
             let removedChild = childIsDirectory ? makeDirectoryChild(of: directory) : directory.children[0]
@@ -1762,6 +1785,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testDirectoryFetchPreservesChildMovedDuringTransfer() async throws {
+        expectLoggedErrors()
         let (item, remoteInterface, directory) = makeFetchItem(directory: true)
         let destination = makeDirectoryChild(of: rootItem)
         let dbManager = Self.dbManager
@@ -1838,6 +1862,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testDirectoryFetchReportsMissingRequestedFolder() async {
+        expectLoggedErrors()
         let (item, remoteInterface, directory) = makeFetchItem(directory: true)
         rootItem.children.removeAll { $0.identifier == directory.identifier }
 
@@ -1850,6 +1875,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testSupersededDirectoryChildStopsFetchingContents() async throws {
+        expectLoggedErrors()
         let (directoryItem, directoryRemoteInterface, directory) = makeFetchItem(directory: true)
         let dbManager = Self.dbManager
         let session = Session(startRequestsImmediately: false)
@@ -1902,6 +1928,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testSuccessfulFetchRejectsRemovedOrDeletedMetadata() async throws {
+        expectLoggedErrors()
         for removeRow in [true, false] {
             let (item, remoteInterface, remoteItem) = makeFetchItem()
             let dbManager = Self.dbManager
@@ -1936,6 +1963,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testFetchRejectsOlderBytesAfterPaginatedEnumerationUpdatesVersion() async throws {
+        expectLoggedErrors()
         let (item, remoteInterface, remoteItem) = makeFetchItem()
         let dbManager = Self.dbManager
         let oldContents = try XCTUnwrap(remoteItem.data)
@@ -2009,6 +2037,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testFetchRetriesAfterFileMovesWithoutChangingETag() async throws {
+        expectLoggedErrors()
         let (item, remoteInterface, remoteItem) = makeFetchItem()
         let destination = makeDirectoryChild(of: rootItem)
         let dbManager = Self.dbManager
@@ -2069,6 +2098,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testFetchReturnsRetryableErrorWhenDownloadCompletionWriteFails() async throws {
+        expectLoggedErrors()
         let (item, remoteInterface, remoteItem) = makeFetchItem()
         let dbManager = Self.dbManager
         let ocId = remoteItem.identifier
@@ -2101,6 +2131,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testFetchCancelledWhileWaitingForCompletionWrite() async throws {
+        expectLoggedErrors()
         let (item, remoteInterface, remoteItem) = makeFetchItem()
         let dbManager = Self.dbManager
         let progress = Progress()
@@ -2147,6 +2178,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testDirectoryFetchRollsBackWhenCancelledDuringCompletionWrite() async throws {
+        expectLoggedErrors()
         let (item, remoteInterface, directory) = makeFetchItem(directory: true)
         let dbManager = Self.dbManager
         let progress = Progress()
@@ -2226,6 +2258,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testCancelledDirectoryEnumerationDoesNotStartChildDownloads() async throws {
+        expectLoggedErrors()
         let (item, remoteInterface, directory) = makeFetchItem(directory: true)
         let progress = Progress()
         let session = URLSession(configuration: .ephemeral)
@@ -2257,6 +2290,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testFolderFetchRejectsReplacementDirectoryAtSamePath() async {
+        expectLoggedErrors()
         for replaceRoot in [false, true] {
             let (item, remoteInterface, directory) = makeFetchItem(directory: true)
             let replaced = replaceRoot ? directory : makeDirectoryChild(of: directory)
@@ -2282,6 +2316,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testFolderFetchTreatsRemoteChildNotFoundAsRetryable() async throws {
+        expectLoggedErrors()
         for missingDirectory in [false, true] {
             let (item, remoteInterface, directory) = makeFetchItem(directory: true)
             let notFound = NKError(errorCode: 404, errorDescription: "Child disappeared on the server")
@@ -2305,6 +2340,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testMissingRemoteFolderReportsNoSuchItemForRequestedRoot() async {
+        expectLoggedErrors()
         let (item, remoteInterface, directory) = makeFetchItem(directory: true)
         remoteInterface.enumerateErrorBySuffix[directory.remotePath] = NKError(errorCode: 404, errorDescription: "Requested folder is gone")
 
@@ -2316,6 +2352,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testDiscardedFolderDownloadLeavesCompletedChildrenDataless() async throws {
+        expectLoggedErrors()
         for cancelProgress in [false, true] {
             let (item, remoteInterface, directory) = makeFetchItem(directory: true)
             let progress = Progress()
@@ -2391,6 +2428,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testFailedFolderParentLookupDiscardsCompletedChildState() async throws {
+        expectLoggedErrors()
         let (_, remoteInterface, parentDirectory) = makeFetchItem(directory: true)
         let directory = makeDirectoryChild(of: parentDirectory)
         let child = directory.children[0]
@@ -2432,6 +2470,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testDiscardedFolderPreservesNewerCompletedChildFetch() async throws {
+        expectLoggedErrors()
         let (item, remoteInterface, directory) = makeFetchItem(directory: true)
         let dbManager = Self.dbManager
         let child = directory.children[0]
@@ -2495,6 +2534,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testDownloadErrorsPreserveCancellationAndServerErrors() async throws {
+        expectLoggedErrors()
         for directory in [false, true] {
             for errorCode in [NSURLErrorCancelled, 404, 503] {
                 let (item, remoteInterface, remoteItem) = makeFetchItem(directory: directory)
@@ -2570,6 +2610,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testParentCancellationAfterDownloadRemovesTemporaryContents() async throws {
+        expectLoggedErrors()
         await RetrievedCapabilitiesActor.shared.reset()
         let (item, remoteInterface, _) = makeFetchItem()
         let dbManager = Self.dbManager
@@ -2601,6 +2642,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testMissingParentLookupSucceedsForContentsAndThumbnails() async throws {
+        expectLoggedErrors()
         for thumbnail in [false, true] {
             let (item, remoteInterface, directory) = makeNestedFetchItem()
             remoteInterface.enumerateCallHandler = { path, depth, _, _, _, _, _, _ in
@@ -2638,6 +2680,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testCancellingParentLookupCancelsNetworkTask() async throws {
+        expectLoggedErrors()
         let (item, remoteInterface, directory) = makeNestedFetchItem()
         let progress = Progress()
         let session = URLSession(configuration: .ephemeral)
@@ -2695,6 +2738,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testCancelledParentLookupLeavesMetadataUnchanged() async throws {
+        expectLoggedErrors()
         for cancelDuringWrite in [false, true] {
             let (item, remoteInterface, directory) = makeNestedFetchItem()
             let dbManager = Self.dbManager
@@ -2733,6 +2777,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testCancellingThumbnailPreparationCancelsParentTask() async throws {
+        expectLoggedErrors()
         let (item, remoteInterface, directory) = makeNestedFetchItem()
         let session = URLSession(configuration: .ephemeral)
         defer { session.invalidateAndCancel() }
@@ -2947,6 +2992,7 @@ final class ItemFetchTests: NextcloudFileProviderKitTestCase {
     }
 
     func testThumbnailBatchReportsPerItemFailures() async throws {
+        expectLoggedErrors()
         let (item, remoteInterface, _) = makeFetchItem(preview: true)
         remoteInterface.thumbnailError = NKError(errorCode: 503, errorDescription: "Server unavailable")
         let missingIdentifier = NSFileProviderItemIdentifier("missing-item")

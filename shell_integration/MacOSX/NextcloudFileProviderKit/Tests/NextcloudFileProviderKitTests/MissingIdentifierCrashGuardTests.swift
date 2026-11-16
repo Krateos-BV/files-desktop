@@ -33,6 +33,7 @@ final class MissingIdentifierCrashGuardTests: NextcloudFileProviderKitTestCase {
     }
 
     func testAddItemMetadataRejectsEmptyOcId() {
+        expectLoggedErrors()
         var metadata = SendableItemMetadata(ocId: "", fileName: "folder", account: Self.account)
         metadata.directory = true
 
@@ -59,6 +60,7 @@ final class MissingIdentifierCrashGuardTests: NextcloudFileProviderKitTestCase {
     }
 
     func testEnumerationSkipsEmptyOcIdMetadata() async throws {
+        expectLoggedErrors()
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
 
         var valid = SendableItemMetadata(ocId: "valid-id", fileName: "good.txt", account: Self.account)
@@ -107,6 +109,7 @@ final class MissingIdentifierCrashGuardTests: NextcloudFileProviderKitTestCase {
     }
 
     func testCreateFileReturnsErrorWhenServerOcIdEmpty() async throws {
+        expectLoggedErrors()
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
         remoteInterface.uploadIdentifierOverride = ""
 

@@ -546,6 +546,7 @@ final class RemoteChangePropagationTests: NextcloudFileProviderKitTestCase {
 
     /// A rename landing while the scan's read of the old path is in flight must not turn that read's 404 into a deletion.
     func testA404ForAPathTheItemHasMovedAwayFromIsNotADeletion() async throws {
+        expectLoggedErrors()
         let folder = makeFolder(name: "folder", parent: rootItem, etag: "folder-v1")
         let seeded = seed(folder, visitedDirectory: true)
 
@@ -584,6 +585,7 @@ final class RemoteChangePropagationTests: NextcloudFileProviderKitTestCase {
 
     /// A rename whose MOVE response is handled after the 404 for the old path, while the scan reads a later wave, must not turn that 404 into a deletion.
     func testA404WhoseRenameLandsDuringALaterReadIsNotADeletion() async throws {
+        expectLoggedErrors()
         let folder = makeFolder(name: "folder", parent: rootItem, etag: "folder-v1")
         let other = makeFolder(name: "other", parent: rootItem, etag: "other-v1")
         let laterFolder = makeFolder(name: "later", parent: other, etag: "later-v1")
@@ -642,6 +644,7 @@ final class RemoteChangePropagationTests: NextcloudFileProviderKitTestCase {
 
     /// An upload that starts during the scan keeps a file whose read returned 404 from being deleted.
     func testAnUploadStartedDuringTheScanBlocksTheDeletion() async throws {
+        expectLoggedErrors()
         let file = makeFile(name: "f", parent: rootItem, etag: "f-v1")
         let laterFolder = makeFolder(name: "zzLaterFolder", parent: rootItem, etag: "later-v1")
         let seededFile = seed(file, downloaded: true)
@@ -665,6 +668,7 @@ final class RemoteChangePropagationTests: NextcloudFileProviderKitTestCase {
 
     /// A downloaded file moved into a folder the scan does not read must not be reported deleted by the 404 at its old path.
     func testAFileMovedIntoAnUnvisitedFolderIsNotADeletion() async throws {
+        expectLoggedErrors()
         seed(rootItem, visitedDirectory: true)
         let source = makeFolder(name: "source", parent: rootItem, etag: "source-v1")
         let target = makeFolder(name: "target", parent: rootItem, etag: "target-v1")
@@ -1053,6 +1057,7 @@ final class RemoteChangePropagationTests: NextcloudFileProviderKitTestCase {
     }
 
     func testFileMovedIntoASiblingFolderIsReportedAndNotDeleted() async throws {
+        expectLoggedErrors()
         let (observer, file) = try await moveFileIntoSiblingFolder(writingItsRowFirst: false)
 
         XCTAssertNil(observer.error)
@@ -1063,6 +1068,7 @@ final class RemoteChangePropagationTests: NextcloudFileProviderKitTestCase {
 
     /// The listing finds the moved file unchanged because its row already moved, so only that listing shows the file still exists.
     func testFileMovedIntoASiblingFolderIsNotDeletedWhenItsRowAlreadyMoved() async throws {
+        expectLoggedErrors()
         let (observer, file) = try await moveFileIntoSiblingFolder(writingItsRowFirst: true)
 
         XCTAssertNil(observer.error)
@@ -1073,6 +1079,7 @@ final class RemoteChangePropagationTests: NextcloudFileProviderKitTestCase {
 
     /// `Ontwerp` moved from the visited `Projects` into the unvisited `Archive`, so the scan tombstones its downloaded file at the old path, and `Archive` is listed before the deletion is acknowledged.
     func testAFolderMovedIntoAnUnvisitedFolderGetsItsFileBackWhenListed() async throws {
+        expectLoggedErrors()
         let projects = makeFolder(name: "Projects", parent: rootItem, etag: "projects-v1")
         let archive = makeFolder(name: "Archive", parent: rootItem, etag: "archive-v1")
         let ontwerp = makeFolder(name: "Ontwerp", parent: projects, etag: "ontwerp-v1")
@@ -1099,6 +1106,7 @@ final class RemoteChangePropagationTests: NextcloudFileProviderKitTestCase {
 
     /// `sub` moved into `Active` and then `Ontwerp` into `Archive`, so the read of `Archive` moves `sub` with `Ontwerp` and the later read of `Active` moves it again.
     func testASubfolderMovedTwiceInOneScanIsReportedWhereItIsNow() async throws {
+        expectLoggedErrors()
         let archive = makeFolder(name: "Archive", parent: rootItem, etag: "archive-v1")
         let projects = makeFolder(name: "Projects", parent: rootItem, etag: "projects-v1")
         let active = makeFolder(name: "Active", parent: projects, etag: "active-v1")

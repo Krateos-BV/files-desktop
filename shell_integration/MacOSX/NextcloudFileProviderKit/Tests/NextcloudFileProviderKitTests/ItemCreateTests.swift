@@ -127,6 +127,7 @@ final class ItemCreateTests: NextcloudFileProviderKitTestCase {
     }
 
     func testCancellationDuringChunkPreparationDoesNotCreateFile() async throws {
+        expectLoggedErrors()
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
         let progress = Progress()
         remoteInterface.chunkPreparationHandler = {
@@ -161,6 +162,7 @@ final class ItemCreateTests: NextcloudFileProviderKitTestCase {
     }
 
     func testCancellationDuringUploadDoesNotCreateFile() async throws {
+        expectLoggedErrors()
         for chunkSize in [8, 3] {
             let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
             let progress = Progress()

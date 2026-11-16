@@ -263,10 +263,12 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
     }
 
     func testCancellationDuringChunkPreparationRemainsUnuploaded() async throws {
+        expectLoggedErrors()
         try await assertFailedContentModificationRemainsUnuploaded(errorCode: NSURLErrorCancelled, chunkSize: 2, cancelDuringChunkPreparation: true)
     }
 
     func testCancellationDuringChunkPreparationPreservesConcurrentPinChanges() async throws {
+        expectLoggedErrors()
         for keepDownloaded in [true, false] {
             try await assertFailedContentModificationRemainsUnuploaded(
                 errorCode: NSURLErrorCancelled,
@@ -278,6 +280,7 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
     }
 
     func testCancelledUploadRemainsUnuploadedAfterPaginatedListing() async throws {
+        expectLoggedErrors()
         let remoteInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem)
         let listingInterface = MockRemoteInterface(account: Self.account, rootItem: rootItem, pagination: true)
         let progress = Progress()
@@ -349,6 +352,7 @@ final class ItemModifyTests: NextcloudFileProviderKitTestCase {
     }
 
     func testCancellationDuringUploadRemainsUnuploaded() async throws {
+        expectLoggedErrors()
         try await assertFailedContentModificationRemainsUnuploaded(errorCode: NSURLErrorCancelled, chunkSize: nil, cancelDuringUpload: true)
         try await assertFailedContentModificationRemainsUnuploaded(errorCode: NSURLErrorCancelled, chunkSize: 2, cancelDuringUpload: true)
     }
