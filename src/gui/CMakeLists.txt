@@ -434,6 +434,7 @@ IF( APPLE )
             macOS/fileprovidersettingscontroller.h
             macOS/fileprovidersettingscontroller_mac.mm
             macOS/fileproviderutils.h
+            macOS/fileproviderutils_mac.h
             macOS/fileproviderutils_mac.mm
             macOS/fileproviderxpc.h
             macOS/fileproviderxpcconnection.h
@@ -895,6 +896,7 @@ if(BUILD_OWNCLOUD_OSX_BUNDLE AND NOT BUILD_LIBRARIES_ONLY)
         COMMAND "${CMAKE_COMMAND}"
         -E rm -rf "${BIN_OUTPUT_DIRECTORY}/${OWNCLOUD_OSX_BUNDLE}/Contents/PlugIns/bearer"
         COMMENT "Running macdeployqt..."
+        VERBATIM
     )
 endif()
 

@@ -26,6 +26,8 @@
 #include "csync_exclude.h"
 #include "csync.h"
 
+#include "owncloudpropagator.h"
+
 namespace
 {
 constexpr const char *editorNamesForDelayedUpload[] = {"PowerPDF"};
@@ -232,6 +234,10 @@ void ProcessDirectoryJob::process()
 
         const auto isBlacklisted = _queryServer == InBlackList || _discoveryData->isInSelectiveSyncBlackList(path._original) || isEncryptedFolderButE2eIsNotSetup;
 
+        if (_queryLocal == ParentNotChanged && FileSystem::isSymLink(_discoveryData->_localDir + path._local)) {
+            e.localEntry.isSymLink = true;
+        }
+
         const auto willBeExcluded = handleExcluded(path._target, e, entries, isHidden, isBlacklisted);
 
         if (willBeExcluded) {
@@ -387,7 +393,14 @@ bool ProcessDirectoryJob::handleExcluded(const QString &path, const Entries &ent
 
     if (entries.localEntry.isSymLink) {
         /* Symbolic links are ignored. */
-        item->_errorString = tr("Symbolic links are not supported in syncing.");
+        item->_errorString = OwncloudPropagator::symlinkNotSupportedMessage();
+        if (entries.dbEntry.isValid() && !_discoveryData->_statedb->deleteFileRecord(entries.dbEntry.path(), true)) {
+            qCWarning(lcDisco) << "Failed to drop stale record for symlinked path" << entries.dbEntry.path();
+        }
+        // Keep the parent etags invalid, so the server folder behind the link is listed again.
+        if (entries.serverEntry.isValid() || entries.dbEntry.isValid()) {
+            _discoveryData->_statedb->schedulePathForRemoteDiscovery(path);
+        }
     } else {
         switch (excluded) {
         case CSYNC_NOT_EXCLUDED:
@@ -1083,6 +1096,11 @@ void ProcessDirectoryJob::processFileAnalyzeRemoteInfo(const SyncFileItemPtr &it
         }
 
         const auto originalPathAdjusted = _discoveryData->adjustRenamedPath(originalPath, SyncFileItem::Up);
+
+        if (FileSystem::pathContainsSymlink(_discoveryData->_localDir, originalPathAdjusted)) {
+            qCInfo(lcDisco) << "Local source is a symlink, not a rename." << originalPathAdjusted;
+            return;
+        }
 
         if (!base.isDirectory()) {
             csync_file_stat_t buf;
@@ -2175,15 +2193,19 @@ bool ProcessDirectoryJob::checkPermissions(const OCC::SyncFileItemPtr &item)
             qCWarning(lcDisco) << "checkForPermission: Not allowed because you don't have permission to add subfolders to that folder:" << item->_file;
             item->_instruction = CSYNC_INSTRUCTION_IGNORE;
             item->_errorString = tr("Not allowed because you don't have permission to add subfolders to that folder");
-            // Do NOT schedule the new local folder for deletion: it may contain data the user just
-            // created and that exists nowhere else. (see read-only folder regression, issues #7797/#10099).
+            // The new local folder is kept, never deleted: it may contain data that exists
+            // nowhere else (issues #7797/#10099). The flag lets the UI show why it does not
+            // sync, while other ignored items (ignore list, "choose what to sync") stay silent.
+            item->_isUploadForbiddenItemKept = true;
             return false;
         } else if (!item->isDirectory() && !perms.hasPermission(RemotePermissions::CanAddFile)) {
             qCWarning(lcDisco) << "checkForPermission: Not allowed because you don't have permission to add files in that folder:" << item->_file;
             item->_instruction = CSYNC_INSTRUCTION_IGNORE;
             item->_errorString = tr("Not allowed because you don't have permission to add files in that folder");
-            // Do NOT schedule the new local file for deletion: it may be data the user just created
-            // and that exists nowhere else. (see read-only folder regression, issues #7797/#10099).
+            // The new local file is kept, never deleted: it may be data that exists nowhere
+            // else (issues #7797/#10099). The flag lets the UI show why it does not sync,
+            // while other ignored items (ignore list, "choose what to sync") stay silent.
+            item->_isUploadForbiddenItemKept = true;
             return false;
         }
         break;
