@@ -411,15 +411,17 @@ jobs:
   macos-build:
     name: macOS build (with File Provider)
     needs: [verify-tag, secrets-report]
-    # XEN-328: a dispatch on main may run on the Mac Mini, in a throwaway Tart VM.
-    # The repo variable XENIA_MACOS_SIGNING_RUNNER holds the label list as JSON,
-    # ["self-hosted","xenia-mac-mini","xenia-host-mm"]. The host label pins signed
-    # jobs to the Mac Mini, so the other runner host never receives the signing
-    # secrets. It is a separate variable from XENIA_MACOS_RUNNER (unsigned CI), so
-    # deleting it moves only signed builds back to hosted. Tag pushes and
-    # dispatches on other refs stay hosted: the runner group only accepts this
-    # workflow at refs/heads/main.
-    runs-on: ${{ (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && vars.XENIA_MACOS_SIGNING_RUNNER != '') && fromJSON(vars.XENIA_MACOS_SIGNING_RUNNER) || 'macos-26' }}
+    # XEN-328: a dispatch on main and a release tag push run on the Mac Mini, in a
+    # throwaway Tart VM (Xcode 27.2). The repo variable XENIA_MACOS_SIGNING_RUNNER
+    # holds the label list as JSON, ["self-hosted","xenia-mac-mini","xenia-host-mm"].
+    # The host label pins signed jobs to the Mac Mini, so the other runner host
+    # never receives the signing secrets. It is a separate variable from
+    # XENIA_MACOS_RUNNER (unsigned CI), so deleting it moves only signed builds back
+    # to hosted. A tag only gets here through the on.push.tags filter, and
+    # verify-tag has already checked that it points at a commit on main. Dispatches
+    # on other refs stay hosted. Runner group xenia-mac-mini accepts all workflows
+    # since 13 Nov (XEN-367), so tag refs are allowed.
+    runs-on: ${{ (((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v2'))) && vars.XENIA_MACOS_SIGNING_RUNNER != '') && fromJSON(vars.XENIA_MACOS_SIGNING_RUNNER) || 'macos-26' }}
     timeout-minutes: 150
     permissions:
       contents: read
