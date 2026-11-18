@@ -359,6 +359,25 @@ struct Build: AsyncParsableCommand {
             }
         }
 
+        // MARK: Bundle linkage (XEN-383)
+
+        // macdeployqt can leave references to the Craft install tree in the bundle
+        // (libKF6Archive -> <craft root>/lib/liblzma.5.dylib since xz 5.8.4). Copy
+        // such libraries into Contents/Frameworks and point the references at
+        // @rpath before anything is signed.
+        if !disableAppBundle {
+            let fixLinkageScript = repoRootURL
+                .appendingPathComponent("admin")
+                .appendingPathComponent("osx")
+                .appendingPathComponent("xenia-fix-bundle-linkage.sh")
+
+            Log.info("Fixing library references outside the app bundle...")
+
+            guard await shell("bash '\(fixLinkageScript.path)' '\(clientAppURL.path)'") == 0 else {
+                throw MacCrafterError.craftError("Failed to fix library references in \(clientAppURL.path)")
+            }
+        }
+
         // MARK: Signing
 
         if let codeSignIdentity {
