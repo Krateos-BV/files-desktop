@@ -39,7 +39,7 @@ extern "C" void xeniaQuitSignalHandler(int signum)
         sigaction(sig, &dfl, nullptr);
     }
 
-    const unsigned char byte = static_cast<unsigned char>(signum);
+    const auto byte = static_cast<unsigned char>(signum);
     [[maybe_unused]] const auto written = ::write(s_signalFds[0], &byte, sizeof(byte));
     errno = savedErrno;
 }
