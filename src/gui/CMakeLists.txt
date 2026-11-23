@@ -492,6 +492,14 @@ if(Qt${QT_MAJOR_VERSION}LinguistTools_FOUND)
 endif()
 
 IF( WIN32 )
+    # XEN-373: the numeric FILEVERSION/PRODUCTVERSION stay on the client version
+    # (35.x), but the ProductVersion string, which Explorer shows as "Product
+    # version", carries the Xenia release (CalVer) when the build knows it.
+    if( XENIA_RELEASE_VERSION )
+        set( XENIA_RC_PRODUCT_VERSION_STR "${XENIA_RELEASE_VERSION}" )
+    else()
+        set( XENIA_RC_PRODUCT_VERSION_STR "${MIRALL_VERSION_MAJOR}.${MIRALL_VERSION_MINOR}.${MIRALL_VERSION_PATCH}.${MIRALL_VERSION_BUILD}" )
+    endif()
     configure_file(
       ${CMAKE_CURRENT_SOURCE_DIR}/version.rc.in
       ${CMAKE_CURRENT_BINARY_DIR}/version.rc

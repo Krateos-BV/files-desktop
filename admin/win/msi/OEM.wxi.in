@@ -34,7 +34,10 @@
     <?define VerStd = "$(var.VerMajor).$(var.VerMinor).$(var.VerRevision)" ?>
     <?define VerFull = "$(var.VerStd).$(var.VerBuild)" ?>
 
-    <?define VerDesc = "@MIRALL_HUMAN_VERSION_STRING@ (Git revision @GIT_REVISION@)" ?>
+    <?define VerDesc = "@MSI_VERSION_DESC@" ?>
+
+    <!-- XEN-373: "Xenia Files <release>" on release builds, else the app name -->
+    <?define ProductDisplayName = "@MSI_PRODUCT_NAME@" ?>
 
     <!-- MSI upgrade support -->
     <?define UpgradeCode = "@WIN_MSI_UPGRADE_CODE@" ?>
