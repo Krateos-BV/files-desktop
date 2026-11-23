@@ -26,6 +26,12 @@
 
 #include <filesystem>
 
+#ifdef Q_OS_LINUX
+#include <csignal>
+#include <sys/prctl.h>
+#include <unistd.h>
+#endif
+
 using namespace std::chrono_literals;
 using namespace Qt::StringLiterals;
 
@@ -209,6 +215,19 @@ void OpenVFS::startImpl(const VfsSetupParams &params)
     _openVfsProcess = new QProcess(this);
     // merging the channels and piping the output to our log lead to deadlocks
     _openVfsProcess->setProcessChannelMode(QProcess::ForwardedChannels);
+#ifdef Q_OS_LINUX
+    // XEN-372: if the client dies without running OpenVFS::stop() (SIGKILL, crash),
+    // the kernel sends openvfs SIGTERM, and openvfs unmounts on SIGTERM (the same
+    // signal stop() sends). Without this openvfs and its FUSE mount outlive the client.
+    // Runs in the child between fork and exec: async-signal-safe calls only.
+    _openVfsProcess->setChildProcessModifier([parentPid = ::getpid()] {
+        ::prctl(PR_SET_PDEATHSIG, SIGTERM);
+        // The parent may already have died between fork and prctl.
+        if (::getppid() != parentPid) {
+            ::_exit(1);
+        }
+    });
+#endif
     const auto logPrefix = [path = params.filesystemPath, this] { return u"[%1 %2] "_s.arg(QString::number(_openVfsProcess->processId()), path); };
     connect(_openVfsProcess, &QProcess::finished, this, [logPrefix, this] { qCFatal(lcOpenVFS) << logPrefix() << "finished" << _openVfsProcess->exitCode(); });
     connect(_openVfsProcess, &QProcess::started, this, [logPrefix, this] {

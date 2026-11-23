@@ -23,6 +23,10 @@
 #include "updater/updater.h"
 #endif
 
+#if defined(Q_OS_UNIX) && !defined(Q_OS_MACOS)
+#include "xenia/unixsignalquit.h"
+#endif
+
 #include <QTimer>
 #include <QMessageBox>
 #include <QDebug>
@@ -110,6 +114,10 @@ static int runApplication(int argc, char **argv)
 
 #ifndef Q_OS_WIN
     signal(SIGPIPE, SIG_IGN);
+#endif
+#if defined(Q_OS_UNIX) && !defined(Q_OS_MACOS)
+    // XEN-372: SIGTERM/SIGINT/SIGHUP run the same cleanup as --quit (stops openvfs, unmounts).
+    OCC::Xenia::UnixSignalQuit::install(&app);
 #endif
     if (app.giveHelp()) {
         app.showHelp();
