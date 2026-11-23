@@ -50,7 +50,7 @@ function Get-ArpEntries {
     $all = foreach ($r in $roots) {
         if (Test-Path $r) { Get-ChildItem $r | ForEach-Object { Get-ItemProperty $_.PSPath } }
     }
-    return ,@($all | Where-Object { $_.DisplayName -eq 'Xenia Files' })
+    return ,@($all | Where-Object { $_.DisplayName -match '^Xenia Files( [0-9]+(\.[0-9]+){2,3})?$' })
 }
 
 function Find-Shortcuts {

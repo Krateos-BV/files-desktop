@@ -16,7 +16,7 @@
          We change the Product Id for every release, to let up-/downgrading always work.
          But we then should never change the UpgradeCode.
      -->
-    <Product Name="$(var.AppName)" Manufacturer="$(var.AppVendor)"
+    <Product Name="$(var.ProductDisplayName)" Manufacturer="$(var.AppVendor)"
         Id="$(var.ProductCode)"
         UpgradeCode="$(var.UpgradeCode)"
         Language="1033" Codepage="$(var.codepage)" Version="$(var.VerFull)">
@@ -86,6 +86,7 @@
     <Property Id="ARPPRODUCTICON">$(var.AppIcon)</Property>
     <Property Id="ARPHELPLINK">$(var.AppHelpLink)</Property>
     <Property Id="ARPURLINFOABOUT">$(var.AppInfoLink)</Property>
+    <Property Id="ARPCOMMENTS">$(var.AppName) $(var.VerDesc)</Property>
 
     <!-- https://www.firegiant.com/wix/tutorial/com-expression-syntax-miscellanea/add-or-remove-programs-entries/ -->
     <!--

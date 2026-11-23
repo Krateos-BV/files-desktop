@@ -16,6 +16,18 @@ else()
     set(VERSION_SUFFIX "-${MIRALL_VERSION_SUFFIX}")
 endif()
 
+# XEN-373: the MSI ProductVersion stays on the client version (35.x), because a
+# CalVer ProductVersion such as 26.11.11.2 would be lower than the 35.0.50.0
+# already installed. Apps shows ProductVersion, so a release build names its
+# release in the product name ("Xenia Files 26.11.11.2") and in the ARP comments.
+if (XENIA_RELEASE_VERSION)
+    set(MSI_PRODUCT_NAME "${APPLICATION_NAME} ${XENIA_RELEASE_VERSION}")
+    set(MSI_VERSION_DESC "${XENIA_RELEASE_VERSION} (client ${MIRALL_VERSION}, Git revision ${GIT_REVISION})")
+else()
+    set(MSI_PRODUCT_NAME "${APPLICATION_NAME}")
+    set(MSI_VERSION_DESC "${MIRALL_HUMAN_VERSION_STRING} (Git revision ${GIT_REVISION})")
+endif()
+
 set(MSI_INSTALLER_FILENAME "${APPLICATION_SHORTNAME}-${VERSION}${VERSION_SUFFIX}-${MSI_BUILD_ARCH}.msi")
 
 # WiX identifiers may only hold letters, digits, '_' and '.', and a branded name

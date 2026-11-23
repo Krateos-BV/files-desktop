@@ -125,7 +125,7 @@ function Get-MsiRows([string] $path, [string] $query) {
 $props = @{}
 foreach ($r in (Get-MsiRows $msi[0].FullName "SELECT Property, Value FROM Property")) { $props[$r[0]] = $r[1] }
 Write-Host ':: MSI properties'
-foreach ($k in 'ProductName', 'Manufacturer', 'ProductVersion', 'ProductCode', 'UpgradeCode', 'ARPPRODUCTICON') {
+foreach ($k in 'ProductName', 'Manufacturer', 'ProductVersion', 'ProductCode', 'UpgradeCode', 'ARPPRODUCTICON', 'ARPCOMMENTS') {
     Write-Host ("   {0,-15} {1}" -f $k, $props[$k])
 }
 $fileRows = Get-MsiRows $msi[0].FullName "SELECT FileName FROM File"
@@ -159,6 +159,14 @@ foreach ($g in $shellExtGuids) {
 foreach ($g in '{BC6988AB-ACE2-4B81-84DC-DC34F9B24401}', '{E0342B74-7593-4C70-9D61-22F294AAFE05}', '{E1094E94-BE93-4EA2-9639-8475C68F3886}',
                '{E243AD85-F71B-496B-B17E-B8091CBE93D2}', '{E3D6DB20-1D83-4829-B5C9-941B31C0C35A}', '{E4977F33-F93A-4A0A-9D3C-83DEA0EE8483}') {
     if ($clsids -contains $g) { $problems += "MSI registers upstream Nextcloud CLSID $g" }
+}
+# XEN-373: a release build (the workflow wrote xenia-release-version.txt) must name
+# its release in the product name, which Apps shows, and in ARPCOMMENTS.
+$releaseFile = Join-Path $PSScriptRoot '..\..\..\xenia-release-version.txt'
+if (Test-Path $releaseFile) {
+    $release = (Get-Content $releaseFile -TotalCount 1).Trim()
+    if ($props['ProductName'] -notmatch " $([regex]::Escape($release))$") { $problems += "ProductName '$($props['ProductName'])' does not end with the release version $release" }
+    if ($props['ARPCOMMENTS'] -notmatch [regex]::Escape($release)) { $problems += "ARPCOMMENTS '$($props['ARPCOMMENTS'])' lacks the release version $release" }
 }
 if ($problems) { throw "MSI check failed: $($problems -join '; ')" }
 Write-Host ':: MSI check passed'
