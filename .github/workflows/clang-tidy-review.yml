@@ -30,7 +30,9 @@ jobs:
         # Windows-only cfapi VFS sources need windows.h/ntstatus.h, which this Linux container lacks.
         # libcloudproviders sources are not built here (no libcloudproviders in the container), so
         # they have no compile command and fail on glib.h (XEN-324, upstream d33ca1e touched one).
-        /usr/bin/git diff -U0 HEAD^ -- ':(exclude)test/macOS/*' ':(exclude)test/systraysynccontroltesthelper.h' ':(exclude)*macOS*' ':(exclude)src/libsync/vfs/cfapi/*' ':(exclude)test/testsynccfapi.cpp' ':(exclude)src/gui/cloudproviders/*' | clang-tidy-diff-21.py -checks='-*,modernize-use-auto,modernize-use-using,modernize-use-nodiscard,modernize-use-nullptr,modernize-use-override,cppcoreguidelines-pro-type-static-cast-downcast' -p1 -path build -regex '^(?!.*/macOS/)(?!.*/MacOSX/).*\.(cpp|cc|cxx|c|h|hpp|hxx)$' -export-fixes clang-tidy-result/fixes.yml
+        # The OpenVFS plugin is not built here either (OpenVFS is not in the container: cmake lists it
+        # under OPTIONAL packages not found), so its sources fail on openvfs/openvfs.h (XEN-372).
+        /usr/bin/git diff -U0 HEAD^ -- ':(exclude)test/macOS/*' ':(exclude)test/systraysynccontroltesthelper.h' ':(exclude)*macOS*' ':(exclude)src/libsync/vfs/cfapi/*' ':(exclude)test/testsynccfapi.cpp' ':(exclude)src/gui/cloudproviders/*' ':(exclude)src/libsync/vfs/openvfs/*' | clang-tidy-diff-21.py -checks='-*,modernize-use-auto,modernize-use-using,modernize-use-nodiscard,modernize-use-nullptr,modernize-use-override,cppcoreguidelines-pro-type-static-cast-downcast' -p1 -path build -regex '^(?!.*/macOS/)(?!.*/MacOSX/).*\.(cpp|cc|cxx|c|h|hpp|hxx)$' -export-fixes clang-tidy-result/fixes.yml
     - name: Run clang-tidy-pr-comments action
       uses: platisd/clang-tidy-pr-comments@28cfb84edafa771c044bde7e4a2a3fae57463818 # v1.6.1 # >1.4.3 switches to composite method w/ a forced python version and breaks things: https://github.com/actions/setup-python/issues/871
       with:

@@ -287,6 +287,14 @@ if(XENIA_UPDATE_CHECK)
     )
 endif()
 
+# XEN-372: SIGTERM/SIGINT/SIGHUP quit cleanly (Linux and other non-Apple Unix)
+if(UNIX AND NOT APPLE)
+    list(APPEND client_SRCS
+        xenia/unixsignalquit.h
+        xenia/unixsignalquit.cpp
+    )
+endif()
+
 IF(BUILD_UPDATER)
     set(updater_SRCS
         updater/ocupdater.h
