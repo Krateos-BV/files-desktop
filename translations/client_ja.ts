@@ -536,6 +536,11 @@
     </message>
     <message>
         <location filename="../src/gui/cloudproviders/cloudproviderwrapper.cpp" line="246"/>
+        <source>Open in Browser</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <location filename="../src/gui/cloudproviders/cloudproviderwrapper.cpp" line="246"/>
         <source>Open in browser</source>
         <translation>ブラウザーで開く</translation>
     </message>
@@ -1057,16 +1062,6 @@ Should the account be imported?</source>
         <translation>アカウントが未設定です。</translation>
     </message>
     <message>
-        <location filename="../src/gui/accountsettings.cpp" line="98"/>
-        <source>End-to-end Encryption with Virtual Files</source>
-        <translation>仮想ファイルシステムでのエンドツーエンド暗号</translation>
-    </message>
-    <message>
-        <location filename="../src/gui/accountsettings.cpp" line="99"/>
-        <source>You seem to have the Virtual Files feature enabled on this folder. At the moment, it is not possible to implicitly download virtual files that are end-to-end encrypted. To get the best experience with virtual files and end-to-end encryption, make sure the encrypted folder is marked with &quot;Make always available locally&quot;.</source>
-        <translation>このフォルダでは仮想ファイル機能が有効になっているようです。現時点では、エンドツーエンドで暗号化された仮想ファイルをバックグラウンドで暗黙的にダウンロードすることはできません。仮想ファイルとエンドツーエンド暗号化を最大限に活用するには、暗号化されたフォルダーに「ローカルで常に利用可能にする」というマークが付いていることを確認してください。</translation>
-    </message>
-    <message>
         <location filename="../src/gui/accountsettings.cpp" line="107"/>
         <location filename="../src/gui/accountsettings.cpp" line="129"/>
         <source>Do not encrypt folder</source>
@@ -1082,6 +1077,16 @@ Should the account be imported?</source>
         <location filename="../src/gui/accountsettings.cpp" line="120"/>
         <source>End-to-end Encryption</source>
         <translation>End-to-End 暗号化</translation>
+    </message>
+    <message>
+        <location filename="../src/gui/accountsettings.cpp" line="98"/>
+        <source>End-to-end Encryption with Virtual Files</source>
+        <translation>仮想ファイルシステムでのエンドツーエンド暗号</translation>
+    </message>
+    <message>
+        <location filename="../src/gui/accountsettings.cpp" line="99"/>
+        <source>You seem to have the Virtual Files feature enabled on this folder. At the moment, it is not possible to implicitly download virtual files that are end-to-end encrypted. To get the best experience with virtual files and end-to-end encryption, make sure the encrypted folder is marked with &quot;Make always available locally&quot;.</source>
+        <translation>このフォルダでは仮想ファイル機能が有効になっているようです。現時点では、エンドツーエンドで暗号化された仮想ファイルをバックグラウンドで暗黙的にダウンロードすることはできません。仮想ファイルとエンドツーエンド暗号化を最大限に活用するには、暗号化されたフォルダーに「ローカルで常に利用可能にする」というマークが付いていることを確認してください。</translation>
     </message>
     <message>
         <location filename="../src/gui/accountsettings.cpp" line="123"/>
@@ -1584,203 +1589,203 @@ This action will abort any currently running synchronization.</source>
 <context>
     <name>OCC::AccountWizardController</name>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="326"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="330"/>
         <source>Will require local storage</source>
         <translation>ローカルストレージが必要になります</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="736"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="740"/>
         <source>Proxy settings are incomplete.</source>
         <translation>プロキシ設定が不完全です。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="743"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="747"/>
         <source>Server address does not seem to be valid</source>
         <translation>サーバーのアドレスが有効ではないようです</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="764"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="768"/>
         <source>Username must not be empty.</source>
         <translation>ユーザー名は空欄にしないでください。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="770"/>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1092"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="774"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1096"/>
         <source>Checking account access</source>
         <translation>アカウントアクセスの確認</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="848"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="852"/>
         <source>Checking server address</source>
         <translation>サーバーアドレスの確認</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="917"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="921"/>
         <source>Preparing browser login</source>
         <translation>ブラウザーでのログインの準備</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="938"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="942"/>
         <source>Invalid URL</source>
         <translation>無効なURL</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="940"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="944"/>
         <source>Failed to connect to %1 at %2:
 %3</source>
         <translation>%2で%1への接続に失敗しました:
 %3</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="956"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="960"/>
         <source>Timeout while trying to connect to %1 at %2.</source>
         <translation>%2の%1への接続中にタイムアウトが発生しました。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1043"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1047"/>
         <source>Unable to open the Browser, please copy the link to your Browser.</source>
         <translation>ブラウザーが開けません。リンクをコピーしてブラウザーに貼り付けてください。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1068"/>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1073"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1072"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1077"/>
         <source>Waiting for authorization</source>
         <translation>承認を待機中</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1078"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1082"/>
         <source>Starting authorization</source>
         <translation>承認を開始</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1083"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1087"/>
         <source>Link copied to clipboard.</source>
         <translation>リンクをクリップボードにコピーしました。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1138"/>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1168"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1142"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1172"/>
         <source>There was an invalid response to an authenticated WebDAV request</source>
         <translation>認証済みの WebDAV 要求に対する無効な応答がありました</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1155"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1159"/>
         <source>The authenticated request to the server was redirected to &quot;%1&quot;. The URL is bad, the server is misconfigured.</source>
         <translation>サーバーへの認証リクエストは &quot;%1&quot; へリダイレクトされました。URLが正しくありません。サーバーが間違って設定されています。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1163"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1167"/>
         <source>Access forbidden by server. To verify that you have proper access, open the service in your browser.</source>
         <translation>サーバーによりアクセスが拒否されました。アクセス権限を確認するには、ブラウザーでこのサービスを開いてください。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1181"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1185"/>
         <source>Account connected.</source>
         <translation>アカウントに接続しました。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1291"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1295"/>
         <source>Will require %1 of storage</source>
         <translation>ストレージの%1が必要になります </translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1471"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1475"/>
         <source>%1 free space</source>
         <comment>%1 gets replaced with the size and a matching unit. Example: 3 MB or 5 GB</comment>
         <translation>空き容量 %1</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1481"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1485"/>
         <source>There isn&apos;t enough free space in the local folder!</source>
         <translation>ローカルフォルダーに十分な空き容量がありません。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1498"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1502"/>
         <source>Please choose a local sync folder.</source>
         <translation>ローカルの同期フォルダーを選択してください。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1503"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1507"/>
         <source>Please choose an empty local sync folder.</source>
         <translation>空のローカル同期フォルダーを選択してください。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1568"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1572"/>
         <source>Could not create local folder %1</source>
         <translation>ローカルフォルダー %1 を作成できませんでした</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1582"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1586"/>
         <source>Checking remote folder</source>
         <translation>リモートフォルダーの確認</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1628"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1632"/>
         <source>No remote folder specified!</source>
         <translation>リモートフォルダーが指定されていません！</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1637"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1641"/>
         <source>Error: %1</source>
         <translation>エラー: %1</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1642"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1646"/>
         <source>Creating remote folder</source>
         <translation>リモートフォルダーの作成</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1661"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1665"/>
         <source>The folder creation resulted in HTTP error code %1</source>
         <translation>フォルダーの作成中にHTTPエラーコード%1が発生しました</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1663"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1667"/>
         <source>The remote folder creation failed because the provided credentials are wrong. Please go back and check your credentials.</source>
         <translation>指定された認証情報が正しくないため、リモートフォルダーの作成に失敗しました。戻って認証情報を確認してください。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1665"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1669"/>
         <source>Remote folder %1 creation failed with error &lt;tt&gt;%2&lt;/tt&gt;.</source>
         <translation>リモートフォルダー %1 の作成がエラーで失敗しました。&lt;tt&gt;%2&lt;/tt&gt;.</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1712"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1716"/>
         <source>Account setup failed while creating the sync folder.</source>
         <translation>同期フォルダーの作成中にアカウントの設定に失敗しました。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1724"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1728"/>
         <source>Could not create the sync folder.</source>
         <translation>同期フォルダーを作成できませんでした。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1834"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="1838"/>
         <source>Local Sync Folder</source>
         <translation>ローカル同期フォルダー</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="2110"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="2123"/>
         <source>Select a certificate</source>
         <translation>証明書を選択</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="2112"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="2130"/>
         <source>Certificate files (*.p12 *.pfx)</source>
         <translation>証明書ファイル (*.p12 *.pfx)</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="2129"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="2143"/>
         <source>Could not access the selected certificate file.</source>
         <translation>選択した証明書ファイルにアクセスできませんでした。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="2134"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="2148"/>
         <source>The selected certificate file is empty.</source>
         <translation>選択した証明書ファイルが空です。</translation>
     </message>
     <message>
-        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="2168"/>
+        <location filename="../src/gui/wizard/accountwizardcontroller.cpp" line="2182"/>
         <source>Could not load certificate. Maybe wrong password?</source>
         <translation>証明書を読み込めませんでした。 パスワードが間違っていますか？</translation>
     </message>
@@ -1858,40 +1863,40 @@ This action will abort any currently running synchronization.</source>
     </message>
     <message>
         <location filename="../src/gui/advancedsettings.ui" line="384"/>
-        <location filename="../src/gui/advancedsettings.cpp" line="437"/>
+        <location filename="../src/gui/advancedsettings.cpp" line="415"/>
         <source>Create Debug Archive</source>
         <translation>デバッグアーカイブを作成</translation>
     </message>
     <message>
         <location filename="../src/gui/wizard/qml/AccountWizardWindow.qml" line="274"/>
-        <location filename="../src/gui/advancedsettings.cpp" line="252"/>
+        <location filename="../src/gui/advancedsettings.cpp" line="232"/>
         <location filename="../src/gui/settingsdialog.cpp" line="188"/>
         <source>Advanced</source>
         <extracomment>Name of the Advanced settings feature.</extracomment>
         <translation>詳細設定</translation>
     </message>
     <message>
-        <location filename="../src/gui/advancedsettings.cpp" line="439"/>
+        <location filename="../src/gui/advancedsettings.cpp" line="423"/>
         <source>Zip Archives</source>
         <translation>Zipアーカイブ</translation>
     </message>
     <message>
-        <location filename="../src/gui/advancedsettings.cpp" line="452"/>
+        <location filename="../src/gui/advancedsettings.cpp" line="398"/>
         <source>Failed to Access File</source>
         <translation>ファイルへのアクセスに失敗しました</translation>
     </message>
     <message>
-        <location filename="../src/gui/advancedsettings.cpp" line="453"/>
+        <location filename="../src/gui/advancedsettings.cpp" line="399"/>
         <source>Could not access the selected location. Please try again or choose a different location.</source>
         <translation>選択した場所にアクセスできませんでした。もう一度お試しいただくか、別の場所を選択してください。</translation>
     </message>
     <message>
-        <location filename="../src/gui/advancedsettings.cpp" line="462"/>
+        <location filename="../src/gui/advancedsettings.cpp" line="436"/>
         <source>Debug Archive Created</source>
         <translation>デバッグアーカイブを作成しました</translation>
     </message>
     <message>
-        <location filename="../src/gui/advancedsettings.cpp" line="463"/>
+        <location filename="../src/gui/advancedsettings.cpp" line="437"/>
         <source>Redact information deemed sensitive before sharing! Debug archive created at %1</source>
         <translation>共有する前に、機密情報と見なされる内容を伏せてください！%1にデバッグアーカイブが作成されました </translation>
     </message>
@@ -3775,22 +3780,22 @@ For advanced users: this issue might be related to multiple sync database files 
 <context>
     <name>OCC::GetOrCreatePublicLinkShare</name>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="941"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="977"/>
         <source>Password for share required</source>
         <translation>共有用のパスワードが必要です</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="942"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="978"/>
         <source>Please enter a password for your link share:</source>
         <translation>リンク共有のパスワードを入力してください。</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="968"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="1004"/>
         <source>Sharing error</source>
         <translation>共有エラー</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="969"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="1005"/>
         <source>Could not retrieve or create the public link share. Error:
 
 %1</source>
@@ -5326,38 +5331,38 @@ Note that using any logging command line options will override this setting.</so
         <translation>ファイルがロックされているため、同期できません</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagateuploadng.cpp" line="460"/>
+        <location filename="../src/libsync/propagateuploadng.cpp" line="461"/>
         <source>The local file was removed during sync.</source>
         <translation>ローカルファイルを同期中に削除します。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagateuploadng.cpp" line="475"/>
+        <location filename="../src/libsync/propagateuploadng.cpp" line="476"/>
         <source>Local file changed during sync.</source>
         <translation>ローカルのファイルが同期中に変更されました。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagateuploadng.cpp" line="517"/>
+        <location filename="../src/libsync/propagateuploadng.cpp" line="518"/>
         <source>Poll URL missing</source>
         <translation>ポーリングURLがありません</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagateuploadng.cpp" line="526"/>
+        <location filename="../src/libsync/propagateuploadng.cpp" line="527"/>
         <source>Unexpected return code from server (%1)</source>
         <translation>サーバー (%1) からの予期しない戻りコード</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagateuploadng.cpp" line="533"/>
+        <location filename="../src/libsync/propagateuploadng.cpp" line="534"/>
         <source>Missing File ID from server</source>
         <translation>サーバーからファイルIDの戻りがありません</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagateuploadng.cpp" line="553"/>
+        <location filename="../src/libsync/propagateuploadng.cpp" line="554"/>
         <source>Folder is not accessible on the server.</source>
         <comment>server error</comment>
         <translation>サーバー上でフォルダーにアクセスできません。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/propagateuploadng.cpp" line="554"/>
+        <location filename="../src/libsync/propagateuploadng.cpp" line="555"/>
         <source>File is not accessible on the server.</source>
         <comment>server error</comment>
         <translation>サーバー上でファイルにアクセスできません。</translation>
@@ -5597,48 +5602,122 @@ Note that using any logging command line options will override this setting.</so
 <context>
     <name>OCC::SocketApi</name>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="908"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="944"/>
         <source>Context menu share</source>
         <translation>コンテキストメニューの共有</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1230"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="1266"/>
         <source>I shared something with you</source>
         <translation>私はあなたと何かを共有しました</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1243"/>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1283"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="221"/>
         <source>Share options</source>
         <translation>共有オプション</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1249"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="233"/>
         <source>Send private link by email …</source>
         <translation>メールでプライベートリンクを送信…</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1248"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="232"/>
         <source>Copy private link to clipboard</source>
         <translation>プライベートリンクをクリップボードにコピーする</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="616"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="235"/>
+        <source>Lock File</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="236"/>
+        <source>Unlock File</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="237"/>
+        <source>Share Options</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="238"/>
+        <source>Open in Browser</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="239"/>
+        <source>Copy Internal Link</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="240"/>
+        <source>File Actions</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="241"/>
+        <source>Leave This Share</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="242"/>
+        <source>Apply Labels</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="243"/>
+        <source>Resolve Conflict …</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="244"/>
+        <source>Move and Rename …</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="245"/>
+        <source>Move, Rename and Upload …</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="246"/>
+        <source>Delete Local Changes</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="247"/>
+        <source>Move and Upload …</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="248"/>
+        <source>Copy Private Link to Clipboard</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="249"/>
+        <source>Send Private Link by Email …</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="652"/>
         <source>Failed to encrypt folder at &quot;%1&quot;</source>
         <translation>フォルダ &quot;%1&quot; の暗号化に失敗しました</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="617"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="653"/>
         <source>The account %1 does not have end-to-end encryption configured. Please configure this in your account settings to enable folder encryption.</source>
         <translation>アカウント %1 は End-to-End 暗号化が設定されていません。アカウント設定でこれを設定して、フォルダの暗号化を有効にしてください。</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="636"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="672"/>
         <source>Failed to encrypt folder</source>
         <translation>フォルダの暗号化に失敗しました</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="637"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="673"/>
         <source>Could not encrypt the following folder: &quot;%1&quot;.
 
 Server replied with error: %2</source>
@@ -5647,112 +5726,110 @@ Server replied with error: %2</source>
 サーバはエラーで返信しました: %2</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="644"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="680"/>
         <source>Folder encrypted successfully</source>
         <translation>フォルダの暗号化に成功しました</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="645"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="681"/>
         <source>The following folder was encrypted successfully: &quot;%1&quot;</source>
         <translation>次のフォルダの暗号化に成功しました: &quot;%1&quot;</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1244"/>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1309"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="224"/>
         <source>File actions</source>
         <translation>ファイルアクション</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1246"/>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1495"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="1282"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="1531"/>
         <source>Activity</source>
         <extracomment>Name of the Activity file action.</extracomment>
         <translation>アクティビティ</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1275"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="225"/>
         <source>Leave this share</source>
         <translation>この共有を外す</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1281"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="1317"/>
         <source>Resharing this file is not allowed</source>
         <translation>このファイルの再共有は許可されていません</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1281"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="1317"/>
         <source>Resharing this folder is not allowed</source>
         <translation>このフォルダーの再共有は許可されていません</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1342"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="1378"/>
         <source>Encrypt</source>
         <translation>暗号化</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1353"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="219"/>
         <source>Lock file</source>
         <translation>ファイルをロック</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1356"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="220"/>
         <source>Unlock file</source>
         <translation>ロックを解除</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1372"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="1408"/>
         <source>Locked by %1</source>
         <translation>%1 によってロックされました</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1376"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="1412"/>
         <source>Expires in %1 minutes</source>
         <comment>remaining time before lock expires</comment>
         <translation><numerusform>%1分後に期限切れ</numerusform></translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1385"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="226"/>
         <source>Apply labels</source>
         <translation>ラベルを適用する</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1532"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="227"/>
         <source>Resolve conflict …</source>
         <translation>競合を解決する…</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1536"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="228"/>
         <source>Move and rename …</source>
         <translation>移動して名前を変更…</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1539"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="229"/>
         <source>Move, rename and upload …</source>
         <translation>移動、名前の変更、アップロード…</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1541"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="230"/>
         <source>Delete local changes</source>
         <translation>ローカルの変更を削除する</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1547"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="231"/>
         <source>Move and upload …</source>
         <translation>移動してアップロード…</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1548"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="1584"/>
         <source>Delete</source>
         <translation>削除</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1287"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="223"/>
         <source>Copy internal link</source>
         <translation>内部リンクをコピー</translation>
     </message>
     <message>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1501"/>
-        <location filename="../src/gui/socketapi/socketapi.cpp" line="1503"/>
+        <location filename="../src/gui/socketapi/socketapi.cpp" line="222"/>
         <source>Open in browser</source>
         <translation>ブラウザーで開く</translation>
     </message>
@@ -6984,15 +7061,14 @@ Server replied with error: %2</source>
         <translation>新しいフォルダー</translation>
     </message>
     <message>
-        <location filename="../src/gui/advancedsettings.cpp" line="142"/>
-        <location filename="../src/gui/advancedsettings.cpp" line="191"/>
-        <location filename="../src/gui/advancedsettings.cpp" line="203"/>
-        <location filename="../src/gui/advancedsettings.cpp" line="215"/>
+        <location filename="../src/gui/advancedsettings.cpp" line="146"/>
+        <location filename="../src/gui/advancedsettings.cpp" line="193"/>
         <source>Failed to create debug archive</source>
         <translation>デバッグアーカイブの作成に失敗しました</translation>
     </message>
     <message>
-        <location filename="../src/gui/advancedsettings.cpp" line="143"/>
+        <location filename="../src/gui/advancedsettings.cpp" line="147"/>
+        <location filename="../src/gui/advancedsettings.cpp" line="194"/>
         <source>Could not create debug archive in selected location!</source>
         <translation>選択された場所にデバッグアーカイブを作成できませんでした!</translation>
     </message>
@@ -8305,119 +8381,119 @@ Server replied with error: %2</source>
 <context>
     <name>progress</name>
     <message>
-        <location filename="../src/libsync/progressdispatcher.cpp" line="25"/>
+        <location filename="../src/libsync/progressdispatcher.cpp" line="27"/>
         <source>Virtual file created</source>
         <translation>仮想ファイルが作成されました</translation>
     </message>
     <message>
-        <location filename="../src/libsync/progressdispatcher.cpp" line="27"/>
+        <location filename="../src/libsync/progressdispatcher.cpp" line="29"/>
         <source>Replaced by virtual file</source>
         <translation>仮想ファイルに置き換えられました</translation>
     </message>
     <message>
-        <location filename="../src/libsync/progressdispatcher.cpp" line="29"/>
+        <location filename="../src/libsync/progressdispatcher.cpp" line="31"/>
         <source>Downloaded</source>
         <translation>ダウンロード済み</translation>
     </message>
     <message>
-        <location filename="../src/libsync/progressdispatcher.cpp" line="32"/>
+        <location filename="../src/libsync/progressdispatcher.cpp" line="34"/>
         <source>Uploaded</source>
         <translation>アップロード済み</translation>
     </message>
     <message>
-        <location filename="../src/libsync/progressdispatcher.cpp" line="35"/>
+        <location filename="../src/libsync/progressdispatcher.cpp" line="37"/>
         <source>Server version downloaded, copied changed local file into conflict file</source>
         <translation>サーバー側バージョンがダウンロードされました。変更されたローカルファイルは、コンフリクトファイルにコピーしました。</translation>
     </message>
     <message>
-        <location filename="../src/libsync/progressdispatcher.cpp" line="37"/>
+        <location filename="../src/libsync/progressdispatcher.cpp" line="39"/>
         <source>Server version downloaded, copied changed local file into case conflict conflict file</source>
         <translation>サーバ側のバージョンをダウンロード、 変更されたローカルファイルを競合ファイル（case conflict）にコピーしました</translation>
     </message>
     <message>
-        <location filename="../src/libsync/progressdispatcher.cpp" line="39"/>
+        <location filename="../src/libsync/progressdispatcher.cpp" line="41"/>
         <source>Deleted</source>
         <translation>削除済み</translation>
     </message>
     <message>
-        <location filename="../src/libsync/progressdispatcher.cpp" line="42"/>
+        <location filename="../src/libsync/progressdispatcher.cpp" line="44"/>
         <source>Moved to %1</source>
         <translation>%1に移動済み</translation>
     </message>
     <message>
-        <location filename="../src/libsync/progressdispatcher.cpp" line="44"/>
+        <location filename="../src/libsync/progressdispatcher.cpp" line="46"/>
         <source>Ignored</source>
         <translation>除外しました</translation>
     </message>
     <message>
-        <location filename="../src/libsync/progressdispatcher.cpp" line="46"/>
+        <location filename="../src/libsync/progressdispatcher.cpp" line="48"/>
         <source>Filesystem access error</source>
         <translation>ファイルシステムのアクセスエラー</translation>
     </message>
     <message>
-        <location filename="../src/libsync/progressdispatcher.cpp" line="48"/>
-        <location filename="../src/libsync/progressdispatcher.cpp" line="84"/>
+        <location filename="../src/libsync/progressdispatcher.cpp" line="50"/>
+        <location filename="../src/libsync/progressdispatcher.cpp" line="86"/>
         <source>Error</source>
         <translation>エラー</translation>
     </message>
     <message>
-        <location filename="../src/libsync/progressdispatcher.cpp" line="50"/>
+        <location filename="../src/libsync/progressdispatcher.cpp" line="52"/>
         <source>Updated local metadata</source>
         <translation>ローカルメタデータを更新しました</translation>
     </message>
     <message>
-        <location filename="../src/libsync/progressdispatcher.cpp" line="52"/>
+        <location filename="../src/libsync/progressdispatcher.cpp" line="54"/>
         <source>Updated local virtual files metadata</source>
         <translation>更新されたローカル仮想ファイルのメタデータ</translation>
     </message>
     <message>
-        <location filename="../src/libsync/progressdispatcher.cpp" line="54"/>
+        <location filename="../src/libsync/progressdispatcher.cpp" line="56"/>
         <source>Updated end-to-end encryption metadata</source>
         <translation>エンドツーエンドの暗号化メタデータを更新</translation>
     </message>
     <message>
-        <location filename="../src/libsync/progressdispatcher.cpp" line="57"/>
         <location filename="../src/libsync/progressdispatcher.cpp" line="59"/>
+        <location filename="../src/libsync/progressdispatcher.cpp" line="61"/>
         <source>Unknown</source>
         <translation>不明</translation>
     </message>
     <message>
-        <location filename="../src/libsync/progressdispatcher.cpp" line="71"/>
+        <location filename="../src/libsync/progressdispatcher.cpp" line="73"/>
         <source>Downloading</source>
         <translation>ダウンロード中</translation>
     </message>
     <message>
-        <location filename="../src/libsync/progressdispatcher.cpp" line="73"/>
+        <location filename="../src/libsync/progressdispatcher.cpp" line="75"/>
         <source>Uploading</source>
         <translation>アップロード中</translation>
     </message>
     <message>
-        <location filename="../src/libsync/progressdispatcher.cpp" line="76"/>
+        <location filename="../src/libsync/progressdispatcher.cpp" line="78"/>
         <source>Deleting</source>
         <translation>削除しています</translation>
     </message>
     <message>
-        <location filename="../src/libsync/progressdispatcher.cpp" line="79"/>
+        <location filename="../src/libsync/progressdispatcher.cpp" line="81"/>
         <source>Moving</source>
         <translation>移動しています</translation>
     </message>
     <message>
-        <location filename="../src/libsync/progressdispatcher.cpp" line="81"/>
+        <location filename="../src/libsync/progressdispatcher.cpp" line="83"/>
         <source>Ignoring</source>
         <translation>無視する</translation>
     </message>
     <message>
-        <location filename="../src/libsync/progressdispatcher.cpp" line="86"/>
+        <location filename="../src/libsync/progressdispatcher.cpp" line="88"/>
         <source>Updating local metadata</source>
         <translation>ローカルメタデータの更新中</translation>
     </message>
     <message>
-        <location filename="../src/libsync/progressdispatcher.cpp" line="88"/>
+        <location filename="../src/libsync/progressdispatcher.cpp" line="90"/>
         <source>Updating local virtual files metadata</source>
         <translation>ローカル仮想ファイルメタデータの更新</translation>
     </message>
     <message>
-        <location filename="../src/libsync/progressdispatcher.cpp" line="90"/>
+        <location filename="../src/libsync/progressdispatcher.cpp" line="92"/>
         <source>Updating end-to-end encryption metadata</source>
         <translation>エンドツーエンドの暗号化メタデータを更新しています</translation>
     </message>
@@ -8518,22 +8594,32 @@ Server replied with error: %2</source>
         <translation>オンラインでのみ利用可能</translation>
     </message>
     <message>
-        <location filename="../src/gui/guiutility.cpp" line="105"/>
+        <location filename="../src/gui/guiutility.cpp" line="107"/>
         <source>Make always available locally</source>
         <translation>常にローカルに保持する</translation>
     </message>
     <message>
-        <location filename="../src/gui/guiutility.cpp" line="110"/>
+        <location filename="../src/gui/guiutility.cpp" line="109"/>
+        <source>Make Always Available Locally</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <location filename="../src/gui/guiutility.cpp" line="117"/>
         <source>Free up local space</source>
         <translation>ローカル領域の確保</translation>
     </message>
     <message>
-        <location filename="../src/gui/guiutility.cpp" line="133"/>
+        <location filename="../src/gui/guiutility.cpp" line="119"/>
+        <source>Free Up Local Space</source>
+        <translation type="unfinished"/>
+    </message>
+    <message>
+        <location filename="../src/gui/guiutility.cpp" line="143"/>
         <source>Enable experimental feature?</source>
         <translation>試験的な機能を有効化しますか?</translation>
     </message>
     <message>
-        <location filename="../src/gui/guiutility.cpp" line="134"/>
+        <location filename="../src/gui/guiutility.cpp" line="144"/>
         <source>When the &quot;virtual files&quot; mode is enabled no files will be downloaded initially. Instead, a tiny &quot;%1&quot; file will be created for each file that exists on the server. The contents can be downloaded by running these files or by using their context menu.
 
 The virtual files mode is mutually exclusive with selective sync. Currently unselected folders will be translated to online-only folders and your selective sync settings will be reset.
@@ -8550,12 +8636,12 @@ This is a new, experimental mode. If you decide to use it, please report any iss
 これは新しい機能で、実験モードです。使用していて問題があったら報告をお願いします。</translation>
     </message>
     <message>
-        <location filename="../src/gui/guiutility.cpp" line="149"/>
+        <location filename="../src/gui/guiutility.cpp" line="159"/>
         <source>Enable experimental placeholder mode</source>
         <translation>試験的なプレースホルダーモードを有効にする</translation>
     </message>
     <message>
-        <location filename="../src/gui/guiutility.cpp" line="150"/>
+        <location filename="../src/gui/guiutility.cpp" line="160"/>
         <source>Stay safe</source>
         <translation>セキュリティーを確保</translation>
     </message>

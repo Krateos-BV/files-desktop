@@ -20,10 +20,13 @@
 #include "tray/svgimageprovider.h"
 #include "tray/trayimageprovider.h"
 #include "tray/usermodel.h"
+<<<<<<< HEAD
 #include "wheelhandler.h"
 #if defined(XENIA_UPDATE_CHECK)
 #include "xenia/xeniaupdatecheck.h" // XEN-341
 #endif
+=======
+>>>>>>> upstream/master
 
 #ifdef Q_OS_MACOS
 #include "foregroundbackground_interface.h"
@@ -34,7 +37,9 @@
 #include <QGuiApplication>
 #include <QMenu>
 #include <QMouseEvent>
+#include <QNetworkDiskCache>
 #include <QQmlApplicationEngine>
+#include <QQmlComponent>
 #include <QQuickWindow>
 #include <QScreen>
 #include <QVariantMap>
@@ -177,6 +182,8 @@ Systray::Systray()
         this, [this]{ showTrayPopup(WindowPosition::Center); });
 #endif
 }
+
+Systray::~Systray() = default;
 
 void Systray::create()
 {
