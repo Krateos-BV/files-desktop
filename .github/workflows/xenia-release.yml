@@ -26,7 +26,9 @@
 #             published: it is over GitHub's 2 GiB per-asset limit (v26.11.11).
 #   Linux   - the AppImage is never signed.
 # Anything not signed is published with "unsigned" in its file name and is listed
-# as unsigned in the release notes. An org secret that exists but is not scoped to
+# as unsigned in the release notes. Each asset is also published once more under a
+# fixed name (Xenia.Files-<platform>.<ext>, XEN-425) for latest/download links; those
+# names carry no signing state, the release notes do. An org secret that exists but is not scoped to
 # this repository resolves to an empty string, so "absent" here means "not usable
 # by this repository", not necessarily "does not exist".
 name: Xenia Files Release
@@ -678,8 +680,26 @@ jobs:
           for f in artifacts/release-windows/*.msi artifacts/release-macos/*.dmg; do
             cp -v "${f}" "dist/Xenia-Files-${TAG}-$(basename "${f}" | sed 's/^xenia-files-//')"
           done
+          [ "$(find dist -type f | wc -l)" -eq 3 ] || { echo "::error::Expected three versioned release assets."; exit 1; }
+          # XEN-425: byte-identical copies under fixed names, so links such as
+          # https://github.com/Krateos-BV/files-desktop/releases/latest/download/Xenia.Files-macos-arm64.dmg
+          # always resolve to the newest published stable release (latest skips drafts and
+          # prereleases). The fixed names start with "Xenia.Files-", never "Xenia-Files-v",
+          # so the update check (matchAsset) keeps picking the versioned assets only.
+          # Signing state is not in these names; the release notes table carries it.
+          for pair in "macos-arm64-*.dmg:Xenia.Files-macos-arm64.dmg" \
+                      "windows-x64-*.msi:Xenia.Files-windows-x64.msi" \
+                      "linux-x86_64-*.AppImage:Xenia.Files-linux-x86_64.AppImage"; do
+            src=(dist/Xenia-Files-${TAG}-${pair%%:*})
+            if [ "${#src[@]}" -ne 1 ] || [ ! -f "${src[0]}" ]; then
+              echo "::error::Expected exactly one versioned asset for ${pair#*:}, found ${#src[@]}."
+              exit 1
+            fi
+            cp -v "${src[0]}" "dist/${pair#*:}"
+            cmp -- "${src[0]}" "dist/${pair#*:}"
+          done
           ls -l dist
-          [ "$(find dist -type f | wc -l)" -eq 3 ] || { echo "::error::Expected three release assets."; exit 1; }
+          [ "$(find dist -type f | wc -l)" -eq 6 ] || { echo "::error::Expected six release assets (three versioned, three fixed-name)."; exit 1; }
           (cd dist && sha256sum -- * > SHA256SUMS)
 
       # XEN-341: installed clients pick their download by these names
@@ -724,6 +744,8 @@ jobs:
             echo
             # The Windows MSI is always unsigned (XEN-304), so this note always applies.
             echo "Unsigned assets carry \`unsigned\` in their file names. macOS Gatekeeper and Windows SmartScreen will warn when they are opened."
+            echo
+            echo "The \`Xenia.Files-*\` assets are identical copies under fixed names, for links of the form \`releases/latest/download/Xenia.Files-<platform>.<ext>\`. Their names do not show the signing state: the table above applies to them too (the Windows MSI and the Linux AppImage are **UNSIGNED**)."
             echo
             echo "Checksums are in SHA256SUMS."
           } > notes.md
