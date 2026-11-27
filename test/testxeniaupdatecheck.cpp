@@ -128,6 +128,35 @@ private Q_SLOTS:
         QVERIFY(!pickUpdate(body, QStringLiteral("26.11.6"), UpdatePlatform::Other).downloadUrl.isValid());
     }
 
+    void testFixedNameCopiesAreIgnored()
+    {
+        // XEN-425: releases also carry byte-identical copies under fixed names for
+        // latest/download links. The update check must keep picking the versioned assets.
+        const QStringList fixedNames = {
+            QStringLiteral("Xenia.Files-macos-arm64.dmg"),
+            QStringLiteral("Xenia.Files-windows-x64.msi"),
+            QStringLiteral("Xenia.Files-linux-x86_64.AppImage"),
+        };
+        auto assets = fixedNames;
+        assets.append(QStringLiteral("Xenia-Files-v26.12.1-macos-arm64-signed.dmg"));
+        assets.append(QStringLiteral("Xenia-Files-v26.12.1-windows-x64-unsigned.msi"));
+        assets.append(QStringLiteral("Xenia-Files-v26.12.1-linux-x86_64-unsigned.AppImage"));
+        const auto body = list({release(QStringLiteral("v26.12.1"), false, false, assets)});
+        QVERIFY(pickUpdate(body, QStringLiteral("26.11.6"), UpdatePlatform::MacArm64)
+                    .downloadUrl.toString()
+                    .endsWith(QStringLiteral("Xenia-Files-v26.12.1-macos-arm64-signed.dmg")));
+        QVERIFY(pickUpdate(body, QStringLiteral("26.11.6"), UpdatePlatform::WindowsX64)
+                    .downloadUrl.toString()
+                    .endsWith(QStringLiteral("Xenia-Files-v26.12.1-windows-x64-unsigned.msi")));
+        QVERIFY(pickUpdate(body, QStringLiteral("26.11.6"), UpdatePlatform::LinuxX64)
+                    .downloadUrl.toString()
+                    .endsWith(QStringLiteral("Xenia-Files-v26.12.1-linux-x86_64-unsigned.AppImage")));
+
+        // Fixed names alone never count as a download for the update check.
+        const auto fixedOnly = list({release(QStringLiteral("v26.12.1"), false, false, fixedNames)});
+        QVERIFY(!pickUpdate(fixedOnly, QStringLiteral("26.11.6"), UpdatePlatform::MacArm64).downloadUrl.isValid());
+    }
+
     void testSameOrOlderIsNotOffered()
     {
         const auto body = list({release(QStringLiteral("v26.11.6"), false, false, allAssets(QStringLiteral("v26.11.6")))});
